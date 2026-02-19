@@ -3,12 +3,81 @@
 **Project**: AI Trading Debate Lab
 **Date**: 2026-02-19
 **Workflow**: qa-automate
+**Last Updated**: 2026-02-19 (Story 1-4)
 
 ## Test Frameworks
 
 - **Frontend Unit**: Jest + React Testing Library
 - **Frontend E2E/API**: Playwright
 - **Backend**: Pytest with pytest-asyncio
+
+---
+
+## Story 1-4: WebSocket Streaming Layer
+
+### Backend Tests (38/38 passed ✅)
+
+| Suite | Tests | Status |
+|-------|-------|--------|
+| test_streaming.py | 25 | ✅ |
+| test_ws.py | 13 | ✅ |
+
+### Frontend Unit Tests (19/19 passed ✅)
+
+| Test ID | Scenario | Priority | Status |
+|---------|----------|----------|--------|
+| 1-4-UNIT-001 | Initialize with disconnected status | P0 | ✅ |
+| 1-4-UNIT-002 | Connect to WebSocket with valid token | P0 | ✅ |
+| 1-4-UNIT-003 | Handle TOKEN_RECEIVED messages | P0 | ✅ |
+| 1-4-UNIT-004 | Handle ARGUMENT_COMPLETE messages | P0 | ✅ |
+| 1-4-UNIT-005 | Handle CONNECTED event | P1 | ✅ |
+| 1-4-UNIT-006 | Handle DISCONNECTED event | P1 | ✅ |
+| 1-4-UNIT-007 | Handle explicit disconnect | P1 | ✅ |
+| 1-4-UNIT-008 | Handle manual reconnect | P1 | ✅ |
+| 1-4-UNIT-009 | Handle ERROR messages | P1 | ✅ |
+| 1-4-UNIT-010 | Handle no token error | P1 | ✅ |
+| 1-4-UNIT-011 | Handle WebSocket close with error code | P1 | ✅ |
+| 1-4-UNIT-012 | Reconnection with exponential backoff | P1 | ✅ |
+| 1-4-UNIT-013 | Stop reconnecting after max retries | P1 | ✅ |
+| 1-4-UNIT-014 | Handle TURN_CHANGE messages | P2 | ✅ |
+| 1-4-UNIT-015 | Handle STATUS_UPDATE messages | P2 | ✅ |
+| 1-4-UNIT-016 | Respond to PING with PONG | P2 | ✅ |
+| 1-4-UNIT-017 | Handle malformed messages gracefully | P2 | ✅ |
+| 1-4-UNIT-018 | Cleanup on unmount | P2 | ✅ |
+| 1-4-UNIT-019 | Clear reconnect timeout on disconnect | P2 | ✅ |
+
+### Frontend E2E Tests (11 tests)
+
+| Test ID | Scenario | Priority | Status |
+|---------|----------|----------|--------|
+| 1-4-E2E-001 | User sees tokens stream in real-time | P0 | ⏸️ Requires backend |
+| 1-4-E2E-002 | Argument complete event received | P0 | ⏸️ Requires backend |
+| 1-4-E2E-003 | Connected event received on WebSocket open | P0 | ⏸️ Requires backend |
+| 1-4-E2E-004 | Unauthorized connection shows error | P1 | ⏸️ Requires backend |
+| 1-4-E2E-005 | Connection status indicator updates | P1 | ⏸️ Requires backend |
+| 1-4-E2E-006 | Turn change event received | P1 | ⏸️ Requires backend |
+| 1-4-E2E-007 | Client reconnects with exponential backoff | P1 | ⏸️ Requires backend |
+| 1-4-E2E-008 | Heartbeat ping/pong maintains connection | P2 | ⏸️ Requires backend |
+| 1-4-E2E-009 | Debate status update on completion | P2 | ⏸️ Requires backend |
+| 1-4-E2E-010 | Streaming text accumulates in container | P2 | ⏸️ Requires backend |
+| 1-4-E2E-011 | Bull and Bear arguments display separately | P2 | ⏸️ Requires backend |
+
+### Acceptance Criteria Coverage
+
+| AC | Description | Tests |
+|----|-------------|-------|
+| AC1 | Tokens stream via WebSocket in real-time | test_streaming.py, useDebateSocket.test.ts |
+| AC2 | End of Message event sent when complete | test_streaming.py (TestWebSocketActions) |
+| AC3 | Reconnection handled gracefully | test_streaming.py (TestReconnectionFlow), useDebateSocket.test.ts |
+
+### Risk Mitigation Tests
+
+| Risk ID | Description | Tests | Status |
+|---------|-------------|-------|--------|
+| R-4.1 | Connection failures | TestTokenValidation, TestConnectionRateLimit | ✅ Complete |
+| R-4.2 | Token refresh during long debates | onTokenReceived tests | ✅ Complete |
+| R-4.3 | Concurrent connections (50k viewers) | TestDebateConnectionManager | ✅ Complete |
+| R-4.4 | Origin validation (CORS) | TestOriginValidation | ✅ Complete |
 
 ---
 
@@ -108,11 +177,11 @@
 
 | Metric | Count |
 |--------|-------|
-| Backend Tests | 70 (38 Story 1-3 + 32 Story 1-2) |
-| Frontend Unit Tests | 31 (Story 1-1) |
+| Backend Tests | 108 (38 Story 1-4 + 38 Story 1-3 + 32 Story 1-2) |
+| Frontend Unit Tests | 50 (19 Story 1-4 + 31 Story 1-1) |
 | Frontend API Tests | 29 (16 Story 1-3 + 13 Story 1-2) |
-| E2E Tests | 15 (10 Story 1-3 + 5 Story 1-1) |
-| **Total** | **145 tests** |
+| E2E Tests | 26 (11 Story 1-4 + 10 Story 1-3 + 5 Story 1-1) |
+| **Total** | **213 tests** |
 
 ## Running Tests
 
@@ -120,6 +189,10 @@
 # Backend tests (all stories)
 cd trade-app/fastapi_backend
 source venv/bin/activate && pytest
+
+# Backend tests (Story 1-4 WebSocket)
+cd trade-app/fastapi_backend
+source venv/bin/activate && pytest tests/services/debate/test_streaming.py tests/routes/test_ws.py
 
 # Backend tests (Story 1-3 only)
 cd trade-app/fastapi_backend
@@ -129,10 +202,15 @@ source venv/bin/activate && pytest tests/services/debate/ tests/routes/test_deba
 cd trade-app/nextjs-frontend
 pnpm test
 
+# Frontend unit tests (Story 1-4 WebSocket)
+cd trade-app/nextjs-frontend
+pnpm test tests/unit/useDebateSocket.test.ts
+
 # E2E/API tests (requires running backend)
 cd trade-app/nextjs-frontend
 pnpm exec playwright test tests/api/debate-api.spec.ts --project=chromium
 pnpm exec playwright test tests/e2e/debate-flow.spec.ts --project=chromium
+pnpm exec playwright test tests/e2e/websocket-streaming.spec.ts --project=chromium
 ```
 
 ## Notes
