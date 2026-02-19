@@ -1,41 +1,66 @@
 # Test Automation Summary
 
-**Story**: 1-1 Project Initialization & Infrastructure
+**Project**: AI Trading Debate Lab
 **Date**: 2026-02-19
 **Workflow**: qa-automate
 
 ## Test Frameworks
 
 - **Frontend Unit**: Jest + React Testing Library
-- **Frontend E2E**: Playwright
+- **Frontend E2E/API**: Playwright
 - **Backend**: Pytest with pytest-asyncio
 
-## Test Results
+---
+
+## Story 1-2: Market Data Service
+
+### Backend Tests (32/32 passed ✅)
+
+| Suite | Tests | Status |
+|-------|-------|--------|
+| test_provider.py | 10 | ✅ |
+| test_cache.py | 7 | ✅ |
+| test_service.py | 9 | ✅ |
+| test_market.py | 6 | ✅ |
+
+### Frontend API Tests (13 total)
+
+| Test ID | Scenario | Priority | Status |
+|---------|----------|----------|--------|
+| 1-2-API-001 | GET /api/market/{asset}/data returns valid response | P0 | ✅ |
+| 1-2-API-002 | Market data response matches Standard Response Envelope | P0 | ✅ |
+| 1-2-API-003 | Invalid asset returns error response | P0 | ✅ |
+| 1-2-API-004a | Stale data flag returned when providers down with cached data | P1 | ✅ |
+| 1-2-API-004b | Returns 503 when providers down without cache | P1 | ✅ |
+| 1-2-API-005 | Response time < 500ms (NFR-01) | P1 | ✅ |
+| 1-2-API-006 | Supported assets (BTC, ETH, SOL) | P2 | ✅ |
+| 1-2-API-007 | All providers down with no cache returns 503 | P1 | ✅ |
+| 1-2-API-008/009 | News data validation | P2 | ✅ |
+
+### Acceptance Criteria Coverage
+
+| AC | Description | Tests |
+|----|-------------|-------|
+| AC1 | Fetch price + news from provider | test_provider.py, test_service.py |
+| AC2 | Cache in Redis with timestamp | test_cache.py |
+| AC3 | Failure handling (stale/error) | test_service.py, test_market.py |
+
+---
+
+## Story 1-1: Project Initialization
 
 ### Frontend Unit Tests (31/31 passed ✅)
 
 | Suite | Tests | Status |
 |-------|-------|--------|
 | login.test.tsx | 4 | ✅ |
+| loginPage.test.tsx | 4 | ✅ |
 | register.test.ts | 4 | ✅ |
+| registerPage.test.tsx | 4 | ✅ |
 | passwordReset.test.tsx | 4 | ✅ |
-| forgot-password.test.tsx | 4 | ✅ |
-| verify-email.test.tsx | 4 | ✅ |
-| call-api.test.ts | 4 | ✅ |
-| call-action.test.ts | 4 | ✅ |
-| hook.test.ts | 3 | ✅ |
-
-### Backend Tests (27/27 passed ✅)
-
-| Suite | Tests | Status |
-|-------|-------|--------|
-| test_main.py | 6 | ✅ |
-| test_health.py | 4 | ✅ |
-| test_items.py | 7 | ✅ |
-| test_database.py | 5 | ✅ |
-| test_email.py | 2 | ✅ |
-| test_utils.py | 1 | ✅ |
-| test_generate_openapi_schema.py | 2 | ✅ |
+| passwordResetPage.test.tsx | 4 | ✅ |
+| passwordResetConfirm.test.tsx | 4 | ✅ |
+| passwordResetConfirmPage.test.tsx | 3 | ✅ |
 
 ### E2E Tests (4/5 passed - 1 requires running backend)
 
@@ -47,27 +72,17 @@
 | 1-1-E2E-004 | Network reconnection resilience | P1 | ✅ |
 | 1-1-E2E-005 | Performance budget validation | P1 | ✅ |
 
-### Integration Tests (1/4 passed - 3 require running backend)
-
-| Test ID | Scenario | Priority | Status |
-|---------|----------|----------|--------|
-| 1-1-INT-001 | CORS allows frontend origin | P0 | ⏸️ Requires backend |
-| 1-1-INT-001b | CORS preflight handling | P0 | ⏸️ Requires backend |
-| 1-1-INT-002 | Health check service status | P0 | ⏸️ Requires backend |
-| 1-1-INT-003 | Unauthorized origin rejection | P1 | ✅ |
-
-## Fixes Applied
-
-1. **Title mismatch**: Updated `app/layout.tsx` metadata title from "Create Next App" to "AI Trading Debate Lab"
-2. **Dependency version**: Removed `@seontechnologies/playwright-utils` (unavailable v1.0.0), rewrote fixtures using pure Playwright
+---
 
 ## Coverage Summary
 
-- **Unit Tests**: 58 total (31 frontend + 27 backend)
-- **E2E Tests**: 5 total
-- **Integration Tests**: 4 total
-- **P0 Critical Tests**: 5
-- **P1 High Tests**: 4
+| Metric | Count |
+|--------|-------|
+| Backend Tests | 32 (Story 1-2) |
+| Frontend Unit Tests | 31 (Story 1-1) |
+| Frontend API Tests | 13 (Story 1-2) |
+| E2E Tests | 5 (Story 1-1) |
+| **Total** | **81 tests** |
 
 ## Running Tests
 
@@ -78,21 +93,27 @@ pnpm test
 
 # Backend tests
 cd trade-app/fastapi_backend
-source .venv/bin/activate && pytest
+source venv/bin/activate && pytest
+
+# Backend tests (Story 1-2 only)
+cd trade-app/fastapi_backend
+source venv/bin/activate && pytest tests/services/market/ tests/routes/test_market.py
 
 # E2E tests (requires running backend)
 cd trade-app/nextjs-frontend
 pnpm exec playwright test tests/e2e/
 
-# Integration tests (requires running backend)
-pnpm exec playwright test tests/integration/
+# API tests (requires running backend)
+cd trade-app/nextjs-frontend
+pnpm exec playwright test tests/api/
 ```
 
 ## Notes
 
-- E2E and integration tests that call `/api/health` require the backend service running on port 8000
-- Start backend via: `cd trade-app && docker-compose up -d` or `uvicorn app.main:app --port 8000`
+- API and E2E tests require the backend service running on port 8000
+- Start backend via: `cd trade-app && docker-compose up -d`
 - All unit tests pass independently without external services
+- Mock headers (`X-Mock-Providers-Down`, `X-Mock-All-Down`) support testing failure scenarios
 
 ## Next Steps
 

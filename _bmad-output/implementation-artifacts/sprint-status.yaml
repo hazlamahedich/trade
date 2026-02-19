@@ -42,7 +42,7 @@ story_location: _bmad-output/implementation-artifacts
 development_status:
   epic-1: in-progress
   1-1-project-initialization-infrastructure: done
-  1-2-market-data-service: backlog
+  1-2-market-data-service: done
   1-3-debate-engine-core-langgraph: backlog
   1-4-websocket-streaming-layer: backlog
   1-5-debate-stream-ui-the-arena: backlog
