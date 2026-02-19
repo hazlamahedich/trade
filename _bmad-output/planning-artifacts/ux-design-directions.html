@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Trading Debate Lab - Design Directions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap");
+
+      /* Typography overrides */
+      .font-geist {
+        font-family: "JetBrains Mono", monospace;
+      } /* Placeholder for Geist */
+      .font-inter {
+        font-family: "Inter", sans-serif;
+      }
+
+      /* Custom Animations */
+      @keyframes pulse-gentle {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.8;
+        }
+      }
+      .animate-pulse-gentle {
+        animation: pulse-gentle 2s ease-in-out infinite;
+      }
+
+      @keyframes debate-slide-up {
+        from {
+          transform: translateY(20px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      .message-enter {
+        animation: debate-slide-up 0.3s ease-out forwards;
+      }
+
+      /* Scrollbar hiding */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-100 text-slate-900 font-inter h-screen flex flex-col overflow-hidden"
+  >
+    <!-- Header / Control Panel -->
+    <header
+      class="bg-white border-b border-gray-200 p-4 flex items-center justify-between z-50 shadow-sm shrink-0"
+    >
+      <div>
+        <h1 class="text-xl font-bold font-geist tracking-tight text-slate-900">
+          AI Debate Lab
+        </h1>
+        <p class="text-xs text-slate-500">Design Direction Showcase</p>
+      </div>
+
+      <div class="flex gap-2 bg-gray-100 p-1 rounded-lg">
+        <button
+          onclick="switchTheme('cockpit')"
+          id="btn-cockpit"
+          class="theme-btn px-3 py-1.5 text-sm font-medium rounded-md hover:bg-white hover:shadow-sm transition-all text-slate-600 focus:bg-white focus:text-slate-900 focus:shadow-sm ring-1 ring-transparent focus:ring-slate-200"
+          data-theme="cockpit"
+        >
+          The Cockpit
+        </button>
+        <button
+          onclick="switchTheme('focus')"
+          id="btn-focus"
+          class="theme-btn px-3 py-1.5 text-sm font-medium rounded-md hover:bg-white hover:shadow-sm transition-all text-slate-600 focus:bg-white focus:text-slate-900 focus:shadow-sm ring-1 ring-transparent focus:ring-slate-200"
+          data-theme="focus"
+        >
+          The Focus
+        </button>
+        <button
+          onclick="switchTheme('glass')"
+          id="btn-glass"
+          class="theme-btn px-3 py-1.5 text-sm font-medium rounded-md hover:bg-white hover:shadow-sm transition-all text-slate-600 focus:bg-white focus:text-slate-900 focus:shadow-sm ring-1 ring-transparent focus:ring-slate-200"
+          data-theme="glass"
+        >
+          The Glasshouse
+        </button>
+        <button
+          onclick="switchTheme('terminal')"
+          id="btn-terminal"
+          class="theme-btn px-3 py-1.5 text-sm font-medium rounded-md hover:bg-white hover:shadow-sm transition-all text-slate-600 focus:bg-white focus:text-slate-900 focus:shadow-sm ring-1 ring-transparent focus:ring-slate-200"
+          data-theme="terminal"
+        >
+          The Terminal
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Preview Area -->
+    <main
+      class="flex-1 relative bg-slate-200 flex items-center justify-center p-4 lg:p-8 overflow-hidden"
+    >
+      <!-- Mobile Device Frame -->
+      <div
+        id="device-frame"
+        class="relative w-[375px] h-[812px] bg-white rounded-[40px] shadow-2xl overflow-hidden border-[8px] border-slate-800 transition-all duration-500 ease-in-out"
+      >
+        <!-- Dynamic Content Container -->
+        <div
+          id="app-container"
+          class="h-full w-full flex flex-col relative transition-colors duration-300"
+        >
+          <!-- Status Bar (Fake) -->
+          <div
+            class="h-12 w-full flex justify-between items-end px-6 pb-2 text-xs font-medium z-20 transition-colors duration-300 status-bar-text"
+          >
+            <span>9:41</span>
+            <div class="flex gap-1">
+              <i data-lucide="signal" class="w-3 h-3"></i>
+              <i data-lucide="wifi" class="w-3 h-3"></i>
+              <i data-lucide="battery" class="w-3 h-3"></i>
+            </div>
+          </div>
+
+          <!-- App Header -->
+          <nav
+            id="app-header"
+            class="px-5 py-3 flex justify-between items-center z-10"
+          >
+            <div class="flex items-center gap-2">
+              <button class="p-2 -ml-2 rounded-full hover:bg-black/5">
+                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+              </button>
+              <span class="font-bold text-lg tracking-tight">BTC/USD</span>
+              <span
+                class="text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold"
+                >+2.4%</span
+              >
+            </div>
+            <button class="relative p-2 rounded-full hover:bg-black/5">
+              <i data-lucide="shield" class="w-5 h-5"></i>
+              <span
+                class="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full border border-white"
+              ></span>
+            </button>
+          </nav>
+
+          <!-- Chart Area (Simplified) -->
+          <div id="chart-area" class="h-48 px-4 relative shrink-0">
+            <div
+              class="absolute inset-0 flex items-center justify-center opacity-10 text-9xl font-bold tracking-tighter select-none pointer-events-none overflow-hidden"
+            >
+              BTC
+            </div>
+            <!-- SVG Chart Line -->
+            <svg viewBox="0 0 375 120" class="w-full h-full overflow-visible">
+              <path
+                d="M0,80 C50,80 80,40 120,60 C160,80 200,20 250,50 C300,80 340,10 375,30"
+                fill="none"
+                class="stroke-emerald-500"
+                stroke-width="2"
+              />
+              <circle
+                cx="250"
+                cy="50"
+                r="4"
+                class="fill-emerald-500 animate-pulse"
+              />
+            </svg>
+            <!-- Price Overlay -->
+            <div class="absolute top-4 left-6">
+              <div class="text-3xl font-bold font-geist">$94,230</div>
+              <div class="text-xs text-slate-400 font-medium">
+                Vol: $42B (24h)
+              </div>
+            </div>
+          </div>
+
+          <!-- Debate Stream (The Active Watch) -->
+          <div
+            id="debate-stream"
+            class="flex-1 px-4 py-2 overflow-y-auto no-scrollbar mask-gradient space-y-3"
+          >
+            <!-- Intro -->
+            <div class="text-center py-4">
+              <span
+                class="px-3 py-1 bg-slate-100 text-slate-500 text-[10px] uppercase font-bold tracking-wider rounded-full"
+                >Debate Started</span
+              >
+            </div>
+
+            <!-- Bull Message -->
+            <div class="flex gap-3 message-enter" style="animation-delay: 0.1s">
+              <div
+                class="w-8 h-8 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0"
+              >
+                <i
+                  data-lucide="trending-up"
+                  class="w-4 h-4 text-emerald-600"
+                ></i>
+              </div>
+              <div
+                class="bg-white border border-slate-100 p-3 rounded-2xl rounded-tl-none shadow-sm max-w-[85%]"
+              >
+                <p class="text-sm text-slate-700 leading-snug">
+                  Momentum is undeniable. We just broke the
+                  <b>$94k resistance</b> with massive volume. Every dip is being
+                  bought aggressively.
+                </p>
+              </div>
+            </div>
+
+            <!-- Bear Message -->
+            <div
+              class="flex flex-row-reverse gap-3 message-enter"
+              style="animation-delay: 0.8s"
+            >
+              <div
+                class="w-8 h-8 rounded-full bg-rose-100 border border-rose-200 flex items-center justify-center shrink-0"
+              >
+                <i
+                  data-lucide="trending-down"
+                  class="w-4 h-4 text-rose-600"
+                ></i>
+              </div>
+              <div
+                class="bg-white border border-slate-100 p-3 rounded-2xl rounded-tr-none shadow-sm max-w-[85%]"
+              >
+                <p class="text-sm text-slate-700 leading-snug">
+                  Careful. RSI is at 82 (Overbought). This is a classic
+                  <b>bull trap</b> before the liquidity sweep at $92k.
+                </p>
+              </div>
+            </div>
+
+            <!-- Bull Rebuttal -->
+            <div class="flex gap-3 message-enter" style="animation-delay: 1.5s">
+              <div
+                class="w-8 h-8 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0"
+              >
+                <i
+                  data-lucide="trending-up"
+                  class="w-4 h-4 text-emerald-600"
+                ></i>
+              </div>
+              <div
+                class="bg-white border border-slate-100 p-3 rounded-2xl rounded-tl-none shadow-sm max-w-[85%]"
+              >
+                <p class="text-sm text-slate-700 leading-snug">
+                  Institutional inflows haven't stopped. The MicroStrategy buy
+                  wall is at $93k. Safe.
+                </p>
+              </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div
+              class="flex flex-row-reverse gap-3 transition-opacity duration-300"
+              id="typing-indicator"
+            >
+              <div
+                class="w-8 h-8 rounded-full bg-rose-50 border border-slate-100 flex items-center justify-center shrink-0"
+              >
+                <div class="flex gap-0.5">
+                  <span
+                    class="w-1 h-1 bg-rose-400 rounded-full animate-bounce"
+                  ></span>
+                  <span
+                    class="w-1 h-1 bg-rose-400 rounded-full animate-bounce"
+                    style="animation-delay: 0.1s"
+                  ></span>
+                  <span
+                    class="w-1 h-1 bg-rose-400 rounded-full animate-bounce"
+                    style="animation-delay: 0.2s"
+                  ></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Guardian Layer / Verdict (Hidden by default, triggered by toggle) -->
+          <div
+            id="guardian-overlay"
+            class="absolute bottom-0 left-0 w-full p-4 pointer-events-none z-50"
+          >
+            <div
+              id="guardian-card"
+              class="bg-white/90 backdrop-blur-md border border-violet-100 shadow-[0_-8px_30px_rgba(0,0,0,0.1)] rounded-2xl p-4 transform translate-y-[120%] transition-transform duration-500 ease-out pointer-events-auto"
+            >
+              <div class="flex items-center gap-3 mb-2">
+                <div
+                  class="w-10 h-10 rounded-full bg-violet-600 flex items-center justify-center shrink-0 shadow-lg shadow-violet-200"
+                >
+                  <i data-lucide="shield-alert" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                  <h3
+                    class="text-sm font-bold text-slate-900 uppercase tracking-wide"
+                  >
+                    Risk Intervention
+                  </h3>
+                  <p class="text-xs text-slate-500 font-medium">
+                    Consensus: <span class="text-amber-500">Wait</span>
+                  </p>
+                </div>
+              </div>
+              <p
+                class="text-sm text-slate-700 font-medium mb-4 leading-relaxed"
+              >
+                The Bear's RSI argument creates <b>high short-term risk</b>.
+                Wait for the retest at $92.5k.
+              </p>
+              <button
+                class="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-lg shadow-md active:scale-95 transition-transform"
+              >
+                Accept Advice (+10 Discipline)
+              </button>
+            </div>
+          </div>
+
+          <!-- Bottom Controls (Thumb Zone) -->
+          <div
+            id="controls"
+            class="p-4 pb-8 bg-white border-t border-slate-100 flex gap-3 z-10 shrink-0"
+          >
+            <button
+              class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-colors flex flex-col items-center justify-center gap-1"
+              onclick="triggerVerdict()"
+            >
+              <i data-lucide="eye" class="w-5 h-5"></i>
+              <span class="text-[10px] uppercase">Analyze</span>
+            </button>
+            <button
+              class="flex-1 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-bold rounded-xl transition-colors flex flex-col items-center justify-center gap-1 border border-emerald-100"
+            >
+              <i data-lucide="trending-up" class="w-5 h-5"></i>
+              <span class="text-[10px] uppercase">Bull Case</span>
+            </button>
+            <button
+              class="flex-1 py-3 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-xl transition-colors flex flex-col items-center justify-center gap-1 border border-rose-100"
+            >
+              <i data-lucide="trending-down" class="w-5 h-5"></i>
+              <span class="text-[10px] uppercase">Bear Case</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Explainer Panel -->
+      <div
+        class="absolute right-8 top-8 bottom-8 w-80 bg-white shadow-xl rounded-2xl p-6 hidden lg:flex flex-col gap-4 border border-slate-100 overflow-y-auto"
+      >
+        <h3 class="font-bold text-lg">Design Notes</h3>
+
+        <div id="theme-notes" class="text-sm text-slate-600 space-y-4">
+          <p>Select a design direction to see the rationale.</p>
+        </div>
+
+        <hr class="border-slate-100" />
+
+        <div class="space-y-2">
+          <h4 class="font-bold text-xs uppercase text-slate-400">
+            Features Active
+          </h4>
+          <div class="flex items-center gap-2 text-xs text-slate-700">
+            <i data-lucide="check-circle" class="w-3 h-3 text-emerald-500"></i>
+            Active Watch
+          </div>
+          <div class="flex items-center gap-2 text-xs text-slate-700">
+            <i data-lucide="check-circle" class="w-3 h-3 text-emerald-500"></i>
+            Glassmorphism Guardian
+          </div>
+          <div class="flex items-center gap-2 text-xs text-slate-700">
+            <i data-lucide="check-circle" class="w-3 h-3 text-emerald-500"></i>
+            Thumb Zone
+          </div>
+        </div>
+
+        <button
+          onclick="triggerVerdict()"
+          class="mt-auto py-2 px-4 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors"
+        >
+          Trigger Verdict Animation
+        </button>
+        <p class="text-[10px] text-slate-400 mt-2 text-center">
+          Press to simulate 'Guardian Intervention'
+        </p>
+      </div>
+    </main>
+
+    <script>
+      lucide.createIcons();
+
+      let activeTheme = "cockpit";
+      const themes = {
+        cockpit: {
+          notes:
+            "<b>The Cockpit (High Density):</b><br>Everything is carded and bordered. High contrast, precise lines. Feels like a professional tool. <br><br><b>Pros:</b> Information density, trustworthy.<br><b>Cons:</b> Can feel cluttered if not careful.",
+          css: "", // Default styling
+        },
+        focus: {
+          notes:
+            "<b>The Focus (Minimalist):</b><br>Removes all borders. Uses whitespace to define hierarchy. The chart fades into the background. <br><br><b>Pros:</b> Zero distraction, focus on the debate.<br><b>Cons:</b> Less definition for data points.",
+          css: "#app-container { background-color: #ffffff; } #debate-stream .bg-white { border: none; box-shadow: none; background-color: #f3f4f6; } #chart-area { opacity: 0.5; filter: grayscale(100%); transition: opacity 0.3s; } #chart-area:hover { opacity: 1; filter: grayscale(0%); } #controls { border-top: none; }",
+        },
+        glass: {
+          notes:
+            "<b>The Glasshouse (Modern):</b><br>Dark mode default. Heavy use of blurs and transparency. Depth indicates hierarchy. <br><br><b>Pros:</b> Extremely premium, futuristic feel. Matches 'AI' expectations.<br><b>Cons:</b> Performance cost on low-end mobiles.",
+          css: "#app-container { background: #0f172a; color: white; } .status-bar-text { color: white; } #chart-area { color: white; } #debate-stream .bg-white { background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255,255,255,0.1); color: white; } #debate-stream p { color: #e2e8f0; } #controls { background: #0f172a; border-top: 1px solid rgba(255,255,255,0.1); } #controls button { background: rgba(255,255,255,0.05); color: white; } #app-header button { color: white; } #app-header button:hover { background: rgba(255,255,255,0.1); }",
+        },
+        terminal: {
+          notes:
+            "<b>The Terminal (Retro-Futurist):</b><br>Monospace aesthetics. Green styling. Raw data feel. <br><br><b>Pros:</b> Appeals to 'hacker' / advanced trader personas.<br><b>Cons:</b> Intimidating for beginners (Miguel).",
+          css: "#app-container { background: #000000; font-family: 'JetBrains Mono', monospace; color: #4ade80; } .status-bar-text { color: #4ade80; } .font-inter { font-family: 'JetBrains Mono', monospace; } #debate-stream .bg-white { background: #000; border: 1px solid #22c55e; color: #22c55e; border-radius: 0; } #debate-stream p { color: #22c55e; } #chart-area svg path { stroke: #22c55e; } #controls { background: #000; border-top: 1px solid #22c55e; } #controls button { background: #000; border: 1px solid #22c55e; color: #22c55e; border-radius: 0; } #app-header button { color: #22c55e; }",
+        },
+      };
+
+      function switchTheme(themeName) {
+        activeTheme = themeName;
+        const theme = themes[themeName];
+        const notes = document.getElementById("theme-notes");
+        let styleTag = document.getElementById("theme-style");
+
+        if (!styleTag) {
+          styleTag = document.createElement("style");
+          styleTag.id = "theme-style";
+          document.head.appendChild(styleTag);
+        }
+
+        styleTag.innerHTML = theme.css;
+        notes.innerHTML = theme.notes;
+
+        // Highlight active button
+        document.querySelectorAll(".theme-btn").forEach((btn) => {
+          if (btn.dataset.theme === themeName) {
+            btn.classList.add(
+              "bg-white",
+              "text-slate-900",
+              "shadow-sm",
+              "ring-slate-200",
+            );
+            btn.classList.remove("text-slate-600");
+          } else {
+            btn.classList.remove(
+              "bg-white",
+              "text-slate-900",
+              "shadow-sm",
+              "ring-slate-200",
+            );
+            btn.classList.add("text-slate-600");
+          }
+        });
+
+        // Re-render advice card if visible to match theme
+        const card = document.getElementById("guardian-card");
+        // Hard to re-render in vanilla JS without framework, but basic color inheritance works
+      }
+
+      function triggerVerdict() {
+        const card = document.getElementById("guardian-card");
+
+        // Animation reset
+        card.style.transition = "none";
+        card.style.transform = "translateY(120%)";
+
+        setTimeout(() => {
+          card.style.transition =
+            "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)";
+          card.style.transform = "translateY(0%)";
+
+          // Haptic simulation
+          const frame = document.getElementById("device-frame");
+          frame.classList.add("animate-pulse");
+          setTimeout(() => frame.classList.remove("animate-pulse"), 300);
+        }, 50);
+      }
+
+      // Init
+      switchTheme("cockpit");
+    </script>
+  </body>
+</html>
