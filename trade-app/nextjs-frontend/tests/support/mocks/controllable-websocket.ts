@@ -125,3 +125,45 @@ export async function injectDataRefreshedMessage(
     }
   }, debateId);
 }
+
+export interface ReasoningNodeOptions {
+  debateId: string;
+  nodeId: string;
+  nodeType: 'data_input' | 'bull_analysis' | 'bear_counter' | 'risk_check';
+  label: string;
+  summary: string;
+  agent?: string | null;
+  parentId?: string | null;
+  isWinning?: boolean;
+  turn?: number | null;
+}
+
+export async function injectReasoningNodeMessage(
+  page: Page,
+  options: ReasoningNodeOptions,
+): Promise<void> {
+  await page.evaluate((opts) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ws = (window as any).__testWebSocket__;
+    if (ws && ws.onmessage) {
+      const message = {
+        type: 'DEBATE/REASONING_NODE',
+        payload: {
+          debateId: opts.debateId,
+          nodeId: opts.nodeId,
+          nodeType: opts.nodeType,
+          label: opts.label,
+          summary: opts.summary,
+          agent: opts.agent ?? null,
+          parentId: opts.parentId ?? null,
+          isWinning: opts.isWinning ?? false,
+          turn: opts.turn ?? null,
+        },
+        timestamp: new Date().toISOString(),
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).__WS_MESSAGES__.push(message);
+      ws.onmessage({ data: JSON.stringify(message) } as MessageEvent);
+    }
+  }, options);
+}

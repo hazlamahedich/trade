@@ -9,6 +9,7 @@ from langchain_core.callbacks import AsyncCallbackHandler
 from app.services.debate.ws_schemas import (
     DataRefreshedPayload,
     DataStalePayload,
+    ReasoningNodePayload,
     WebSocketAction,
 )
 from app.services.market.schemas import FreshnessStatus
@@ -276,6 +277,37 @@ async def send_data_refreshed(
     )
     action = WebSocketAction(
         type="DEBATE/DATA_REFRESHED",
+        payload=payload.model_dump(by_alias=True),
+    )
+    await manager.broadcast_to_debate(debate_id, action.model_dump(by_alias=True))
+
+
+async def send_reasoning_node(
+    manager: DebateConnectionManager,
+    debate_id: str,
+    *,
+    node_id: str,
+    node_type: str,
+    label: str,
+    summary: str,
+    agent: str | None = None,
+    parent_id: str | None = None,
+    is_winning: bool = False,
+    turn: int | None = None,
+) -> None:
+    payload = ReasoningNodePayload(
+        debate_id=debate_id,
+        node_id=node_id,
+        node_type=node_type,
+        label=label,
+        summary=summary,
+        agent=agent,
+        parent_id=parent_id,
+        is_winning=is_winning,
+        turn=turn,
+    )
+    action = WebSocketAction(
+        type="DEBATE/REASONING_NODE",
         payload=payload.model_dump(by_alias=True),
     )
     await manager.broadcast_to_debate(debate_id, action.model_dump(by_alias=True))

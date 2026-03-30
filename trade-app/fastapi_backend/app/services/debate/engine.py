@@ -16,6 +16,7 @@ from app.services.debate.streaming import (
     send_status_update,
     send_turn_change,
     send_data_stale,
+    send_reasoning_node,
     stream_state,
 )
 from app.services.market.stale_data_guardian import StaleDataGuardian
@@ -152,6 +153,15 @@ async def stream_debate(
     await stream_state.save_state(debate_id, {"status": "running", "asset": asset})
     await send_status_update(manager, debate_id, "running")
 
+    await send_reasoning_node(
+        manager,
+        debate_id,
+        node_id=f"data-{asset}-{debate_id[:8]}",
+        node_type="data_input",
+        label=f"{asset.upper()} Market Data",
+        summary=market_context.get("summary", "Market data loaded"),
+    )
+
     stale_event = asyncio.Event()
     freshness_monitor_task = asyncio.create_task(
         _monitor_freshness(debate_id, asset, manager, stale_guardian, stale_event)
@@ -176,6 +186,25 @@ async def stream_debate(
                 "current_agent": result["current_agent"],
                 "status": "running",
             }
+
+            node_type = "bull_analysis" if current_agent == "bull" else "bear_counter"
+            previous_node_id = (
+                f"data-{asset}-{debate_id[:8]}"
+                if result["current_turn"] == 1
+                else f"{current_agent}-turn-{result['current_turn'] - 1}"
+            )
+
+            await send_reasoning_node(
+                manager,
+                debate_id,
+                node_id=f"{current_agent}-turn-{result['current_turn']}",
+                node_type=node_type,
+                label=f"{current_agent.title()} Argument #{result['current_turn']}",
+                summary=result["messages"][-1]["content"][:100],
+                agent=current_agent,
+                parent_id=previous_node_id,
+                turn=result["current_turn"],
+            )
 
             await stream_state.save_state(
                 debate_id,
@@ -203,6 +232,23 @@ async def stream_debate(
             **current_state,
             "status": "completed",
         }
+
+        final_turn = current_state["current_turn"]
+        for turn in range(1, final_turn + 1):
+            for agent in ["bull", "bear"]:
+                node_id = f"{agent}-turn-{turn}"
+                await send_reasoning_node(
+                    manager,
+                    debate_id,
+                    node_id=node_id,
+                    node_type="bull_analysis" if agent == "bull" else "bear_counter",
+                    label=f"{agent.title()} Argument #{turn}",
+                    summary="",
+                    agent=agent,
+                    is_winning=True,
+                    turn=turn,
+                )
+
         await stream_state.save_state(
             debate_id,
             {

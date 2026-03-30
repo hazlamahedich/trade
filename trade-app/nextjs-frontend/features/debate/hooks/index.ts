@@ -1,4 +1,5 @@
 export { useDebateSocket } from "./useDebateSocket";
+export { useReasoningGraph } from "./useReasoningGraph";
 export type {
   TokenPayload,
   ArgumentPayload,
@@ -8,4 +9,6 @@ export type {
   WebSocketAction,
   ConnectionStatus,
   UseDebateSocketOptions,
+  ReasoningNodePayload,
+  ReasoningNodeType,
 } from "./useDebateSocket";

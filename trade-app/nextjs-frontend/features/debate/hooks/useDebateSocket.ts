@@ -43,6 +43,20 @@ export interface DataRefreshedPayload {
   message: string;
 }
 
+export type ReasoningNodeType = "data_input" | "bull_analysis" | "bear_counter" | "risk_check";
+
+export interface ReasoningNodePayload {
+  debateId: string;
+  nodeId: string;
+  nodeType: ReasoningNodeType;
+  label: string;
+  summary: string;
+  agent: "bull" | "bear" | null;
+  parentId: string | null;
+  isWinning: boolean;
+  turn: number | null;
+}
+
 export interface WebSocketAction {
   type: string;
   payload:
@@ -53,6 +67,7 @@ export interface WebSocketAction {
     | TurnChangePayload
     | DataStalePayload
     | DataRefreshedPayload
+    | ReasoningNodePayload
     | Record<string, unknown>;
   timestamp: string;
 }
@@ -68,6 +83,7 @@ export interface UseDebateSocketOptions {
   onError?: (error: ErrorPayload) => void;
   onDataStale?: (payload: DataStalePayload) => void;
   onDataRefreshed?: (payload: DataRefreshedPayload) => void;
+  onReasoningNode?: (payload: ReasoningNodePayload) => void;
   maxRetries?: number;
   onConnected?: () => void;
   onDisconnected?: () => void;
@@ -120,6 +136,7 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
     onError,
     onDataStale,
     onDataRefreshed,
+    onReasoningNode,
     maxRetries = DEFAULT_MAX_RETRIES,
     onConnected,
     onDisconnected,
@@ -189,6 +206,9 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
             case "DEBATE/DATA_REFRESHED":
               onDataRefreshed?.(action.payload as DataRefreshedPayload);
               break;
+            case "DEBATE/REASONING_NODE":
+              onReasoningNode?.(action.payload as ReasoningNodePayload);
+              break;
             case "DEBATE/PING":
               ws.send(JSON.stringify({ type: "DEBATE/PONG" }));
               break;
@@ -226,7 +246,7 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
       console.error("Failed to create WebSocket:", e);
       setStatus("disconnected");
     }
-  }, [debateId, maxRetries, onTokenReceived, onArgumentComplete, onStatusUpdate, onTurnChange, onError, onDataStale, onDataRefreshed, onConnected, onDisconnected]);
+  }, [debateId, maxRetries, onTokenReceived, onArgumentComplete, onStatusUpdate, onTurnChange, onError, onDataStale, onDataRefreshed, onReasoningNode, onConnected, onDisconnected]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {

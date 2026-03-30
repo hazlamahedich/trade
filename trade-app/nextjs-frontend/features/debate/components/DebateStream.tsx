@@ -3,16 +3,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import dynamic from "next/dynamic";
 import {
   useDebateSocket,
   type TokenPayload,
   type ArgumentPayload,
   type DataStalePayload,
+  type ReasoningNodePayload,
 } from "../hooks/useDebateSocket";
+import { useReasoningGraph } from "../hooks/useReasoningGraph";
 import { ArgumentBubble, type AgentType } from "./ArgumentBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { StaleDataWarning } from "./StaleDataWarning";
 import { cn } from "@/lib/utils";
+
+const ReasoningGraph = dynamic(
+  () => import("./graph/ReasoningGraphWrapper").then((mod) => mod.ReasoningGraph),
+  { ssr: false }
+);
 
 interface Argument {
   id: string;
@@ -41,6 +49,7 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
     lastUpdate: string | null;
     ageSeconds: number;
   } | null>(null);
+  const [reasoningNodes, setReasoningNodes] = useState<ReasoningNodePayload[]>([]);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
@@ -87,6 +96,10 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
     setStalePayload(null);
   }, []);
 
+  const handleReasoningNode = useCallback((payload: ReasoningNodePayload) => {
+    setReasoningNodes((prev) => [...prev, payload]);
+  }, []);
+
   const handleAcknowledge = useCallback(() => {
     setIsDataStale(false);
   }, []);
@@ -97,7 +110,10 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
     onArgumentComplete: handleArgumentComplete,
     onDataStale: handleDataStale,
     onDataRefreshed: handleDataRefreshed,
+    onReasoningNode: handleReasoningNode,
   });
+
+  const { nodes: graphNodes, edges: graphEdges, onNodesChange, onEdgesChange } = useReasoningGraph(reasoningNodes);
 
   useEffect(() => {
     if (parentRef.current && !userScrolled && messages.length > 0) {
@@ -203,6 +219,17 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {reasoningNodes.length > 0 && (
+          <div className="mt-4">
+            <ReasoningGraph
+              nodes={graphNodes}
+              edges={graphEdges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+            />
+          </div>
+        )}
 
         <div
           data-testid="ws-connection-status"

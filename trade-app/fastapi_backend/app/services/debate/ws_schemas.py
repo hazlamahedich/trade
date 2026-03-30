@@ -15,6 +15,7 @@ WebSocketActionType = Literal[
     "DEBATE/PING",
     "DEBATE/DATA_STALE",
     "DEBATE/DATA_REFRESHED",
+    "DEBATE/REASONING_NODE",
 ]
 
 
@@ -123,3 +124,17 @@ class DataRefreshedPayload(BaseModel):
 
     debate_id: str = Field(serialization_alias="debateId")
     message: str
+
+
+class ReasoningNodePayload(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    debate_id: str = Field(serialization_alias="debateId")
+    node_id: str = Field(serialization_alias="nodeId")
+    node_type: str = Field(serialization_alias="nodeType")
+    label: str
+    summary: str
+    agent: str | None = None
+    parent_id: str | None = Field(default=None, serialization_alias="parentId")
+    is_winning: bool = Field(default=False, serialization_alias="isWinning")
+    turn: int | None = None

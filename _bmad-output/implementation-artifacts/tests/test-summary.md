@@ -3,7 +3,7 @@
 **Project**: AI Trading Debate Lab
 **Date**: 2026-02-19
 **Workflow**: qa-automate
-**Last Updated**: 2026-03-30 (Story 1-6 qa-automate bug fixes)
+**Last Updated**: 2026-03-30 (Story 1-7 qa-automate completed)
 
 ## Test Frameworks
 
@@ -256,6 +256,74 @@
 
 ---
 
+## Story 1-7: Visual Reasoning Graph / Decision Visualization
+
+**Status**: done (qa-automate workflow completed 2026-03-30)
+
+### Test Quality Review
+
+| Metric | Value |
+|--------|-------|
+| Quality Score | 84/100 (B - Good) |
+| Status | ✅ Approved with Comments |
+| Review Date | 2026-03-30 |
+
+### Backend Tests (20/20 passed ✅)
+
+| Suite | Tests | New | Status |
+|-------|-------|-----|--------|
+| test_reasoning_graph_ws.py | 10 | — | ✅ |
+| test_reasoning_graph_engine.py | 10 | 10 | ✅ NEW |
+
+**10 new backend tests added by qa-automate workflow.**
+
+### Frontend Unit Tests (24/24 passed ✅)
+
+| Suite | Tests | New | Status |
+|-------|-------|-----|--------|
+| useReasoningGraph.test.ts | 7 | — | ✅ |
+| DataInputNode.test.tsx | 3 | — | ✅ |
+| AgentAnalysisNode.test.tsx | 3 | — | ✅ |
+| WinningPathEdge.test.tsx | 4 | — | ✅ |
+| RiskCheckNode.test.tsx | 4 | 4 | ✅ NEW |
+| useReasoningGraphEdgeCases.test.ts | 3 | 3 | ✅ NEW |
+
+**7 new frontend unit tests added by qa-automate workflow.**
+
+### Frontend Integration Tests (6/6 passed ✅)
+
+| Suite | Tests | Status |
+|-------|-------|--------|
+| DebateStreamReasoningGraph.test.tsx | 6 | ✅ |
+
+### Frontend E2E Tests (9 tests written ✅)
+
+| Suite | Tests | New | Status |
+|-------|-------|-----|--------|
+| reasoning-graph.spec.ts | 7 | — | ✅ |
+| reasoning-graph-a11y.spec.ts | 2 | 2 | ✅ NEW |
+
+**2 new E2E tests added by qa-automate workflow.**
+
+### Acceptance Criteria Coverage
+
+| AC | Description | Tests |
+|----|-------------|-------|
+| AC1 | Real-time graph updates via REASONING_NODE | UNIT-001..007, INT-001..006, E2E-001, E2E-004 |
+| AC2 | 4 node types (Data Input, Bull, Bear, Risk) with directional edges | UNIT-005, UNIT-006, UNIT-008..019, E2E-002 |
+| AC3 | Winning path highlighting on debate completion | UNIT-003, UNIT-014, UNIT-018, UNIT-022, INT-003, E2E-003 |
+
+### Gaps Filled by qa-automate
+
+| Gap | Test File | Tests | Risk |
+|-----|-----------|-------|------|
+| Backend engine lifecycle emission | test_reasoning_graph_engine.py | 10 | HIGH — node emission at correct debate lifecycle points |
+| RiskCheckNode component | RiskCheckNode.test.tsx | 4 | MED — pending/safe/warning status, aria-labels |
+| useReasoningGraph edge cases | useReasoningGraphEdgeCases.test.ts | 3 | MED — unknown types, multi-turn chains, risk_check winning |
+| E2E accessibility | reasoning-graph-a11y.spec.ts | 2 | MED — prefers-reduced-motion, keyboard navigation |
+
+---
+
 ## Story 1-6: Stale Data Guard
 
 **Status**: done (qa-automate workflow completed 2026-03-30)
@@ -333,19 +401,19 @@
 
 | Metric | Count |
 |--------|-------|
-| Backend Tests | 181 (38 Story 1-4 + 38 Story 1-3 + 32 Story 1-2 + 46 Story 1-6 + 27 other) |
-| Frontend Unit Tests | 83 (19 Story 1-4 + 31 Story 1-1 + 20 Story 1-5 + 13 Story 1-6) |
+| Backend Tests | 201 (38 Story 1-4 + 38 Story 1-3 + 32 Story 1-2 + 46 Story 1-6 + 20 Story 1-7 + 27 other) |
+| Frontend Unit Tests | 107 (19 Story 1-4 + 31 Story 1-1 + 20 Story 1-5 + 13 Story 1-6 + 24 Story 1-7) |
 | Frontend API Tests | 39 (16 Story 1-3 + 13 Story 1-2 + 10 Story 1-6) |
-| E2E Tests | 61 (11 Story 1-4 + 10 Story 1-3 + 5 Story 1-1 + 17 Story 1-5 + 18 Story 1-6) |
-| **Total** | **364 tests** |
+| E2E Tests | 70 (11 Story 1-4 + 10 Story 1-3 + 5 Story 1-1 + 17 Story 1-5 + 18 Story 1-6 + 9 Story 1-7) |
+| **Total** | **417 tests** |
 
 ### Verified Test Results (2026-03-30)
 
 | Suite | Tests | Status |
 |-------|-------|--------|
-| Backend (pytest) | 181/181 | ✅ All pass |
-| Frontend (jest) | 83/83 (14 suites) | ✅ All pass |
-| **Combined** | **264/264** | ✅ All pass |
+| Backend (pytest) | 201/201 | ✅ All pass |
+| Frontend (jest) | 107/107 | ✅ All pass |
+| **Combined** | **308/308** | ✅ All pass |
 
 ### qa-automate Bug Fixes (2026-03-30)
 
@@ -409,6 +477,14 @@ pnpm test tests/unit/StaleDataWarning.test.tsx tests/unit/StaleDataWarningQA.tes
 # Frontend unit tests (Story 1-4 WebSocket)
 cd trade-app/nextjs-frontend
 pnpm test tests/unit/useDebateSocket.test.ts
+
+# Frontend unit tests (Story 1-7 Visual Reasoning Graph)
+cd trade-app/nextjs-frontend
+pnpm test tests/unit/useReasoningGraph.test.ts tests/unit/useReasoningGraphEdgeCases.test.ts tests/unit/DataInputNode.test.tsx tests/unit/AgentAnalysisNode.test.tsx tests/unit/RiskCheckNode.test.tsx tests/unit/WinningPathEdge.test.tsx tests/unit/DebateStreamReasoningGraph.test.tsx
+
+# Backend tests (Story 1-7 Visual Reasoning Graph)
+cd trade-app/fastapi_backend
+source venv/bin/activate && pytest tests/services/debate/test_reasoning_graph_ws.py tests/services/debate/test_reasoning_graph_engine.py
 
 # E2E/API tests (requires running backend)
 cd trade-app/nextjs-frontend
