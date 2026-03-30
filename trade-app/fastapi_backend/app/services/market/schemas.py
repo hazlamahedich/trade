@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 
 
 class NewsItem(BaseModel):
@@ -52,3 +53,13 @@ class StandardMarketResponse(BaseModel):
     data: MarketData | None = None
     error: MarketErrorResponse | None = None
     meta: MarketMeta | dict[str, Any] = {}
+
+
+class FreshnessStatus(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    asset: str
+    is_stale: bool
+    last_update: datetime | None = None
+    age_seconds: int
+    threshold_seconds: int = 60

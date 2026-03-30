@@ -109,8 +109,20 @@ tests/
 ├── config/                   # Environment-specific configurations
 ├── e2e/                      # End-to-end test specifications
 │   ├── debate.spec.ts        # Debate page tests
+│   ├── debate-stream-ui.spec.ts # DebateStream UI tests (Story 1-5)
+│   ├── stale-data-guard.spec.ts # Stale data warning E2E tests (Story 1-6)
 │   ├── auth.spec.ts          # Authentication tests
 │   └── voting.spec.ts        # Voting system tests
+├── api/                      # API-level test specifications
+│   ├── debate-api.spec.ts    # Debate API tests
+│   ├── market-data.spec.ts   # Market data API tests
+│   └── stale-data-api.spec.ts # Stale data guard API tests (Story 1-6)
+├── unit/                     # Component/hook unit tests
+│   ├── StaleDataWarning.test.tsx # Stale warning component (Story 1-6)
+│   ├── useDebateSocketStale.test.ts # Stale WS hook (Story 1-6)
+│   ├── useDebateSocket.test.ts # WebSocket hook tests
+│   ├── ArgumentBubble.test.tsx # Argument bubble component (Story 1-5)
+│   └── TypingIndicator.test.tsx # Typing indicator component (Story 1-5)
 ├── support/
 │   ├── fixtures/             # Playwright fixtures (mergeTests)
 │   ├── helpers/              # Test utilities

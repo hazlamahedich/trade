@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -119,19 +119,17 @@ class TestMarketDataCache:
         market_data = MarketData(
             asset="BTC",
             price=45000.0,
-            fetched_at=datetime.utcnow(),
+            fetched_at=datetime.now(timezone.utc),
         )
 
         assert cache.is_cache_valid(market_data) is True
 
     @pytest.mark.asyncio
     async def test_is_cache_valid_returns_false_for_stale_data(self, cache):
-        from datetime import timedelta
-
         market_data = MarketData(
             asset="BTC",
             price=45000.0,
-            fetched_at=datetime.utcnow() - timedelta(seconds=120),
+            fetched_at=datetime.now(timezone.utc) - timedelta(seconds=120),
         )
 
         assert cache.is_cache_valid(market_data) is False

@@ -3,9 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { useDebateSocket, type TokenPayload, type ArgumentPayload } from "../hooks/useDebateSocket";
+import {
+  useDebateSocket,
+  type TokenPayload,
+  type ArgumentPayload,
+  type DataStalePayload,
+} from "../hooks/useDebateSocket";
 import { ArgumentBubble, type AgentType } from "./ArgumentBubble";
 import { TypingIndicator } from "./TypingIndicator";
+import { StaleDataWarning } from "./StaleDataWarning";
 import { cn } from "@/lib/utils";
 
 interface Argument {
@@ -30,6 +36,11 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [currentAgent, setCurrentAgent] = useState<AgentType | null>(null);
   const [userScrolled, setUserScrolled] = useState(false);
+  const [isDataStale, setIsDataStale] = useState(false);
+  const [stalePayload, setStalePayload] = useState<{
+    lastUpdate: string | null;
+    ageSeconds: number;
+  } | null>(null);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
@@ -63,10 +74,29 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
     setUserScrolled(false);
   }, []);
 
+  const handleDataStale = useCallback((payload: DataStalePayload) => {
+    setIsDataStale(true);
+    setStalePayload({
+      lastUpdate: payload.lastUpdate,
+      ageSeconds: payload.ageSeconds,
+    });
+  }, []);
+
+  const handleDataRefreshed = useCallback(() => {
+    setIsDataStale(false);
+    setStalePayload(null);
+  }, []);
+
+  const handleAcknowledge = useCallback(() => {
+    setIsDataStale(false);
+  }, []);
+
   const { status } = useDebateSocket({
     debateId,
     onTokenReceived: handleTokenReceived,
     onArgumentComplete: handleArgumentComplete,
+    onDataStale: handleDataStale,
+    onDataRefreshed: handleDataRefreshed,
   });
 
   useEffect(() => {
@@ -87,93 +117,105 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
   const isEmpty = messages.length === 0 && !isStreaming;
 
   return (
-    <div
-      ref={parentRef}
-      data-testid="debate-stream"
-      data-empty={isEmpty}
-      role="log"
-      aria-live="polite"
-      aria-label="Debate messages"
-      onScroll={handleScroll}
-      className={cn(
-        "flex flex-col gap-4 h-full overflow-y-auto p-4",
-        "bg-slate-900 rounded-lg",
-        className
+    <>
+      {isDataStale && stalePayload && (
+        <StaleDataWarning
+          lastUpdate={stalePayload.lastUpdate}
+          ageSeconds={stalePayload.ageSeconds}
+          onAcknowledge={handleAcknowledge}
+        />
       )}
-    >
-      {isEmpty && (
-        <div
-          data-testid="debate-stream-empty"
-          className="flex-1 flex items-center justify-center text-slate-400"
-        >
-          <p>Waiting for debate to start...</p>
-        </div>
-      )}
-
       <div
-        style={{
-          height: rowVirtualizer.getTotalSize(),
-          width: "100%",
-          position: "relative",
-        }}
+        ref={parentRef}
+        data-testid="debate-stream"
+        data-empty={isEmpty}
+        role="log"
+        aria-live="polite"
+        aria-label="Debate messages"
+        onScroll={handleScroll}
+        className={cn(
+          "flex flex-col gap-4 h-full overflow-y-auto p-4",
+          "bg-slate-900 rounded-lg",
+          isDataStale && "grayscale",
+          className
+        )}
       >
-        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-          const message = messages[virtualRow.index];
-          return (
-            <div
-              key={message.id}
-              data-testid={`argument-${message.id}`}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
-            >
-              <ArgumentBubble
-                agent={message.agent}
-                content={message.content}
-                timestamp={message.timestamp}
-              />
-            </div>
-          );
-        })}
-      </div>
-
-      <AnimatePresence>
-        {isStreaming && currentAgent && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.2 }}
+        {isEmpty && (
+          <div
+            data-testid="debate-stream-empty"
+            className="flex-1 flex items-center justify-center text-slate-400"
           >
-            {streamingText ? (
-              <ArgumentBubble
-                agent={currentAgent}
-                content={streamingText}
-                timestamp={new Date().toISOString()}
-                isStreaming
-              />
-            ) : (
-              <TypingIndicator agent={currentAgent} isVisible />
-            )}
-          </motion.div>
+            <p>Waiting for debate to start...</p>
+          </div>
         )}
-      </AnimatePresence>
 
-      <div
-        data-testid="ws-connection-status"
-        data-status={status}
-        className="fixed bottom-4 right-4"
-      >
-        {status !== "connected" && (
-          <span className="text-xs text-slate-500">
-            {status === "connecting" ? "Reconnecting..." : "Disconnected"}
-          </span>
-        )}
+        <div
+          style={{
+            height: rowVirtualizer.getTotalSize(),
+            width: "100%",
+            position: "relative",
+          }}
+        >
+          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+            const message = messages[virtualRow.index];
+            return (
+              <div
+                key={message.id}
+                data-testid={`argument-${message.id}`}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <ArgumentBubble
+                  agent={message.agent}
+                  content={message.content}
+                  timestamp={message.timestamp}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        <AnimatePresence>
+          {isStreaming && currentAgent && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={
+                shouldReduceMotion ? { duration: 0 } : { duration: 0.2 }
+              }
+            >
+              {streamingText ? (
+                <ArgumentBubble
+                  agent={currentAgent}
+                  content={streamingText}
+                  timestamp={new Date().toISOString()}
+                  isStreaming
+                />
+              ) : (
+                <TypingIndicator agent={currentAgent} isVisible />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div
+          data-testid="ws-connection-status"
+          data-status={status}
+          className="fixed bottom-4 right-4"
+        >
+          {status !== "connected" && (
+            <span className="text-xs text-slate-500">
+              {status === "connecting" ? "Reconnecting..." : "Disconnected"}
+            </span>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

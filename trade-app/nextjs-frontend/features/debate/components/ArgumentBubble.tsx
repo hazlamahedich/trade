@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { AgentAvatar, type AgentType } from "./AgentAvatar";
+export type { AgentType };
 import { cn } from "@/lib/utils";
 
 interface ArgumentBubbleProps {

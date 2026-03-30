@@ -1,11 +1,11 @@
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from redis import asyncio as aioredis
 
-from app.services.market.schemas import MarketData, NewsItem
+from app.services.market.schemas import FreshnessStatus, MarketData, NewsItem
 
 logger = logging.getLogger(__name__)
 
@@ -79,12 +79,14 @@ class MarketDataCache:
                         source=item.get("source", "unknown"),
                         timestamp=datetime.fromisoformat(item["timestamp"])
                         if isinstance(item.get("timestamp"), str)
-                        else datetime.utcnow(),
+                        else datetime.now(timezone.utc),
                     )
                 )
 
         fetched_at = datetime.fromisoformat(price_data["fetched_at"])
-        age_seconds = (datetime.utcnow() - fetched_at).total_seconds()
+        if fetched_at.tzinfo is None:
+            fetched_at = fetched_at.replace(tzinfo=timezone.utc)
+        age_seconds = (datetime.now(timezone.utc) - fetched_at).total_seconds()
 
         return MarketData(
             asset=asset,
@@ -115,5 +117,37 @@ class MarketDataCache:
         await self.set_news(asset, news_data)
 
     def is_cache_valid(self, market_data: MarketData) -> bool:
-        age_seconds = (datetime.utcnow() - market_data.fetched_at).total_seconds()
+        age_seconds = (
+            datetime.now(timezone.utc) - market_data.fetched_at
+        ).total_seconds()
         return age_seconds <= self.TTL_SECONDS
+
+    async def get_with_timestamp(self, asset: str) -> dict[str, Any] | None:
+        redis = await self._get_redis()
+        data_str = await redis.get(self._price_key(asset))
+        if data_str is None:
+            return None
+
+        data = json.loads(data_str)
+        fetched_at_str = data.get("fetched_at")
+        if fetched_at_str is None:
+            return None
+
+        fetched_at = datetime.fromisoformat(fetched_at_str)
+        if fetched_at.tzinfo is None:
+            fetched_at = fetched_at.replace(tzinfo=timezone.utc)
+        age_seconds = int((datetime.now(timezone.utc) - fetched_at).total_seconds())
+
+        freshness_status = FreshnessStatus(
+            asset=asset,
+            is_stale=age_seconds > self.TTL_SECONDS,
+            last_update=fetched_at,
+            age_seconds=age_seconds,
+            threshold_seconds=self.TTL_SECONDS,
+        )
+
+        return {
+            "data": data,
+            "fetched_at": fetched_at,
+            "freshness_status": freshness_status,
+        }

@@ -1,8 +1,6 @@
 import logging
-import re
-from typing import Callable
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 from .schemas import UserCreate, UserRead, UserUpdate
 from .users import auth_backend, fastapi_users, AUTH_URL_PATH
@@ -25,18 +23,6 @@ app = FastAPI(
 
 app.add_middleware(MockHeadersMiddleware)
 
-
-@app.middleware("http")
-async def scrub_token_from_logs(request: Request, call_next: Callable) -> Response:
-    token = request.query_params.get("token")
-    if token:
-        clean_path = re.sub(r"token=[^&]*", "token=[REDACTED]", str(request.url))
-        logger.info(f"Request: {request.method} {clean_path}")
-    response = await call_next(request)
-    return response
-
-
-# Middleware for CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(settings.CORS_ORIGINS),

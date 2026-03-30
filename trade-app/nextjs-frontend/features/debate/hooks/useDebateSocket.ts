@@ -31,9 +31,29 @@ export interface TurnChangePayload {
   currentAgent: "bull" | "bear";
 }
 
+export interface DataStalePayload {
+  debateId: string;
+  lastUpdate: string | null;
+  ageSeconds: number;
+  message: string;
+}
+
+export interface DataRefreshedPayload {
+  debateId: string;
+  message: string;
+}
+
 export interface WebSocketAction {
   type: string;
-  payload: TokenPayload | ArgumentPayload | ErrorPayload | StatusPayload | TurnChangePayload | Record<string, unknown>;
+  payload:
+    | TokenPayload
+    | ArgumentPayload
+    | ErrorPayload
+    | StatusPayload
+    | TurnChangePayload
+    | DataStalePayload
+    | DataRefreshedPayload
+    | Record<string, unknown>;
   timestamp: string;
 }
 
@@ -46,6 +66,8 @@ export interface UseDebateSocketOptions {
   onStatusUpdate?: (payload: StatusPayload) => void;
   onTurnChange?: (payload: TurnChangePayload) => void;
   onError?: (error: ErrorPayload) => void;
+  onDataStale?: (payload: DataStalePayload) => void;
+  onDataRefreshed?: (payload: DataRefreshedPayload) => void;
   maxRetries?: number;
   onConnected?: () => void;
   onDisconnected?: () => void;
@@ -96,6 +118,8 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
     onStatusUpdate,
     onTurnChange,
     onError,
+    onDataStale,
+    onDataRefreshed,
     maxRetries = DEFAULT_MAX_RETRIES,
     onConnected,
     onDisconnected,
@@ -159,6 +183,12 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
             case "DEBATE/ERROR":
               onError?.(action.payload as ErrorPayload);
               break;
+            case "DEBATE/DATA_STALE":
+              onDataStale?.(action.payload as DataStalePayload);
+              break;
+            case "DEBATE/DATA_REFRESHED":
+              onDataRefreshed?.(action.payload as DataRefreshedPayload);
+              break;
             case "DEBATE/PING":
               ws.send(JSON.stringify({ type: "DEBATE/PONG" }));
               break;
@@ -196,7 +226,7 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
       console.error("Failed to create WebSocket:", e);
       setStatus("disconnected");
     }
-  }, [debateId, maxRetries, onTokenReceived, onArgumentComplete, onStatusUpdate, onTurnChange, onError, onConnected, onDisconnected]);
+  }, [debateId, maxRetries, onTokenReceived, onArgumentComplete, onStatusUpdate, onTurnChange, onError, onDataStale, onDataRefreshed, onConnected, onDisconnected]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {

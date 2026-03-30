@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from datetime import datetime
 from typing import Any
 
 from langgraph.graph import StateGraph, END
@@ -13,10 +15,28 @@ from app.services.debate.streaming import (
     send_argument_complete,
     send_status_update,
     send_turn_change,
+    send_data_stale,
     stream_state,
 )
+from app.services.market.stale_data_guardian import StaleDataGuardian
 
 logger = logging.getLogger(__name__)
+
+
+class StaleDataError(Exception):
+    def __init__(
+        self,
+        code: str = "DATA_STALE",
+        message: str = "Market data is stale",
+        last_update: datetime | None = None,
+    ):
+        self.code = code
+        self.message = message
+        self.last_update = last_update
+        super().__init__(message)
+
+
+FRESHNESS_CHECK_INTERVAL = 5
 
 
 def should_continue(state: DebateState) -> bool:
@@ -101,8 +121,24 @@ async def stream_debate(
     market_context: dict,
     manager: DebateConnectionManager,
     max_turns: int = 6,
+    stale_guardian: StaleDataGuardian | None = None,
 ) -> dict[str, Any]:
     """Stream debate tokens via async generator with WebSocket broadcasting."""
+    if stale_guardian is None:
+        from app.config import settings
+
+        stale_guardian = StaleDataGuardian(
+            cache_redis_url=settings.REDIS_URL,
+        )
+
+    freshness = await stale_guardian.get_freshness_status(asset)
+    if freshness.is_stale:
+        raise StaleDataError(
+            code="DATA_STALE",
+            message=f"Market data is {freshness.age_seconds}s old. Cannot start debate.",
+            last_update=freshness.last_update,
+        )
+
     initial_state: DebateState = {
         "asset": asset,
         "market_context": market_context,
@@ -116,9 +152,14 @@ async def stream_debate(
     await stream_state.save_state(debate_id, {"status": "running", "asset": asset})
     await send_status_update(manager, debate_id, "running")
 
+    stale_event = asyncio.Event()
+    freshness_monitor_task = asyncio.create_task(
+        _monitor_freshness(debate_id, asset, manager, stale_guardian, stale_event)
+    )
+
     current_state = initial_state
     try:
-        while should_continue(current_state):
+        while should_continue(current_state) and not stale_event.is_set():
             current_agent = current_state["current_agent"]
 
             if current_agent == "bull":
@@ -146,6 +187,18 @@ async def stream_debate(
                 },
             )
 
+        if stale_event.is_set():
+            await stream_state.save_state(
+                debate_id,
+                {"status": "paused", "asset": asset, "reason": "DATA_STALE"},
+            )
+            await send_status_update(manager, debate_id, "paused")
+            raise StaleDataError(
+                code="DATA_STALE",
+                message="Debate paused: market data became stale during debate.",
+                last_update=None,
+            )
+
         final_state: dict[str, Any] = {
             **current_state,
             "status": "completed",
@@ -162,6 +215,8 @@ async def stream_debate(
 
         return final_state
 
+    except StaleDataError:
+        raise
     except Exception as e:
         logger.error(f"Error streaming debate {debate_id}: {e}")
         await stream_state.save_state(
@@ -169,3 +224,35 @@ async def stream_debate(
         )
         await send_status_update(manager, debate_id, "error")
         raise
+    finally:
+        freshness_monitor_task.cancel()
+        try:
+            await freshness_monitor_task
+        except asyncio.CancelledError:
+            pass
+
+
+async def _monitor_freshness(
+    debate_id: str,
+    asset: str,
+    manager: DebateConnectionManager,
+    guardian: StaleDataGuardian,
+    stale_event: asyncio.Event | None = None,
+) -> None:
+    try:
+        while True:
+            freshness = await guardian.get_freshness_status(asset)
+            if freshness.is_stale:
+                logger.warning(
+                    f"Data stale detected for {asset} in debate {debate_id}: "
+                    f"{freshness.age_seconds}s old"
+                )
+                await send_data_stale(manager, debate_id, freshness)
+                if stale_event is not None:
+                    stale_event.set()
+                break
+            await asyncio.sleep(FRESHNESS_CHECK_INTERVAL)
+    except asyncio.CancelledError:
+        pass
+    except Exception as e:
+        logger.error(f"Freshness monitor error for debate {debate_id}: {e}")

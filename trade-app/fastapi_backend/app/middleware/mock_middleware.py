@@ -1,15 +1,13 @@
 import logging
-from typing import Callable
 
-from fastapi import Request, Response
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 
-class MockHeadersMiddleware(BaseHTTPMiddleware):
+class MockHeadersMiddleware:
     """
     Middleware to handle mock headers for testing failure scenarios.
 
@@ -22,18 +20,29 @@ class MockHeadersMiddleware(BaseHTTPMiddleware):
     Note: Only enabled in non-production environments.
     """
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
         if not settings.ENVIRONMENT or settings.ENVIRONMENT == "production":
-            return await call_next(request)
+            await self.app(scope, receive, send)
+            return
 
-        mock_providers_down = (
-            request.headers.get("X-Mock-Providers-Down", "").lower() == "true"
+        headers = dict(
+            (k.decode().lower(), v.decode()) for k, v in scope.get("headers", [])
         )
-        mock_all_down = request.headers.get("X-Mock-All-Down", "").lower() == "true"
-        mock_no_cache = request.headers.get("X-Mock-No-Cache", "").lower() == "true"
 
-        request.state.mock_providers_down = mock_providers_down or mock_all_down
-        request.state.mock_all_down = mock_all_down
-        request.state.mock_no_cache = mock_no_cache
+        mock_providers_down = headers.get("x-mock-providers-down", "").lower() == "true"
+        mock_all_down = headers.get("x-mock-all-down", "").lower() == "true"
+        mock_no_cache = headers.get("x-mock-no-cache", "").lower() == "true"
 
-        return await call_next(request)
+        scope.setdefault("state", {})
+        scope["state"]["mock_providers_down"] = mock_providers_down or mock_all_down
+        scope["state"]["mock_all_down"] = mock_all_down
+        scope["state"]["mock_no_cache"] = mock_no_cache
+
+        await self.app(scope, receive, send)

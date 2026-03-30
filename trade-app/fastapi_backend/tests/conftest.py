@@ -46,7 +46,6 @@ async def db_session(engine):
 async def test_client(db_session):
     """Fixture to create a test client that uses the test database session."""
 
-    # FastAPI-Users database override (wraps session with user operation helpers)
     async def override_get_user_db():
         session = SQLAlchemyUserDatabase(db_session, User)
         try:
@@ -54,21 +53,22 @@ async def test_client(db_session):
         finally:
             await db_session.close()
 
-    # General database override (raw session access)
     async def override_get_async_session():
         try:
             yield db_session
         finally:
             await db_session.close()
 
-    # Set up test database overrides
     app.dependency_overrides[get_user_db] = override_get_user_db
     app.dependency_overrides[get_async_session] = override_get_async_session
 
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://localhost:8000"
     ) as client:
-        yield client
+        async with app.router.lifespan_context(app):
+            yield client
+
+    app.dependency_overrides.clear()
 
 
 @pytest_asyncio.fixture(scope="function")

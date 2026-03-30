@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 
 
 WebSocketActionType = Literal[
@@ -12,6 +13,8 @@ WebSocketActionType = Literal[
     "DEBATE/STATUS_UPDATE",
     "DEBATE/ERROR",
     "DEBATE/PING",
+    "DEBATE/DATA_STALE",
+    "DEBATE/DATA_REFRESHED",
 ]
 
 
@@ -104,3 +107,19 @@ CLOSE_CODE_REASONS = {
     WebSocketCloseCodes.RATE_LIMITED: "Rate limited",
     WebSocketCloseCodes.INTERNAL_ERROR: "Internal error",
 }
+
+
+class DataStalePayload(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    debate_id: str = Field(serialization_alias="debateId")
+    last_update: datetime | None = Field(default=None, serialization_alias="lastUpdate")
+    age_seconds: int = Field(serialization_alias="ageSeconds")
+    message: str
+
+
+class DataRefreshedPayload(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    debate_id: str = Field(serialization_alias="debateId")
+    message: str

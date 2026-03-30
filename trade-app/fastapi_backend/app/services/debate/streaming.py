@@ -6,7 +6,12 @@ from typing import Any
 from fastapi import WebSocket
 from langchain_core.callbacks import AsyncCallbackHandler
 
-from app.services.debate.ws_schemas import WebSocketAction
+from app.services.debate.ws_schemas import (
+    DataRefreshedPayload,
+    DataStalePayload,
+    WebSocketAction,
+)
+from app.services.market.schemas import FreshnessStatus
 from app.services.redis_client import get_redis_client
 
 logger = logging.getLogger(__name__)
@@ -239,3 +244,38 @@ async def heartbeat(
             break
         except Exception:
             break
+
+
+async def send_data_stale(
+    manager: DebateConnectionManager,
+    debate_id: str,
+    freshness: FreshnessStatus,
+) -> None:
+    """Send DEBATE/DATA_STALE action to all viewers."""
+    payload = DataStalePayload(
+        debate_id=debate_id,
+        last_update=freshness.last_update,
+        age_seconds=freshness.age_seconds,
+        message=f"Market data is {freshness.age_seconds} seconds old",
+    )
+    action = WebSocketAction(
+        type="DEBATE/DATA_STALE",
+        payload=payload.model_dump(by_alias=True),
+    )
+    await manager.broadcast_to_debate(debate_id, action.model_dump(by_alias=True))
+
+
+async def send_data_refreshed(
+    manager: DebateConnectionManager,
+    debate_id: str,
+) -> None:
+    """Send DEBATE/DATA_REFRESHED action to all viewers."""
+    payload = DataRefreshedPayload(
+        debate_id=debate_id,
+        message="Market data has been refreshed",
+    )
+    action = WebSocketAction(
+        type="DEBATE/DATA_REFRESHED",
+        payload=payload.model_dump(by_alias=True),
+    )
+    await manager.broadcast_to_debate(debate_id, action.model_dump(by_alias=True))
