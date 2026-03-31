@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     debate_llm_temperature: float = 0.7
     debate_llm_enable_failover: bool = True
 
+    guardian_llm_model: str = "gpt-4o-mini"
+    guardian_llm_temperature: float = 0.3
+    guardian_enabled: bool = True
+
     # LangGraph Checkpointer
     CHECKPOINTER_TYPE: str = "memory"
     CHECKPOINTER_URL: str | None = None

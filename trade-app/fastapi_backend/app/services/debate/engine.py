@@ -18,8 +18,11 @@ from app.services.debate.streaming import (
     send_turn_change,
     send_data_stale,
     send_reasoning_node,
+    send_guardian_interrupt,
+    send_guardian_verdict,
     stream_state,
 )
+from app.services.debate.agents.guardian import GuardianAgent
 from app.services.market.stale_data_guardian import StaleDataGuardian
 
 logger = logging.getLogger(__name__)
@@ -193,6 +196,11 @@ async def stream_debate(
 
     current_state = initial_state
     turn_arguments: dict[tuple[str, int], str] = {}
+
+    from app.config import settings as app_settings
+
+    guardian = GuardianAgent() if app_settings.guardian_enabled else None
+
     try:
         while should_continue(current_state) and not stale_event.is_set():
             current_agent = current_state["current_agent"]
@@ -221,6 +229,66 @@ async def stream_debate(
 
             argument_content = result["messages"][-1]["content"]
             turn_arguments[(current_agent, result["current_turn"])] = argument_content
+
+            if guardian is not None:
+                try:
+                    analysis = await guardian.analyze(current_state)
+
+                    if analysis["should_interrupt"]:
+                        await send_guardian_interrupt(
+                            manager,
+                            debate_id,
+                            risk_level=analysis["risk_level"],
+                            reason=analysis["reason"],
+                            fallacy_type=analysis.get("fallacy_type"),
+                            original_agent=current_agent,
+                            summary_verdict=analysis["summary_verdict"],
+                            turn=result["current_turn"],
+                        )
+                        await send_reasoning_node(
+                            manager,
+                            debate_id,
+                            node_id=f"guardian-{current_agent}-turn-{result['current_turn']}",
+                            node_type="risk_check",
+                            label=f"Guardian: {analysis['risk_level'].upper()} Risk",
+                            summary=analysis["reason"][:100],
+                            parent_id=f"{current_agent}-turn-{result['current_turn']}",
+                            turn=result["current_turn"],
+                        )
+                        current_state.setdefault("guardian_interrupts", []).append(
+                            {
+                                "turn": result["current_turn"],
+                                "agent": current_agent,
+                                "risk_level": analysis["risk_level"],
+                                "reason": analysis["reason"],
+                                "fallacy_type": analysis.get("fallacy_type"),
+                            }
+                        )
+                    else:
+                        await send_reasoning_node(
+                            manager,
+                            debate_id,
+                            node_id=f"guardian-{current_agent}-turn-{result['current_turn']}",
+                            node_type="risk_check",
+                            label="Guardian: Safe",
+                            summary="No issues detected",
+                            parent_id=f"{current_agent}-turn-{result['current_turn']}",
+                            turn=result["current_turn"],
+                        )
+                except Exception as e:
+                    logger.error(
+                        f"Guardian analysis failed for debate {debate_id}: {e}"
+                    )
+                    await send_reasoning_node(
+                        manager,
+                        debate_id,
+                        node_id=f"guardian-{current_agent}-turn-{result['current_turn']}",
+                        node_type="risk_check",
+                        label="Guardian: Safe",
+                        summary="Guardian analysis skipped",
+                        parent_id=f"{current_agent}-turn-{result['current_turn']}",
+                        turn=result["current_turn"],
+                    )
 
             await send_reasoning_node(
                 manager,
@@ -260,6 +328,35 @@ async def stream_debate(
             **current_state,
             "status": "completed",
         }
+
+        if guardian is not None:
+            try:
+                final_analysis = await guardian.analyze(current_state)  # type: ignore[arg-type]
+                await send_guardian_verdict(
+                    manager,
+                    debate_id,
+                    verdict=final_analysis.get("summary_verdict", "Caution"),
+                    risk_level=final_analysis.get("risk_level", "medium"),
+                    summary=final_analysis.get("reason", "Analysis complete"),
+                    reasoning=final_analysis.get("detailed_reasoning", ""),
+                    total_interrupts=len(current_state.get("guardian_interrupts", [])),
+                )
+                current_state["guardian_verdict"] = final_analysis.get(
+                    "summary_verdict", "Caution"
+                )
+            except Exception as e:
+                logger.error(
+                    f"Guardian final verdict failed for debate {debate_id}: {e}"
+                )
+                await send_guardian_verdict(
+                    manager,
+                    debate_id,
+                    verdict="Caution",
+                    risk_level="medium",
+                    summary="Guardian analysis unavailable",
+                    reasoning="Final verdict could not be generated",
+                    total_interrupts=len(current_state.get("guardian_interrupts", [])),
+                )
 
         # TODO: Epic 3 will replace this placeholder with real voting-based winner determination
         final_turn = current_state["current_turn"]

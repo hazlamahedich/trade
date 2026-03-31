@@ -9,6 +9,8 @@ from langchain_core.callbacks import AsyncCallbackHandler
 from app.services.debate.ws_schemas import (
     DataRefreshedPayload,
     DataStalePayload,
+    GuardianInterruptPayload,
+    GuardianVerdictPayload,
     ReasoningNodePayload,
     WebSocketAction,
 )
@@ -308,6 +310,58 @@ async def send_reasoning_node(
     )
     action = WebSocketAction(
         type="DEBATE/REASONING_NODE",
+        payload=payload.model_dump(by_alias=True),
+    )
+    await manager.broadcast_to_debate(debate_id, action.model_dump(by_alias=True))
+
+
+async def send_guardian_interrupt(
+    manager: DebateConnectionManager,
+    debate_id: str,
+    *,
+    risk_level: str,
+    reason: str,
+    fallacy_type: str | None = None,
+    original_agent: str,
+    summary_verdict: str,
+    turn: int | None = None,
+) -> None:
+    payload = GuardianInterruptPayload(
+        debate_id=debate_id,
+        risk_level=risk_level,
+        reason=reason,
+        fallacy_type=fallacy_type,
+        original_agent=original_agent,
+        summary_verdict=summary_verdict,
+        turn=turn,
+    )
+    action = WebSocketAction(
+        type="DEBATE/GUARDIAN_INTERRUPT",
+        payload=payload.model_dump(by_alias=True),
+    )
+    await manager.broadcast_to_debate(debate_id, action.model_dump(by_alias=True))
+
+
+async def send_guardian_verdict(
+    manager: DebateConnectionManager,
+    debate_id: str,
+    *,
+    verdict: str,
+    risk_level: str,
+    summary: str,
+    reasoning: str,
+    total_interrupts: int = 0,
+) -> None:
+    payload = GuardianVerdictPayload(
+        debate_id=debate_id,
+        verdict=verdict,
+        risk_level=risk_level,
+        summary=summary,
+        reasoning=reasoning,
+        total_interrupts=total_interrupts,
+    )
+    action = WebSocketAction(
+        type="DEBATE/GUARDIAN_VERDICT",
         payload=payload.model_dump(by_alias=True),
     )
     await manager.broadcast_to_debate(debate_id, action.model_dump(by_alias=True))

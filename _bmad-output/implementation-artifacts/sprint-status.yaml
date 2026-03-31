@@ -50,8 +50,8 @@ development_status:
   1-7-visual-reasoning-graph-decision-visualization: done
   epic-1-retrospective: done
 
-  epic-2: backlog
-  2-1-guardian-agent-logic-the-interrupter: backlog
+  epic-2: in-progress
+  2-1-guardian-agent-logic-the-interrupter: ready-for-dev
   2-2-debate-engine-integration-the-pause: backlog
   2-3-guardian-ui-overlay-the-freeze: backlog
   2-4-forbidden-phrase-filter-regex: backlog

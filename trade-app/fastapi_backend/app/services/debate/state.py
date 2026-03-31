@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import TypedDict, NotRequired
 
 
 class DebateState(TypedDict):
@@ -9,3 +9,6 @@ class DebateState(TypedDict):
     max_turns: int
     current_agent: str
     status: str
+    guardian_verdict: NotRequired[str]
+    guardian_interrupts: NotRequired[list[dict]]
+    interrupted: NotRequired[bool]
