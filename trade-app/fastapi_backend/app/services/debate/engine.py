@@ -230,6 +230,18 @@ async def stream_debate(
             argument_content = result["messages"][-1]["content"]
             turn_arguments[(current_agent, result["current_turn"])] = argument_content
 
+            await send_reasoning_node(
+                manager,
+                debate_id,
+                node_id=f"{current_agent}-turn-{result['current_turn']}",
+                node_type=node_type,
+                label=f"{current_agent.title()} Argument #{result['current_turn']}",
+                summary=argument_content[:100],
+                agent=current_agent,
+                parent_id=previous_node_id,
+                turn=result["current_turn"],
+            )
+
             if guardian is not None:
                 try:
                     analysis = await guardian.analyze(current_state)
@@ -289,18 +301,6 @@ async def stream_debate(
                         parent_id=f"{current_agent}-turn-{result['current_turn']}",
                         turn=result["current_turn"],
                     )
-
-            await send_reasoning_node(
-                manager,
-                debate_id,
-                node_id=f"{current_agent}-turn-{result['current_turn']}",
-                node_type=node_type,
-                label=f"{current_agent.title()} Argument #{result['current_turn']}",
-                summary=argument_content[:100],
-                agent=current_agent,
-                parent_id=previous_node_id,
-                turn=result["current_turn"],
-            )
 
             await stream_state.save_state(
                 debate_id,

@@ -1,7 +1,10 @@
+import json
 import logging
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.callbacks import AsyncCallbackHandler
 from pydantic import BaseModel, Field
+
+from typing import Literal
 
 from app.services.debate.state import DebateState
 from app.services.debate.llm_provider import get_llm_with_failover
@@ -22,12 +25,21 @@ RISK_LEVELS = ["low", "medium", "high", "critical"]
 
 class GuardianAnalysisResult(BaseModel):
     should_interrupt: bool = Field(description="Whether to interrupt the debate")
-    risk_level: str = Field(description="low | medium | high | critical")
-    fallacy_type: str | None = Field(
-        default=None, description="Category of detected fallacy"
+    risk_level: Literal["low", "medium", "high", "critical"] = Field(
+        description="low | medium | high | critical"
     )
+    fallacy_type: (
+        Literal[
+            "unsubstantiated_claim",
+            "confirmation_bias",
+            "overconfidence",
+            "cognitive_bias",
+            "dangerous_advice",
+        ]
+        | None
+    ) = Field(default=None, description="Category of detected fallacy")
     reason: str = Field(description="Human-readable explanation of the risk")
-    summary_verdict: str = Field(
+    summary_verdict: Literal["Wait", "Caution", "High Risk"] = Field(
         description="Short verdict: Wait | Caution | High Risk"
     )
     safe: bool = Field(description="Whether the argument is safe")
@@ -73,7 +85,13 @@ class GuardianAgent:
     async def _get_llm(self):
         if self._provided_llm is not None:
             return self._provided_llm
-        return await get_llm_with_failover(self.streaming_handler)
+        from app.config import settings
+
+        return await get_llm_with_failover(
+            self.streaming_handler,
+            model=settings.guardian_llm_model,
+            temperature=settings.guardian_llm_temperature,
+        )
 
     def _format_all_arguments(self, state: DebateState) -> str:
         messages = state.get("messages", [])
@@ -95,7 +113,9 @@ class GuardianAgent:
                 "fallacy_categories": ", ".join(FALLACY_CATEGORIES),
                 "asset": state.get("asset", "unknown"),
                 "current_turn": str(state.get("current_turn", 0)),
-                "market_context": str(state.get("market_context", {})),
+                "market_context": json.dumps(
+                    state.get("market_context", {}), default=str
+                ),
                 "all_arguments": self._format_all_arguments(state),
             }
         )

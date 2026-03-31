@@ -1,8 +1,22 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
+from datetime import datetime, timezone
 
-from app.services.market.schemas import MarketContext
+from app.services.market.schemas import MarketContext, FreshnessStatus
 from app.services.debate.agents.guardian import GuardianAnalysisResult
+
+
+def make_guardian_result(**overrides):
+    defaults = dict(
+        should_interrupt=False,
+        risk_level="low",
+        fallacy_type=None,
+        reason="No issues detected.",
+        summary_verdict="Wait",
+        safe=True,
+        detailed_reasoning="",
+    )
+    return GuardianAnalysisResult(**{**defaults, **overrides})
 
 
 @pytest.fixture
@@ -69,37 +83,62 @@ def debate_state_with_arguments(mock_market_context):
 
 @pytest.fixture
 def guardian_interrupt_result():
-    return GuardianAnalysisResult(
+    return make_guardian_result(
         should_interrupt=True,
         risk_level="high",
         fallacy_type="overconfidence",
         reason="The argument treats a prediction as certainty without evidence.",
-        summary_verdict="High Risk",
         safe=False,
         detailed_reasoning="Overconfidence detected in the bull agent's argument.",
+        summary_verdict="High Risk",
     )
 
 
 @pytest.fixture
 def guardian_safe_result():
-    return GuardianAnalysisResult(
-        should_interrupt=False,
-        risk_level="low",
-        fallacy_type=None,
-        reason="No issues detected.",
-        summary_verdict="Wait",
-        safe=True,
-        detailed_reasoning="",
-    )
+    return make_guardian_result()
 
 
 @pytest.fixture
-def mock_guardian_llm(guardian_safe_result):
-    structured_mock = MagicMock()
-    chain_mock = MagicMock()
-    chain_mock.ainvoke = AsyncMock(return_value=guardian_safe_result)
-    prompt_mock = MagicMock()
-    prompt_mock.__or__ = MagicMock(return_value=chain_mock)
-    llm_mock = MagicMock()
-    llm_mock.with_structured_output.return_value = structured_mock
-    return llm_mock, chain_mock, prompt_mock
+def mock_manager():
+    manager = MagicMock()
+    manager.broadcast_to_debate = AsyncMock()
+    manager.active_debates = {}
+    return manager
+
+
+@pytest.fixture
+def mock_stale_guardian():
+    fresh_status = FreshnessStatus(
+        asset="BTC",
+        is_stale=False,
+        last_update=datetime.now(timezone.utc),
+        age_seconds=5,
+        threshold_seconds=60,
+    )
+    guardian = MagicMock()
+    guardian.get_freshness_status = AsyncMock(return_value=fresh_status)
+    return guardian
+
+
+@pytest.fixture
+def mock_agents_with_generate():
+    async def bull_gen(state):
+        return {
+            "messages": state["messages"] + [{"role": "bull", "content": "Bull arg"}],
+            "current_turn": state["current_turn"] + 1,
+            "current_agent": "bear",
+        }
+
+    async def bear_gen(state):
+        return {
+            "messages": state["messages"] + [{"role": "bear", "content": "Bear arg"}],
+            "current_turn": state["current_turn"] + 1,
+            "current_agent": "bull",
+        }
+
+    mock_bull = MagicMock()
+    mock_bull.generate = bull_gen
+    mock_bear = MagicMock()
+    mock_bear.generate = bear_gen
+    return mock_bull, mock_bear

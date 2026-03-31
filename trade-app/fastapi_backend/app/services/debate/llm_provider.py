@@ -31,6 +31,8 @@ class LLMProviderManager:
         self,
         streaming: bool = False,
         callbacks: list[AsyncCallbackHandler] | None = None,
+        model: str | None = None,
+        temperature: float | None = None,
     ) -> Any:
         errors: list[Exception] = []
         providers_to_try = (
@@ -42,6 +44,8 @@ class LLMProviderManager:
                 llm = provider.factory(
                     streaming=streaming,
                     callbacks=callbacks,
+                    model=model,
+                    temperature=temperature,
                 )
                 logger.info("Using LLM provider: %s", provider.name)
                 return llm
@@ -55,11 +59,15 @@ class LLMProviderManager:
 def _build_openai(
     streaming: bool = False,
     callbacks: list[AsyncCallbackHandler] | None = None,
+    model: str | None = None,
+    temperature: float | None = None,
 ) -> ChatOpenAI:
     api_key = settings.openai_api_key
     return ChatOpenAI(
-        model=settings.debate_llm_model,
-        temperature=settings.debate_llm_temperature,
+        model=model or settings.debate_llm_model,
+        temperature=temperature
+        if temperature is not None
+        else settings.debate_llm_temperature,
         api_key=SecretStr(api_key) if api_key else None,
         streaming=streaming,
         callbacks=callbacks,
@@ -69,13 +77,17 @@ def _build_openai(
 def _build_anthropic(
     streaming: bool = False,
     callbacks: list[AsyncCallbackHandler] | None = None,
+    model: str | None = None,
+    temperature: float | None = None,
 ) -> Any:
     from langchain_anthropic import ChatAnthropic
 
     api_key = settings.anthropic_api_key
     return ChatAnthropic(
-        model=settings.debate_llm_fallback_model,
-        temperature=settings.debate_llm_temperature,
+        model=model or settings.debate_llm_fallback_model,
+        temperature=temperature
+        if temperature is not None
+        else settings.debate_llm_temperature,
         api_key=SecretStr(api_key) if api_key else None,
         streaming=streaming,
         callbacks=callbacks,
@@ -106,8 +118,12 @@ def _get_manager() -> LLMProviderManager:
 
 async def get_llm_with_failover(
     streaming_handler: AsyncCallbackHandler | None = None,
+    model: str | None = None,
+    temperature: float | None = None,
 ) -> Any:
     manager = _get_manager()
     streaming = streaming_handler is not None
     callbacks = [streaming_handler] if streaming_handler else None
-    return await manager.get_llm(streaming=streaming, callbacks=callbacks)
+    return await manager.get_llm(
+        streaming=streaming, callbacks=callbacks, model=model, temperature=temperature
+    )

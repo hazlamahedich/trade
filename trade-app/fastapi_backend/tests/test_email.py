@@ -36,7 +36,7 @@ def test_get_email_config(mock_settings):
 
     assert isinstance(config, ConnectionConfig)
     assert config.MAIL_USERNAME == "test_user"
-    assert config.MAIL_PASSWORD.get_secret_value() == "test_pass"  # type: ignore[union-attr]
+    assert config.MAIL_PASSWORD == "test_pass"
     assert config.MAIL_FROM == "test@example.com"
     assert config.MAIL_PORT == 587
     assert config.MAIL_SERVER == "smtp.test.com"
@@ -73,7 +73,7 @@ async def test_send_reset_password_email(mock_settings, mock_user, mocker):
     message_arg = mock_fastmail_instance.send_message.call_args[0][0]
     assert isinstance(message_arg, MessageSchema)
     assert message_arg.subject == "Password recovery"
-    assert message_arg.recipients[0].email == mock_user.email  # type: ignore[union-attr]
+    assert message_arg.recipients[0] == mock_user.email
 
     # Verify template body contains correct data
     expected_link = (
