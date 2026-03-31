@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import type { NodeProps } from "@xyflow/react";
 
 jest.mock("@xyflow/react", () => ({
-  Handle: ({ type, position: _position }: { type: string; position: string }) => (
+  Handle: ({ type }: { type: string; position: string }) => (
     <div data-handle={type} />
   ),
   Position: { Top: "top", Bottom: "bottom", Left: "left", Right: "right" },

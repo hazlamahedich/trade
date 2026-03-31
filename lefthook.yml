@@ -1,0 +1,16 @@
+# Lefthook configuration for anti-pattern enforcement
+# Retro Action 2: Pre-commit anti-pattern hooks
+
+check:
+  # Python anti-patterns
+  - description: "Block deprecated datetime.utcnow()"
+    command: "rg --glob 'trade-app/fastapi_backend/**/*.py' -l | xargs grep -l 'datetime.utcnow' 2>/dev/null"
+    files: "rg --glob 'trade-app/fastapi_backend/**/*.py'"
+    
+  - description: "Block Vitest API usage (project uses Jest)"
+    command: "rg --glob 'trade-app/nextjs-frontend/**/*.{ts,tsx}' -l | xargs grep -l 'vi\\.fn\\|vi\\.mock\\|vi\\.useFakeTimers' 2>/dev/null"
+    files: "rg --glob 'trade-app/nextjs-frontend/**/*.{ts,tsx}'"
+    
+  - description: "Block waitForTimeout in test files"
+    command: "rg --glob 'trade-app/nextjs-frontend/**/*.{ts,tsx}' -l | xargs grep -l 'waitForTimeout' 2>/dev/null"
+    files: "rg --glob 'trade-app/nextjs-frontend/**/*.{ts,tsx}'"

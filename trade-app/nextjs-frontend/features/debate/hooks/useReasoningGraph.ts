@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useNodesState, useEdgesState } from "@xyflow/react";
 import type {
   ReasoningNode,

@@ -130,8 +130,7 @@ class TestDebateEngine:
                     "current_agent": "bull",
                     "status": "running",
                 }
-
                 config = {"configurable": {"thread_id": "test-thread"}}
-                result = await graph.ainvoke(initial_state, config)
+                result = await graph.ainvoke(initial_state, config)  # type: ignore
 
                 assert result["current_turn"] >= 2

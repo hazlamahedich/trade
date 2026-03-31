@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 
 from app.services.debate.state import DebateState
@@ -97,13 +98,36 @@ async def bear_agent_node(
     return result
 
 
-def create_debate_graph():
+def get_checkpointer() -> BaseCheckpointSaver:
+    from app.config import settings
+
+    checkpointer_type = settings.CHECKPOINTER_TYPE
+    if checkpointer_type == "postgres":
+        from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+        from psycopg_pool import AsyncConnectionPool
+
+        if not settings.CHECKPOINTER_URL:
+            raise ValueError(
+                "CHECKPOINTER_URL is required when CHECKPOINTER_TYPE is 'postgres'"
+            )
+        pool = AsyncConnectionPool(conninfo=settings.CHECKPOINTER_URL)
+        return AsyncPostgresSaver(pool)
+    return MemorySaver()
+
+
+def create_debate_graph(
+    checkpointer: BaseCheckpointSaver | None = None,
+) -> Any:
     """Create the debate workflow graph.
 
-    NOTE: Uses MemorySaver checkpointer for single-worker deployments.
-    For multi-worker production, replace with RedisSaver or ensure
-    stream_state (Redis) covers all reconnection scenarios.
+    For production deployments with multiple workers, use PostgresSaver
+    by setting CHECKPOINTER_TYPE=postgres and CHECKPOINTER_URL in the
+    environment. This ensures debate state persists across process
+    restarts and is accessible from any worker.
     """
+    if checkpointer is None:
+        checkpointer = get_checkpointer()
+
     workflow = StateGraph(DebateState)
 
     workflow.add_node("bull", bull_agent_node)
@@ -113,7 +137,7 @@ def create_debate_graph():
     workflow.add_conditional_edges("bear", should_continue, {True: "bull", False: END})
 
     workflow.set_entry_point("bull")
-    return workflow.compile(checkpointer=MemorySaver())
+    return workflow.compile(checkpointer=checkpointer)
 
 
 async def stream_debate(
@@ -168,14 +192,15 @@ async def stream_debate(
     )
 
     current_state = initial_state
+    turn_arguments: dict[tuple[str, int], str] = {}
     try:
         while should_continue(current_state) and not stale_event.is_set():
             current_agent = current_state["current_agent"]
 
             if current_agent == "bull":
-                result = await bull_agent_node(current_state, manager, debate_id)
+                result = await bull_agent_node(current_state, manager, debate_id)  # type: ignore[arg-type]
             else:
-                result = await bear_agent_node(current_state, manager, debate_id)
+                result = await bear_agent_node(current_state, manager, debate_id)  # type: ignore[arg-type]
 
             current_state = {
                 "asset": current_state["asset"],
@@ -194,13 +219,16 @@ async def stream_debate(
                 else f"{current_agent}-turn-{result['current_turn'] - 1}"
             )
 
+            argument_content = result["messages"][-1]["content"]
+            turn_arguments[(current_agent, result["current_turn"])] = argument_content
+
             await send_reasoning_node(
                 manager,
                 debate_id,
                 node_id=f"{current_agent}-turn-{result['current_turn']}",
                 node_type=node_type,
                 label=f"{current_agent.title()} Argument #{result['current_turn']}",
-                summary=result["messages"][-1]["content"][:100],
+                summary=argument_content[:100],
                 agent=current_agent,
                 parent_id=previous_node_id,
                 turn=result["current_turn"],
@@ -233,6 +261,7 @@ async def stream_debate(
             "status": "completed",
         }
 
+        # TODO: Epic 3 will replace this placeholder with real voting-based winner determination
         final_turn = current_state["current_turn"]
         for turn in range(1, final_turn + 1):
             for agent in ["bull", "bear"]:
@@ -243,7 +272,7 @@ async def stream_debate(
                     node_id=node_id,
                     node_type="bull_analysis" if agent == "bull" else "bear_counter",
                     label=f"{agent.title()} Argument #{turn}",
-                    summary="",
+                    summary=turn_arguments.get((agent, turn), "")[:100],
                     agent=agent,
                     is_winning=True,
                     turn=turn,

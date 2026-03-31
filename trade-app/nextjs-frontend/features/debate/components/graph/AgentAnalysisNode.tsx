@@ -3,7 +3,6 @@
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { motion, useReducedMotion } from "framer-motion";
-import { TrendingUp, TrendingDown } from "lucide-react";
 import { AgentAvatar } from "../AgentAvatar";
 import { cn } from "@/lib/utils";
 import type { AgentAnalysisNodeData } from "./types";

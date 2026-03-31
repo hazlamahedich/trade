@@ -55,8 +55,10 @@ async function setupActiveDebatePage(
 
 test.describe('[1-7] Reasoning Graph Accessibility E2E Tests', () => {
   test.afterEach(async ({ page }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wsConnected = await page.evaluate(() => (window as any).__WS_CONNECTED__);
     if (wsConnected) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await page.evaluate(() => (window as any).__testWebSocket__?.close());
     }
   });

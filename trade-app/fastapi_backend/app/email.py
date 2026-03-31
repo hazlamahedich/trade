@@ -7,6 +7,11 @@ from .models import User
 
 
 def get_email_config():
+    assert settings.MAIL_USERNAME is not None, "MAIL_USERNAME is required"
+    assert settings.MAIL_PASSWORD is not None, "MAIL_PASSWORD is required"
+    assert settings.MAIL_FROM is not None, "MAIL_FROM is required"
+    assert settings.MAIL_PORT is not None, "MAIL_PORT is required"
+    assert settings.MAIL_SERVER is not None, "MAIL_SERVER is required"
     conf = ConnectionConfig(
         MAIL_USERNAME=settings.MAIL_USERNAME,
         MAIL_PASSWORD=settings.MAIL_PASSWORD,

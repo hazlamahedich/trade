@@ -9,7 +9,11 @@ from app.services.debate.sanitization import sanitize_response
 class TestBullAgent:
     @pytest.fixture
     def bull_agent(self, debate_state):
-        with patch("app.services.debate.agents.bull.ChatOpenAI") as _mock_llm_class:
+        with patch(
+            "app.services.debate.agents.bull.get_llm_with_failover",
+            new_callable=AsyncMock,
+        ) as mock_get_llm:
+            mock_get_llm.return_value = MagicMock()
             with patch(
                 "app.services.debate.agents.bull.ChatPromptTemplate"
             ) as mock_prompt_class:
@@ -39,7 +43,11 @@ class TestBullAgent:
 
     @pytest.mark.asyncio
     async def test_bull_references_bear_argument(self, debate_state):
-        with patch("app.services.debate.agents.bull.ChatOpenAI"):
+        with patch(
+            "app.services.debate.agents.bull.get_llm_with_failover",
+            new_callable=AsyncMock,
+        ) as mock_get_llm:
+            mock_get_llm.return_value = MagicMock()
             with patch(
                 "app.services.debate.agents.bull.ChatPromptTemplate"
             ) as mock_prompt_class:
@@ -74,7 +82,11 @@ class TestBullAgent:
 class TestBearAgent:
     @pytest.fixture
     def bear_agent(self, debate_state):
-        with patch("app.services.debate.agents.bear.ChatOpenAI"):
+        with patch(
+            "app.services.debate.agents.bear.get_llm_with_failover",
+            new_callable=AsyncMock,
+        ) as mock_get_llm:
+            mock_get_llm.return_value = MagicMock()
             with patch(
                 "app.services.debate.agents.bear.ChatPromptTemplate"
             ) as mock_prompt_class:

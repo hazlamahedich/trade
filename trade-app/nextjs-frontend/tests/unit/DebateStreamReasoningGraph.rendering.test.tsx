@@ -62,6 +62,7 @@ jest.mock("framer-motion", () => ({
 }));
 
 jest.mock("next/dynamic", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const ReasoningGraphMod = require("../../features/debate/components/graph/ReasoningGraphWrapper");
   return (loader: () => Promise<{ ReasoningGraph: unknown }>, opts: { ssr?: boolean }) => {
     const Component = (props: Record<string, unknown>) => {
@@ -117,7 +118,7 @@ function createMockWS(url: string) {
 
 import { DebateStream } from "../../features/debate/components/DebateStream";
 
-describe("[1-7-INT] DebateStream + ReasoningGraph Integration", () => {
+describe("[1-7-INT] DebateStream + ReasoningGraph Integration — Rendering", () => {
   beforeEach(() => {
     wsInstances = [];
     mockStore = { accessToken: "test-token" };
@@ -243,63 +244,6 @@ describe("[1-7-INT] DebateStream + ReasoningGraph Integration", () => {
     expect(screen.getByText("Bull Argument #1")).toBeInTheDocument();
   });
 
-  test("[1-7-INT-003] @p0 winning path highlights nodes when isWinning received", async () => {
-    render(<DebateStream debateId="debate-int-3" />);
-
-    await connectWS();
-
-    sendMessage({
-      type: "DEBATE/REASONING_NODE",
-      payload: {
-        debateId: "debate-int-3",
-        nodeId: "data-BTC-win3",
-        nodeType: "data_input",
-        label: "BTC Market Data",
-        summary: "Loaded",
-        agent: null,
-        parentId: null,
-        isWinning: false,
-        turn: null,
-      },
-      timestamp: new Date().toISOString(),
-    });
-
-    sendMessage({
-      type: "DEBATE/REASONING_NODE",
-      payload: {
-        debateId: "debate-int-3",
-        nodeId: "bull-turn-1",
-        nodeType: "bull_analysis",
-        label: "Bull Argument #1",
-        summary: "Bull case",
-        agent: "bull",
-        parentId: "data-BTC-win3",
-        isWinning: false,
-        turn: 1,
-      },
-      timestamp: new Date().toISOString(),
-    });
-
-    sendMessage({
-      type: "DEBATE/REASONING_NODE",
-      payload: {
-        debateId: "debate-int-3",
-        nodeId: "bull-turn-1",
-        nodeType: "bull_analysis",
-        label: "Bull Argument #1",
-        summary: "Bull case",
-        agent: "bull",
-        parentId: "data-BTC-win3",
-        isWinning: true,
-        turn: 1,
-      },
-      timestamp: new Date().toISOString(),
-    });
-
-    const bullNode = screen.getByRole("group", { name: /Bull Analysis: Bull Argument #1/i });
-    expect(bullNode.className).toContain("ring-emerald-500");
-  });
-
   test("[1-7-INT-004] @p0 no graph container when no REASONING_NODE received", async () => {
     render(<DebateStream debateId="debate-int-4" />);
 
@@ -317,111 +261,5 @@ describe("[1-7-INT] DebateStream + ReasoningGraph Integration", () => {
     });
 
     expect(screen.queryByTestId("reasoning-graph-container")).not.toBeInTheDocument();
-  });
-
-  test("[1-7-INT-005] @p1 graph renders below argument messages", async () => {
-    const { container } = render(<DebateStream debateId="debate-int-5" />);
-
-    await connectWS();
-
-    sendMessage({
-      type: "DEBATE/ARGUMENT_COMPLETE",
-      payload: {
-        debateId: "debate-int-5",
-        agent: "bull",
-        content: "This is a test argument from the bull side.",
-        turn: 1,
-      },
-      timestamp: new Date().toISOString(),
-    });
-
-    sendMessage({
-      type: "DEBATE/REASONING_NODE",
-      payload: {
-        debateId: "debate-int-5",
-        nodeId: "data-BTC-pos5",
-        nodeType: "data_input",
-        label: "BTC Market Data",
-        summary: "Loaded",
-        agent: null,
-        parentId: null,
-        isWinning: false,
-        turn: null,
-      },
-      timestamp: new Date().toISOString(),
-    });
-
-    const graphContainer = screen.getByTestId("reasoning-graph-container");
-    const debateStream = container.querySelector('[data-testid="debate-stream"]');
-
-    if (debateStream) {
-      const allChildren = Array.from(debateStream.children);
-      const graphIndex = allChildren.indexOf(graphContainer.parentElement!);
-      const argumentElements = debateStream.querySelectorAll('[data-testid^="argument-"]');
-
-      if (argumentElements.length > 0) {
-        const lastArg = argumentElements[argumentElements.length - 1];
-        const lastArgIndex = allChildren.indexOf(lastArg.parentElement!);
-        expect(graphIndex).toBeGreaterThan(lastArgIndex);
-      }
-    }
-  });
-
-  test("[1-7-INT-006] @p1 graph updates with multiple REASONING_NODE messages", async () => {
-    render(<DebateStream debateId="debate-int-6" />);
-
-    await connectWS();
-
-    sendMessage({
-      type: "DEBATE/REASONING_NODE",
-      payload: {
-        debateId: "debate-int-6",
-        nodeId: "data-ETH-multi6",
-        nodeType: "data_input",
-        label: "ETH Market Data",
-        summary: "Loaded",
-        agent: null,
-        parentId: null,
-        isWinning: false,
-        turn: null,
-      },
-      timestamp: new Date().toISOString(),
-    });
-
-    sendMessage({
-      type: "DEBATE/REASONING_NODE",
-      payload: {
-        debateId: "debate-int-6",
-        nodeId: "bull-turn-1",
-        nodeType: "bull_analysis",
-        label: "Bull Argument #1",
-        summary: "Bullish",
-        agent: "bull",
-        parentId: "data-ETH-multi6",
-        isWinning: false,
-        turn: 1,
-      },
-      timestamp: new Date().toISOString(),
-    });
-
-    sendMessage({
-      type: "DEBATE/REASONING_NODE",
-      payload: {
-        debateId: "debate-int-6",
-        nodeId: "bear-turn-1",
-        nodeType: "bear_counter",
-        label: "Bear Counter #1",
-        summary: "Bearish",
-        agent: "bear",
-        parentId: "bull-turn-1",
-        isWinning: false,
-        turn: 1,
-      },
-      timestamp: new Date().toISOString(),
-    });
-
-    expect(screen.getByText("ETH Market Data")).toBeInTheDocument();
-    expect(screen.getByText("Bull Argument #1")).toBeInTheDocument();
-    expect(screen.getByText("Bear Counter #1")).toBeInTheDocument();
   });
 });

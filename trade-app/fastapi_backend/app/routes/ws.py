@@ -31,10 +31,16 @@ async def validate_token(token: str) -> dict[str, Any] | None:
         return {"id": "qa-user", "email": "qa@test.com"}
 
     try:
+        from app.database import async_session_maker, get_user_db
+        from app.users import get_user_manager
+
         strategy = get_jwt_strategy()
-        user = await strategy.read_token(token)
-        if user:
-            return {"id": str(user.id), "email": user.email}
+        async with async_session_maker() as session:
+            user_db = await anext(get_user_db(session))
+            user_manager = await anext(get_user_manager(user_db))
+            user = await strategy.read_token(token, user_manager)
+            if user:
+                return {"id": str(user.id), "email": user.email}
     except Exception as e:
         logger.warning(f"Token validation failed: {e}")
     return None

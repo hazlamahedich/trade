@@ -1,11 +1,10 @@
 import logging
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.callbacks import AsyncCallbackHandler
-from langchain_openai import ChatOpenAI
 
 from app.services.debate.state import DebateState
 from app.services.debate.sanitization import sanitize_response
-from app.config import settings
+from app.services.debate.llm_provider import get_llm_with_failover
 
 logger = logging.getLogger(__name__)
 
@@ -30,14 +29,13 @@ Generate your bullish argument:"""
 class BullAgent:
     def __init__(self, llm=None, streaming_handler: AsyncCallbackHandler | None = None):
         self.streaming_handler = streaming_handler
-        self.llm = llm or ChatOpenAI(
-            model=settings.debate_llm_model,
-            temperature=settings.debate_llm_temperature,
-            api_key=settings.openai_api_key,
-            streaming=streaming_handler is not None,
-            callbacks=[streaming_handler] if streaming_handler else None,
-        )
+        self._provided_llm = llm
         self.prompt = ChatPromptTemplate.from_template(BULL_SYSTEM_PROMPT)
+
+    async def _get_llm(self):
+        if self._provided_llm is not None:
+            return self._provided_llm
+        return await get_llm_with_failover(self.streaming_handler)
 
     def _get_last_bear_message(self, state: DebateState) -> str:
         for msg in reversed(state.get("messages", [])):
@@ -46,7 +44,8 @@ class BullAgent:
         return ""
 
     async def generate(self, state: DebateState) -> dict:
-        chain = self.prompt | self.llm
+        llm = await self._get_llm()
+        chain = self.prompt | llm
         response = await chain.ainvoke(
             {
                 "market_context": state["market_context"],

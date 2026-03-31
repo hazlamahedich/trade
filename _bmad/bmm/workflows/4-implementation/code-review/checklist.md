@@ -12,6 +12,8 @@
 - [ ] File List reviewed and validated for completeness
 - [ ] Tests identified and mapped to ACs; gaps noted
 - [ ] Code quality review performed on changed files
+- [ ] Barrel exports verified: all new components/hooks exported from index.ts files
+- [ ] No direct deep imports from feature modules (use barrel exports)
 - [ ] Security review performed on changed files and dependencies
 - [ ] Outcome decided (Approve/Changes Requested/Blocked)
 - [ ] Review notes appended under "Senior Developer Review (AI)"

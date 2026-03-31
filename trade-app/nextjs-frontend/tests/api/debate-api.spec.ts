@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { faker } from '@faker-js/faker';
 
 /**
  * Story 1-3: Debate Engine Core (LangGraph) - API Tests

@@ -49,9 +49,16 @@ class Settings(BaseSettings):
 
     # LLM Configuration
     openai_api_key: str = ""
+    anthropic_api_key: str = ""
     debate_max_turns: int = 6
     debate_llm_model: str = "gpt-4o-mini"
+    debate_llm_fallback_model: str = "claude-3-haiku-20240307"
     debate_llm_temperature: float = 0.7
+    debate_llm_enable_failover: bool = True
+
+    # LangGraph Checkpointer
+    CHECKPOINTER_TYPE: str = "memory"
+    CHECKPOINTER_URL: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
@@ -70,4 +77,4 @@ class Settings(BaseSettings):
             )
 
 
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]
