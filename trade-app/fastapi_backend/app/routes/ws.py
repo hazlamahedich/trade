@@ -18,6 +18,7 @@ from app.services.debate.ws_schemas import (
     WebSocketCloseCodes,
     CLOSE_CODE_REASONS,
 )
+from app.services.debate.engine import get_pause_event
 from app.users import get_jwt_strategy
 
 logger = logging.getLogger(__name__)
@@ -120,6 +121,12 @@ async def websocket_debate(
                 action_type = data.get("type", "")
 
                 if action_type == "DEBATE/PONG":
+                    continue
+
+                if action_type == "DEBATE/GUARDIAN_INTERRUPT_ACK":
+                    pause_event = get_pause_event(debate_id)
+                    if pause_event:
+                        pause_event.set()
                     continue
 
                 if action_type == "DEBATE/GET_STATE":

@@ -9,9 +9,12 @@ from langchain_core.callbacks import AsyncCallbackHandler
 from app.services.debate.ws_schemas import (
     DataRefreshedPayload,
     DataStalePayload,
+    DebatePausedPayload,
+    DebateResumedPayload,
     GuardianInterruptPayload,
     GuardianVerdictPayload,
     ReasoningNodePayload,
+    RiskLevel,
     WebSocketAction,
 )
 from app.services.market.schemas import FreshnessStatus
@@ -319,7 +322,7 @@ async def send_guardian_interrupt(
     manager: DebateConnectionManager,
     debate_id: str,
     *,
-    risk_level: str,
+    risk_level: RiskLevel,
     reason: str,
     fallacy_type: str | None = None,
     original_agent: str,
@@ -347,7 +350,7 @@ async def send_guardian_verdict(
     debate_id: str,
     *,
     verdict: str,
-    risk_level: str,
+    risk_level: RiskLevel,
     summary: str,
     reasoning: str,
     total_interrupts: int = 0,
@@ -362,6 +365,46 @@ async def send_guardian_verdict(
     )
     action = WebSocketAction(
         type="DEBATE/GUARDIAN_VERDICT",
+        payload=payload.model_dump(by_alias=True),
+    )
+    await manager.broadcast_to_debate(debate_id, action.model_dump(by_alias=True))
+
+
+async def send_debate_paused(
+    manager: DebateConnectionManager,
+    debate_id: str,
+    *,
+    reason: str,
+    risk_level: RiskLevel,
+    summary_verdict: str,
+    turn: int | None = None,
+) -> None:
+    payload = DebatePausedPayload(
+        debate_id=debate_id,
+        reason=reason,
+        risk_level=risk_level,
+        summary_verdict=summary_verdict,
+        turn=turn,
+    )
+    action = WebSocketAction(
+        type="DEBATE/DEBATE_PAUSED",
+        payload=payload.model_dump(by_alias=True),
+    )
+    await manager.broadcast_to_debate(debate_id, action.model_dump(by_alias=True))
+
+
+async def send_debate_resumed(
+    manager: DebateConnectionManager,
+    debate_id: str,
+    *,
+    turn: int | None = None,
+) -> None:
+    payload = DebateResumedPayload(
+        debate_id=debate_id,
+        turn=turn,
+    )
+    action = WebSocketAction(
+        type="DEBATE/DEBATE_RESUMED",
         payload=payload.model_dump(by_alias=True),
     )
     await manager.broadcast_to_debate(debate_id, action.model_dump(by_alias=True))

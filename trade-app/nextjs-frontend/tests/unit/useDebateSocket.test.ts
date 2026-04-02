@@ -91,6 +91,11 @@ describe("[1-4] useDebateSocket Hook Unit Tests", () => {
     });
 
     class MockWebSocketClass {
+      static OPEN = 1;
+      static CLOSED = 3;
+      static CONNECTING = 0;
+      static CLOSING = 2;
+
       private instance: MockWebSocketInstance;
 
       constructor(url: string) {
@@ -643,6 +648,160 @@ describe("[1-4] useDebateSocket Hook Unit Tests", () => {
 
       expect(wsInstances.length).toBe(wsCountAfterDisconnect);
       expect(wsCountAfterDisconnect).toBe(wsCountBeforeDisconnect);
+    });
+  });
+
+  describe("[2-2] Guardian Pause/Resume Actions", () => {
+    test("[2-2-UNIT-001] should handle DEBATE/GUARDIAN_INTERRUPT messages @p0", async () => {
+      const onGuardianInterrupt = jest.fn();
+
+      renderHook(() =>
+        useDebateSocket({
+          debateId: "test-debate-123",
+          onGuardianInterrupt,
+        })
+      );
+
+      await waitForWebSocket();
+      await act(async () => {
+        wsInstances[0].simulateOpen();
+      });
+
+      await act(async () => {
+        wsInstances[0].simulateMessage({
+          type: "DEBATE/GUARDIAN_INTERRUPT",
+          payload: {
+            debateId: "test-debate-123",
+            riskLevel: "high",
+            reason: "Overconfidence detected",
+            fallacyType: "overconfidence",
+            originalAgent: "bull",
+            summaryVerdict: "High Risk",
+            turn: 2,
+          },
+          timestamp: "2024-01-01T00:00:00Z",
+        });
+      });
+
+      expect(onGuardianInterrupt).toHaveBeenCalledWith({
+        debateId: "test-debate-123",
+        riskLevel: "high",
+        reason: "Overconfidence detected",
+        fallacyType: "overconfidence",
+        originalAgent: "bull",
+        summaryVerdict: "High Risk",
+        turn: 2,
+      });
+    });
+
+    test("[2-2-UNIT-002] should handle DEBATE/DEBATE_PAUSED messages @p0", async () => {
+      const onDebatePaused = jest.fn();
+
+      renderHook(() =>
+        useDebateSocket({
+          debateId: "test-debate-123",
+          onDebatePaused,
+        })
+      );
+
+      await waitForWebSocket();
+      await act(async () => {
+        wsInstances[0].simulateOpen();
+      });
+
+      await act(async () => {
+        wsInstances[0].simulateMessage({
+          type: "DEBATE/DEBATE_PAUSED",
+          payload: {
+            debateId: "test-debate-123",
+            reason: "Overconfidence detected",
+            riskLevel: "high",
+            summaryVerdict: "High Risk",
+            turn: 2,
+          },
+          timestamp: "2024-01-01T00:00:00Z",
+        });
+      });
+
+      expect(onDebatePaused).toHaveBeenCalledWith({
+        debateId: "test-debate-123",
+        reason: "Overconfidence detected",
+        riskLevel: "high",
+        summaryVerdict: "High Risk",
+        turn: 2,
+      });
+    });
+
+    test("[2-2-UNIT-003] should handle DEBATE/DEBATE_RESUMED messages @p0", async () => {
+      const onDebateResumed = jest.fn();
+
+      renderHook(() =>
+        useDebateSocket({
+          debateId: "test-debate-123",
+          onDebateResumed,
+        })
+      );
+
+      await waitForWebSocket();
+      await act(async () => {
+        wsInstances[0].simulateOpen();
+      });
+
+      await act(async () => {
+        wsInstances[0].simulateMessage({
+          type: "DEBATE/DEBATE_RESUMED",
+          payload: {
+            debateId: "test-debate-123",
+            turn: 2,
+          },
+          timestamp: "2024-01-01T00:00:00Z",
+        });
+      });
+
+      expect(onDebateResumed).toHaveBeenCalledWith({
+        debateId: "test-debate-123",
+        turn: 2,
+      });
+    });
+
+    test("[2-2-UNIT-004] sendGuardianAck sends correct WebSocket message @p0", async () => {
+      const { result } = renderHook(() =>
+        useDebateSocket({
+          debateId: "test-debate-123",
+        })
+      );
+
+      await waitForWebSocket();
+      await act(async () => {
+        wsInstances[0].simulateOpen();
+      });
+
+      await act(async () => {
+        result.current.sendGuardianAck();
+      });
+
+      expect(wsInstances[0].send).toHaveBeenCalledWith(
+        JSON.stringify({
+          type: "DEBATE/GUARDIAN_INTERRUPT_ACK",
+          payload: { debateId: "test-debate-123" },
+        })
+      );
+    });
+
+    test("[2-2-UNIT-005] sendGuardianAck does nothing when WebSocket not open @p1", async () => {
+      const { result } = renderHook(() =>
+        useDebateSocket({
+          debateId: "test-debate-123",
+        })
+      );
+
+      await waitForWebSocket();
+
+      await act(async () => {
+        result.current.sendGuardianAck();
+      });
+
+      expect(wsInstances[0].send).not.toHaveBeenCalled();
     });
   });
 });

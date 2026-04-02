@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -10,6 +10,8 @@ import {
   type ArgumentPayload,
   type DataStalePayload,
   type ReasoningNodePayload,
+  type GuardianInterruptPayload,
+  type DebatePausedPayload,
 } from "../hooks/useDebateSocket";
 import { useReasoningGraph } from "../hooks/useReasoningGraph";
 import { ArgumentBubble, type AgentType } from "./ArgumentBubble";
@@ -22,12 +24,24 @@ const ReasoningGraph = dynamic(
   { ssr: false }
 );
 
-interface Argument {
+interface ArgumentMessage {
   id: string;
+  type: "argument";
   agent: AgentType;
   content: string;
   timestamp: string;
 }
+
+interface GuardianMsg {
+  id: string;
+  type: "guardian";
+  content: string;
+  riskLevel: string;
+  summaryVerdict: string;
+  timestamp: string;
+}
+
+type DebateMessage = ArgumentMessage | GuardianMsg;
 
 interface DebateStreamProps {
   debateId: string;
@@ -39,7 +53,7 @@ function generateId(): string {
 }
 
 export function DebateStream({ debateId, className }: DebateStreamProps) {
-  const [messages, setMessages] = useState<Argument[]>([]);
+  const [messages, setMessages] = useState<DebateMessage[]>([]);
   const [streamingText, setStreamingText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [currentAgent, setCurrentAgent] = useState<AgentType | null>(null);
@@ -50,14 +64,23 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
     ageSeconds: number;
   } | null>(null);
   const [reasoningNodes, setReasoningNodes] = useState<ReasoningNodePayload[]>([]);
+  const [isPaused, setIsPaused] = useState(false);
+  const [lastGuardianRiskLevel, setLastGuardianRiskLevel] = useState<string | null>(null);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
 
+  const latestGuardianIdx = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].type === "guardian") return i;
+    }
+    return -1;
+  }, [messages]);
+
   const rowVirtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 100,
+    estimateSize: (index) => (messages[index]?.type === "guardian" ? 120 : 100),
     overscan: 5,
   });
 
@@ -72,6 +95,7 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
       ...prev,
       {
         id: generateId(),
+        type: "argument" as const,
         agent: payload.agent,
         content: payload.content,
         timestamp: new Date().toISOString(),
@@ -100,17 +124,44 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
     setReasoningNodes((prev) => [...prev, payload]);
   }, []);
 
+  const handleGuardianInterrupt = useCallback((payload: GuardianInterruptPayload) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: generateId(),
+        type: "guardian" as const,
+        content: payload.reason,
+        riskLevel: payload.riskLevel,
+        summaryVerdict: payload.summaryVerdict,
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+  }, []);
+
+  const handleDebatePaused = useCallback((payload: DebatePausedPayload) => {
+    setIsPaused(true);
+    setLastGuardianRiskLevel(payload.riskLevel);
+  }, []);
+
+  const handleDebateResumed = useCallback(() => {
+    setIsPaused(false);
+    setLastGuardianRiskLevel(null);
+  }, []);
+
   const handleAcknowledge = useCallback(() => {
     setIsDataStale(false);
   }, []);
 
-  const { status } = useDebateSocket({
+  const { status, sendGuardianAck } = useDebateSocket({
     debateId,
     onTokenReceived: handleTokenReceived,
     onArgumentComplete: handleArgumentComplete,
     onDataStale: handleDataStale,
     onDataRefreshed: handleDataRefreshed,
     onReasoningNode: handleReasoningNode,
+    onGuardianInterrupt: handleGuardianInterrupt,
+    onDebatePaused: handleDebatePaused,
+    onDebateResumed: handleDebateResumed,
   });
 
   const { nodes: graphNodes, edges: graphEdges, onNodesChange, onEdgesChange } = useReasoningGraph(reasoningNodes);
@@ -153,6 +204,7 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
           "flex flex-col gap-4 h-full overflow-y-auto p-4",
           "bg-slate-900 rounded-lg",
           isDataStale && "grayscale",
+          isPaused && "ring-2 ring-violet-600",
           className
         )}
       >
@@ -177,7 +229,11 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
             return (
               <div
                 key={message.id}
-                data-testid={`argument-${message.id}`}
+                data-testid={
+                  message.type === "guardian"
+                    ? `guardian-message-${message.id}`
+                    : `argument-${message.id}`
+                }
                 style={{
                   position: "absolute",
                   top: 0,
@@ -186,15 +242,53 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <ArgumentBubble
-                  agent={message.agent}
-                  content={message.content}
-                  timestamp={message.timestamp}
-                />
+                {message.type === "guardian" ? (
+                  <div className="flex justify-center">
+                    <div className="bg-violet-600/20 border border-violet-600 rounded-lg p-3 max-w-[80%] text-center">
+                      <div className="flex items-center justify-center gap-2 text-violet-400 text-xs font-semibold mb-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 1l-9 4.5v9L10 19l9-4.5v-9L10 1zm0 2.18l6 3v6.64l-6 3-6-3V6.18l6-3z" clipRule="evenodd" />
+                        </svg>
+                        <span>GUARDIAN: {message.summaryVerdict}</span>
+                      </div>
+                      <p className="text-violet-200 text-sm">{message.content}</p>
+                      {isPaused && virtualRow.index === latestGuardianIdx && lastGuardianRiskLevel !== "critical" && (
+                        <button
+                          data-testid={`ack-guardian-${message.id}`}
+                          onClick={sendGuardianAck}
+                          className="mt-2 px-4 py-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-md transition-colors"
+                        >
+                          Acknowledge &amp; Resume
+                        </button>
+                      )}
+                      {isPaused && virtualRow.index === latestGuardianIdx && lastGuardianRiskLevel === "critical" && (
+                        <div className="mt-2 text-red-400 text-sm font-semibold">
+                          Critical risk detected. Debate ended.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <ArgumentBubble
+                    agent={message.agent}
+                    content={message.content}
+                    timestamp={message.timestamp}
+                  />
+                )}
               </div>
             );
           })}
         </div>
+
+        {isPaused && (
+          <div
+            data-testid="debate-paused-indicator"
+            className="flex items-center justify-center gap-2 text-violet-400 text-sm"
+          >
+            <span className="animate-pulse">⏸</span>
+            <span>Debate paused — awaiting your acknowledgment</span>
+          </div>
+        )}
 
         <AnimatePresence>
           {isStreaming && currentAgent && (

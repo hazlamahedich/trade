@@ -1,9 +1,11 @@
 from datetime import datetime, timezone
+
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+RiskLevel = Literal["critical", "high", "medium", "low"]
 
 WebSocketActionType = Literal[
     "DEBATE/CONNECTED",
@@ -18,6 +20,9 @@ WebSocketActionType = Literal[
     "DEBATE/REASONING_NODE",
     "DEBATE/GUARDIAN_INTERRUPT",
     "DEBATE/GUARDIAN_VERDICT",
+    "DEBATE/DEBATE_PAUSED",
+    "DEBATE/DEBATE_RESUMED",
+    "DEBATE/GUARDIAN_INTERRUPT_ACK",
 ]
 
 
@@ -146,7 +151,7 @@ class GuardianInterruptPayload(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     debate_id: str = Field(serialization_alias="debateId")
-    risk_level: str
+    risk_level: RiskLevel
     reason: str
     fallacy_type: str | None = None
     original_agent: str
@@ -159,7 +164,24 @@ class GuardianVerdictPayload(BaseModel):
 
     debate_id: str = Field(serialization_alias="debateId")
     verdict: str
-    risk_level: str
+    risk_level: RiskLevel
     summary: str
     reasoning: str
     total_interrupts: int = 0
+
+
+class DebatePausedPayload(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    debate_id: str = Field(serialization_alias="debateId")
+    reason: str
+    risk_level: RiskLevel
+    summary_verdict: str
+    turn: int | None = None
+
+
+class DebateResumedPayload(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    debate_id: str = Field(serialization_alias="debateId")
+    turn: int | None = None

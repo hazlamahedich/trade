@@ -1,7 +1,7 @@
 import asyncio
 import logging
-from datetime import datetime
-from typing import Any
+from datetime import datetime, timezone
+from typing import Any, cast
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -20,9 +20,12 @@ from app.services.debate.streaming import (
     send_reasoning_node,
     send_guardian_interrupt,
     send_guardian_verdict,
+    send_debate_paused,
+    send_debate_resumed,
     stream_state,
 )
 from app.services.debate.agents.guardian import GuardianAgent
+from app.services.debate.ws_schemas import RiskLevel
 from app.services.market.stale_data_guardian import StaleDataGuardian
 
 logger = logging.getLogger(__name__)
@@ -42,6 +45,27 @@ class StaleDataError(Exception):
 
 
 FRESHNESS_CHECK_INTERVAL = 5
+GUARDIAN_ACK_TIMEOUT = 120
+
+_pause_events: dict[str, asyncio.Event] = {}
+
+
+def _set_pause_event(debate_id: str, event: asyncio.Event) -> None:
+    _pause_events[debate_id] = event
+
+
+def _clear_pause_event(debate_id: str) -> None:
+    _pause_events.pop(debate_id, None)
+
+
+def get_pause_event(debate_id: str) -> asyncio.Event | None:
+    return _pause_events.get(debate_id)
+
+
+def _reset_pause_state(current_state: dict[str, Any]) -> None:
+    current_state["interrupted"] = False
+    current_state["paused"] = False
+    current_state["pause_reason"] = None
 
 
 def should_continue(state: DebateState) -> bool:
@@ -141,6 +165,25 @@ def create_debate_graph(
 
     workflow.set_entry_point("bull")
     return workflow.compile(checkpointer=checkpointer)
+
+
+async def _wait_for_guardian_ack(
+    debate_id: str,
+    risk_level: str,
+) -> str:
+    ack_event = asyncio.Event()
+    _set_pause_event(debate_id, ack_event)
+    try:
+        await asyncio.wait_for(ack_event.wait(), timeout=GUARDIAN_ACK_TIMEOUT)
+        return "acknowledged"
+    except asyncio.TimeoutError:
+        logger.warning(
+            f"Guardian ack timeout for debate {debate_id}, "
+            f"treating as acknowledged (risk_level={risk_level})"
+        )
+        return "timeout"
+    finally:
+        _clear_pause_event(debate_id)
 
 
 async def stream_debate(
@@ -247,10 +290,11 @@ async def stream_debate(
                     analysis = await guardian.analyze(current_state)
 
                     if analysis["should_interrupt"]:
+                        risk_lvl: RiskLevel = cast(RiskLevel, analysis["risk_level"])
                         await send_guardian_interrupt(
                             manager,
                             debate_id,
-                            risk_level=analysis["risk_level"],
+                            risk_level=risk_lvl,
                             reason=analysis["reason"],
                             fallacy_type=analysis.get("fallacy_type"),
                             original_agent=current_agent,
@@ -262,7 +306,7 @@ async def stream_debate(
                             debate_id,
                             node_id=f"guardian-{current_agent}-turn-{result['current_turn']}",
                             node_type="risk_check",
-                            label=f"Guardian: {analysis['risk_level'].upper()} Risk",
+                            label=f"Guardian: {risk_lvl.upper()} Risk",
                             summary=analysis["reason"][:100],
                             parent_id=f"{current_agent}-turn-{result['current_turn']}",
                             turn=result["current_turn"],
@@ -271,11 +315,66 @@ async def stream_debate(
                             {
                                 "turn": result["current_turn"],
                                 "agent": current_agent,
-                                "risk_level": analysis["risk_level"],
+                                "risk_level": risk_lvl,
                                 "reason": analysis["reason"],
                                 "fallacy_type": analysis.get("fallacy_type"),
                             }
                         )
+
+                        current_state["messages"].append(
+                            {
+                                "role": "guardian",
+                                "content": analysis["reason"],
+                                "risk_level": risk_lvl,
+                                "summary_verdict": analysis["summary_verdict"],
+                            }
+                        )
+
+                        current_state.setdefault("pause_history", []).append(
+                            {
+                                "turn": result["current_turn"],
+                                "action": "paused",
+                                "risk_level": risk_lvl,
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                            }
+                        )
+
+                        await send_debate_paused(
+                            manager,
+                            debate_id,
+                            reason=analysis["reason"],
+                            risk_level=risk_lvl,
+                            summary_verdict=analysis["summary_verdict"],
+                            turn=result["current_turn"],
+                        )
+                        current_state["interrupted"] = True
+                        current_state["paused"] = True
+                        current_state["pause_reason"] = analysis["reason"]
+
+                        await _wait_for_guardian_ack(debate_id, risk_lvl)
+
+                        if risk_lvl == "critical":
+                            logger.info(
+                                f"Critical interrupt for debate {debate_id}, ending debate"
+                            )
+                            _reset_pause_state(current_state)
+                            break
+
+                        current_state.setdefault("pause_history", []).append(
+                            {
+                                "turn": result["current_turn"],
+                                "action": "resumed",
+                                "risk_level": risk_lvl,
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                            }
+                        )
+
+                        await send_debate_resumed(
+                            manager,
+                            debate_id,
+                            turn=result["current_turn"],
+                        )
+                        _reset_pause_state(current_state)
                     else:
                         await send_reasoning_node(
                             manager,
@@ -336,7 +435,9 @@ async def stream_debate(
                     manager,
                     debate_id,
                     verdict=final_analysis.get("summary_verdict", "Caution"),
-                    risk_level=final_analysis.get("risk_level", "medium"),
+                    risk_level=cast(
+                        RiskLevel, final_analysis.get("risk_level", "medium")
+                    ),
                     summary=final_analysis.get("reason", "Analysis complete"),
                     reasoning=final_analysis.get("detailed_reasoning", ""),
                     total_interrupts=len(current_state.get("guardian_interrupts", [])),
@@ -397,6 +498,7 @@ async def stream_debate(
         await send_status_update(manager, debate_id, "error")
         raise
     finally:
+        _clear_pause_event(debate_id)
         freshness_monitor_task.cancel()
         try:
             await freshness_monitor_task

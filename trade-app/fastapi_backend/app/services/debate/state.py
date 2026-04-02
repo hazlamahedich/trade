@@ -12,3 +12,6 @@ class DebateState(TypedDict):
     guardian_verdict: NotRequired[str]
     guardian_interrupts: NotRequired[list[dict]]
     interrupted: NotRequired[bool]
+    paused: NotRequired[bool]
+    pause_reason: NotRequired[str]
+    pause_history: NotRequired[list[dict]]

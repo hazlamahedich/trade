@@ -43,6 +43,29 @@ export interface DataRefreshedPayload {
   message: string;
 }
 
+export interface GuardianInterruptPayload {
+  debateId: string;
+  riskLevel: string;
+  reason: string;
+  fallacyType: string | null;
+  originalAgent: string;
+  summaryVerdict: string;
+  turn: number | null;
+}
+
+export interface DebatePausedPayload {
+  debateId: string;
+  reason: string;
+  riskLevel: string;
+  summaryVerdict: string;
+  turn: number | null;
+}
+
+export interface DebateResumedPayload {
+  debateId: string;
+  turn: number | null;
+}
+
 export type ReasoningNodeType = "data_input" | "bull_analysis" | "bear_counter" | "risk_check";
 
 export interface ReasoningNodePayload {
@@ -68,6 +91,9 @@ export interface WebSocketAction {
     | DataStalePayload
     | DataRefreshedPayload
     | ReasoningNodePayload
+    | GuardianInterruptPayload
+    | DebatePausedPayload
+    | DebateResumedPayload
     | Record<string, unknown>;
   timestamp: string;
 }
@@ -84,6 +110,9 @@ export interface UseDebateSocketOptions {
   onDataStale?: (payload: DataStalePayload) => void;
   onDataRefreshed?: (payload: DataRefreshedPayload) => void;
   onReasoningNode?: (payload: ReasoningNodePayload) => void;
+  onGuardianInterrupt?: (payload: GuardianInterruptPayload) => void;
+  onDebatePaused?: (payload: DebatePausedPayload) => void;
+  onDebateResumed?: (payload: DebateResumedPayload) => void;
   maxRetries?: number;
   onConnected?: () => void;
   onDisconnected?: () => void;
@@ -137,6 +166,9 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
     onDataStale,
     onDataRefreshed,
     onReasoningNode,
+    onGuardianInterrupt,
+    onDebatePaused,
+    onDebateResumed,
     maxRetries = DEFAULT_MAX_RETRIES,
     onConnected,
     onDisconnected,
@@ -209,6 +241,15 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
             case "DEBATE/REASONING_NODE":
               onReasoningNode?.(action.payload as ReasoningNodePayload);
               break;
+            case "DEBATE/GUARDIAN_INTERRUPT":
+              onGuardianInterrupt?.(action.payload as GuardianInterruptPayload);
+              break;
+            case "DEBATE/DEBATE_PAUSED":
+              onDebatePaused?.(action.payload as DebatePausedPayload);
+              break;
+            case "DEBATE/DEBATE_RESUMED":
+              onDebateResumed?.(action.payload as DebateResumedPayload);
+              break;
             case "DEBATE/PING":
               ws.send(JSON.stringify({ type: "DEBATE/PONG" }));
               break;
@@ -246,7 +287,16 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
       console.error("Failed to create WebSocket:", e);
       setStatus("disconnected");
     }
-  }, [debateId, maxRetries, onTokenReceived, onArgumentComplete, onStatusUpdate, onTurnChange, onError, onDataStale, onDataRefreshed, onReasoningNode, onConnected, onDisconnected]);
+  }, [debateId, maxRetries, onTokenReceived, onArgumentComplete, onStatusUpdate, onTurnChange, onError, onDataStale, onDataRefreshed, onReasoningNode, onGuardianInterrupt, onDebatePaused, onDebateResumed, onConnected, onDisconnected]);
+
+  const sendGuardianAck = useCallback(() => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: "DEBATE/GUARDIAN_INTERRUPT_ACK",
+        payload: { debateId },
+      }));
+    }
+  }, [debateId]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -280,6 +330,7 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
     status,
     reconnect,
     disconnect,
+    sendGuardianAck,
     isConnected: status === "connected",
     isConnecting: status === "connecting",
     isDisconnected: status === "disconnected",

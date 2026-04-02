@@ -52,7 +52,7 @@ development_status:
 
   epic-2: in-progress
   2-1-guardian-agent-logic-the-interrupter: done
-  2-2-debate-engine-integration-the-pause: backlog
+  2-2-debate-engine-integration-the-pause: review
   2-3-guardian-ui-overlay-the-freeze: backlog
   2-4-forbidden-phrase-filter-regex: backlog
   2-5-moderation-transparency-the-badge: backlog
