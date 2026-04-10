@@ -467,6 +467,36 @@ class TestEnginePauseIntegration:
         paused_count = action_types.count("DEBATE/DEBATE_PAUSED")
         assert paused_count >= 1
 
+    @pytest.mark.asyncio
+    async def test_2_2_int_012_non_critical_timeout_ends_debate(
+        self, mock_manager, mock_stale_guardian, guardian_interrupt_result
+    ):
+        """[2-2-INT-012] @p0 Non-critical interrupt with ACK timeout ends the debate.
+
+        Given a guardian that returns high-risk and a short ACK timeout
+        When the user does not ACK in time (likely disconnected)
+        Then the debate ends and DEBATE_RESUMED is NOT broadcast
+        """
+
+        async def fake_analyze(state):
+            return guardian_interrupt_result.model_dump()
+
+        with patched_debate_engine(fake_analyze, ack_timeout=0.1):
+            result = await stream_debate(
+                "deb_high_timeout",
+                "BTC",
+                {"summary": "test"},
+                mock_manager,
+                max_turns=4,
+                stale_guardian=mock_stale_guardian,
+            )
+
+        assert result["status"] == "completed"
+        action_types = get_action_types(mock_manager)
+        assert "DEBATE/DEBATE_PAUSED" in action_types
+        assert "DEBATE/DEBATE_RESUMED" not in action_types
+        assert get_pause_event("deb_high_timeout") is None
+
 
 class TestDebateStateBackwardCompat:
     def test_2_2_unit_016_debate_state_backward_compatible(self):

@@ -7,6 +7,7 @@ from app.services.debate.engine import (
     _clear_pause_event,
     get_pause_event,
     _pause_events,
+    _wait_for_guardian_ack,
 )
 
 
@@ -113,3 +114,26 @@ class TestWSGuardianInterruptAck:
         result = await asyncio.wait_for(ack_waiter, timeout=1.0)
         assert result == "acknowledged"
         assert get_pause_event(debate_id) is None, "Event should be cleaned up"
+
+    @pytest.mark.asyncio
+    async def test_2_2_api_004_disconnect_unblocks_pause_event(self):
+        """[2-2-API-004] @p1 WS disconnect during pause unblocks _wait_for_guardian_ack.
+
+        Given a coroutine waiting on _wait_for_guardian_ack
+        When the WS disconnect handler sets the event (simulating client disconnect)
+        Then the waiting coroutine resolves as "acknowledged"
+        """
+        debate_id = "deb_disconnect_001"
+
+        ack_waiter = asyncio.create_task(_wait_for_guardian_ack(debate_id, "high"))
+        await asyncio.sleep(0.05)
+
+        pause_event = get_pause_event(debate_id)
+        assert pause_event is not None
+        assert not pause_event.is_set()
+
+        pause_event.set()
+
+        result = await asyncio.wait_for(ack_waiter, timeout=1.0)
+        assert result == "acknowledged"
+        assert get_pause_event(debate_id) is None

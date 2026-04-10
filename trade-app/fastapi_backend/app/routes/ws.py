@@ -126,7 +126,13 @@ async def websocket_debate(
                 if action_type == "DEBATE/GUARDIAN_INTERRUPT_ACK":
                     pause_event = get_pause_event(debate_id)
                     if pause_event:
-                        pause_event.set()
+                        if pause_event.is_set():
+                            logger.debug(
+                                f"Duplicate GUARDIAN_INTERRUPT_ACK for debate "
+                                f"{debate_id} (event already set)"
+                            )
+                        else:
+                            pause_event.set()
                     continue
 
                 if action_type == "DEBATE/GET_STATE":
@@ -161,6 +167,14 @@ async def websocket_debate(
             await heartbeat_task
         except asyncio.CancelledError:
             pass
+
+        pause_event = get_pause_event(debate_id)
+        if pause_event and not pause_event.is_set():
+            logger.info(
+                f"WebSocket disconnect during pause for debate {debate_id}, "
+                f"unblocking pause event"
+            )
+            pause_event.set()
 
         await connection_manager.disconnect(debate_id, websocket)
         logger.info(f"WebSocket cleanup complete: debate={debate_id}")

@@ -1,4 +1,6 @@
-from typing import TypedDict, NotRequired
+from typing import Literal, TypedDict, NotRequired
+
+RiskLevel = Literal["critical", "high", "medium", "low"]
 
 
 class DebateState(TypedDict):

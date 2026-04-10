@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import WebSocket
 from langchain_core.callbacks import AsyncCallbackHandler
 
+from app.services.debate.state import RiskLevel
 from app.services.debate.ws_schemas import (
     DataRefreshedPayload,
     DataStalePayload,
@@ -14,7 +15,6 @@ from app.services.debate.ws_schemas import (
     GuardianInterruptPayload,
     GuardianVerdictPayload,
     ReasoningNodePayload,
-    RiskLevel,
     WebSocketAction,
 )
 from app.services.market.schemas import FreshnessStatus

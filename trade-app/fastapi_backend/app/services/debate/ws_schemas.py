@@ -5,7 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-RiskLevel = Literal["critical", "high", "medium", "low"]
+from app.services.debate.state import RiskLevel  # noqa: F401 — re-exported for backward compatibility
 
 WebSocketActionType = Literal[
     "DEBATE/CONNECTED",

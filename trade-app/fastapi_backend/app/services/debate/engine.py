@@ -7,7 +7,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 
-from app.services.debate.state import DebateState
+from app.services.debate.state import DebateState, RiskLevel
 from app.services.debate.agents.bull import BullAgent
 from app.services.debate.agents.bear import BearAgent
 from app.services.debate.streaming import (
@@ -25,7 +25,6 @@ from app.services.debate.streaming import (
     stream_state,
 )
 from app.services.debate.agents.guardian import GuardianAgent
-from app.services.debate.ws_schemas import RiskLevel
 from app.services.market.stale_data_guardian import StaleDataGuardian
 
 logger = logging.getLogger(__name__)
@@ -179,7 +178,7 @@ async def _wait_for_guardian_ack(
     except asyncio.TimeoutError:
         logger.warning(
             f"Guardian ack timeout for debate {debate_id}, "
-            f"treating as acknowledged (risk_level={risk_level})"
+            f"ending debate (client likely disconnected, risk_level={risk_level})"
         )
         return "timeout"
     finally:
@@ -351,11 +350,12 @@ async def stream_debate(
                         current_state["paused"] = True
                         current_state["pause_reason"] = analysis["reason"]
 
-                        await _wait_for_guardian_ack(debate_id, risk_lvl)
+                        ack_result = await _wait_for_guardian_ack(debate_id, risk_lvl)
 
-                        if risk_lvl == "critical":
+                        if risk_lvl == "critical" or ack_result == "timeout":
                             logger.info(
-                                f"Critical interrupt for debate {debate_id}, ending debate"
+                                f"Ending debate {debate_id}: "
+                                f"{'critical interrupt' if risk_lvl == 'critical' else 'ack timeout (client likely disconnected)'}"
                             )
                             _reset_pause_state(current_state)
                             break

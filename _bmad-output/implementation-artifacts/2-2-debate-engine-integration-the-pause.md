@@ -1,6 +1,6 @@
 # Story 2.2: Debate Engine Integration (The Pause)
 
-Status: testarch-complete
+Status: review
 
 ## Story
 
@@ -403,6 +403,7 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - Pre-existing lint issues in test files (unused vars/imports) — NOT introduced by this story
 - Pre-existing TS errors in DebateStreamReasoningGraph tests — NOT related to Story 2.2
 - Testarch automation (2026-04-10): Backend 28/28, Frontend unit 30/30, E2E 7/7 (chromium), Burn-in 70/70 (10 runs)
+- Party-mode review (2026-04-10): Backend 30/30 (+2 new), Frontend unit 30/30, lint clean. All agent concerns addressed.
 - Lint: ruff clean, eslint clean after fixing unused imports in test_ws_guardian_ack.py, test_debate_pause.py, DebateStreamPauseResume.test.tsx
 - @tanstack/react-virtual mock required for component tests — useVirtualizer doesn't render in JSDOM
 
@@ -433,19 +434,28 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - ✅ [Testarch] Lint fixes: removed unused imports in test_ws_guardian_ack.py (AsyncMock, MagicMock, patch), test_debate_pause.py (_pause_events import, resume_events var), DebateStreamPauseResume.test.tsx (argumentCompletePayload func)
 - ✅ [Testarch] Burn-in: 10/10 E2E runs passed (70/70), zero flakiness detected
 - ✅ [Testarch] Ports: frontend 3002, API/WS 8001 (matching backend .env)
+- ✅ [Party Review] Moved RiskLevel type alias from ws_schemas.py to state.py (domain concept in domain module); ws_schemas.py re-exports for backward compatibility; streaming.py and engine.py import from canonical location
+- ✅ [Party Review] Changed _wait_for_guardian_ack timeout behavior: stream_debate() now ends debate on timeout regardless of risk_level (prevents ghost-streaming to disconnected clients); ack_result checked alongside critical interrupt
+- ✅ [Party Review] Added WS disconnect-during-pause handler in ws.py finally block — unblocks pause event immediately on client disconnect instead of waiting for 120s timeout
+- ✅ [Party Review] Added concurrent ACK guard in ws.py — debug log when duplicate GUARDIAN_INTERRUPT_ACK received (event already set)
+- ✅ [Party Review] New test INT-012: non-critical timeout ends debate (validates timeout behavior change)
+- ✅ [Party Review] New test API-004: WS disconnect unblocks pause event (validates disconnect handler)
+- ✅ [Party Review] Backend tests: 30/30 passed (up from 28), frontend tests: 30/30 passed, lint clean
 
 ### File List
 
 **Modified:**
-- trade-app/fastapi_backend/app/services/debate/state.py — Added `paused`, `pause_reason` fields to DebateState
-- trade-app/fastapi_backend/app/services/debate/ws_schemas.py — Added DEBATE/DEBATE_PAUSED, DEBATE/DEBATE_RESUMED, DEBATE/GUARDIAN_INTERRUPT_ACK action types; DebatePausedPayload, DebateResumedPayload models; RiskLevel type alias; constrained risk_level fields
-- trade-app/fastapi_backend/app/services/debate/streaming.py — Added send_debate_paused(), send_debate_resumed() helpers; updated risk_level params to RiskLevel type
-- trade-app/fastapi_backend/app/services/debate/engine.py — Added _pause_events dict, _wait_for_guardian_ack(), get_pause_event(), _set_pause_event(), _clear_pause_event(), pause/resume logic in stream_debate(); typed risk_lvl extraction; paused state cleanup on critical interrupt
-- trade-app/fastapi_backend/app/routes/ws.py — Added DEBATE/GUARDIAN_INTERRUPT_ACK handler
+- trade-app/fastapi_backend/app/services/debate/state.py — Added `paused`, `pause_reason` fields to DebateState; moved RiskLevel type alias here (domain canonical location)
+- trade-app/fastapi_backend/app/services/debate/ws_schemas.py — Re-exports RiskLevel from state.py for backward compatibility; added DEBATE/DEBATE_PAUSED, DEBATE/DEBATE_RESUMED, DEBATE/GUARDIAN_INTERRUPT_ACK action types; DebatePausedPayload, DebateResumedPayload models; constrained risk_level fields
+- trade-app/fastapi_backend/app/services/debate/streaming.py — Added send_debate_paused(), send_debate_resumed() helpers; updated risk_level params to RiskLevel type; imports RiskLevel from state.py
+- trade-app/fastapi_backend/app/services/debate/engine.py — Added _pause_events dict, _wait_for_guardian_ack(), get_pause_event(), _set_pause_event(), _clear_pause_event(), pause/resume logic in stream_debate(); typed risk_lvl extraction; paused state cleanup on critical interrupt; timeout now ends debate for all risk levels; imports RiskLevel from state.py
+- trade-app/fastapi_backend/app/routes/ws.py — Added DEBATE/GUARDIAN_INTERRUPT_ACK handler with concurrent ACK guard; WS disconnect-during-pause unblock in finally block
 - trade-app/nextjs-frontend/features/debate/hooks/useDebateSocket.ts — Added GuardianInterruptPayload, DebatePausedPayload, DebateResumedPayload interfaces; onGuardianInterrupt, onDebatePaused, onDebateResumed callbacks; sendGuardianAck()
 - trade-app/nextjs-frontend/features/debate/hooks/index.ts — Added barrel exports for DataStalePayload, DataRefreshedPayload, GuardianInterruptPayload, DebatePausedPayload, DebateResumedPayload
 - trade-app/nextjs-frontend/features/debate/components/DebateStream.tsx — Added paused state, guardian message bubbles, acknowledge button (latest-only), critical verdict display
 - trade-app/fastapi_backend/tests/services/debate/test_debate_pause.py — Added int_009 pause_history audit, int_010 stale data during pause, int_011 multiple interrupts, unit_016 backward compat
+- trade-app/fastapi_backend/tests/services/debate/test_debate_pause_integration.py — Split from test_debate_pause.py; added int_012 non-critical timeout ends debate
+- trade-app/fastapi_backend/tests/routes/test_ws_guardian_ack.py — Added api_004 disconnect unblocks pause event test (4 total)
 - trade-app/fastapi_backend/tests/services/debate/conftest.py — Existing fixtures verified sufficient
 - trade-app/nextjs-frontend/tests/unit/useDebateSocket.test.ts — Added 5 tests in "[2-2] Guardian Pause/Resume Actions", MockWebSocket static OPEN/CLOSED constants
 - trade-app/nextjs-frontend/playwright.config.ts — Updated to port 3002 (frontend) and 8001 (API/WS)
@@ -468,3 +478,4 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - 2026-03-31: Code review completed — 4 HIGH + 4 MEDIUM + 3 LOW issues found. All HIGH+MEDIUM issues fixed: (H1) barrel exports, (H2) RiskLevel type safety, (H3) paused state cleanup on critical, (H4) latest-only ack button, (M2) test helper extraction (877→440 lines), (M3) _reset_pause_state() helper, (M4) unified DebateMessage discriminated union. 3 LOW items deferred (cosmetic). Status → review.
 - 2026-04-02: Beads sync completed — review-passed label applied to trade-1s3. sprint-status.yaml updated to review. Story file finalized.
 - 2026-04-10: Testarch automation completed. 3 API + 2 integration + 6 component + 7 E2E tests generated and passing. Total Story 2.2 coverage: 28 backend + 30 frontend unit + 7 E2E = 65 tests. E2E burn-in: 10/10 runs, zero flakiness. Lint fixes applied. Created /test/debate-stream test route. Updated ports to 3002 (frontend) / 8001 (API). Fixed WS test helpers (onmessage direct call, instance-based connection check). Status → testarch-complete.
+- 2026-04-10: Party-mode review — addressed all agent concerns. (1) Moved RiskLevel from ws_schemas.py to state.py (domain layer). (2) Timeout now ends debate for all risk levels, not just critical. (3) WS disconnect during pause immediately unblocks engine. (4) Concurrent ACK guard with debug log. Added 2 new tests (INT-012, API-004). Backend 30/30, frontend 30/30, lint clean. Status → review.
