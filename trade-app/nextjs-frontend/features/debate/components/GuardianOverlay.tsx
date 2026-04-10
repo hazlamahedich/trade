@@ -51,11 +51,6 @@ export function GuardianOverlay({
 
   return (
     <>
-      <div aria-live="assertive" className="sr-only">
-        {isOpen && data
-          ? `Guardian alert: ${data.summaryVerdict}. ${data.reason}`
-          : ""}
-      </div>
       <Dialog open={isOpen} onOpenChange={() => {}}>
         <DialogContent
           role="alertdialog"
@@ -69,7 +64,7 @@ export function GuardianOverlay({
               e.preventDefault();
             }
           }}
-          className="bg-slate-900/80 backdrop-blur-md border-violet-600/50 text-white sm:max-w-md"
+          className="bg-slate-900/80 backdrop-blur-md border-violet-600/50 text-white sm:max-w-md max-h-[85vh] overflow-y-auto"
           data-testid="guardian-overlay"
         >
           <AnimatePresence>
@@ -118,7 +113,7 @@ export function GuardianOverlay({
 
                 {isError && (
                   <p data-testid="guardian-error-message" className="mt-3 text-red-400 text-sm">
-                    {(state as { status: "error"; error: string }).error}
+                    {state.status === "error" ? state.error : ""}
                   </p>
                 )}
 
@@ -178,7 +173,7 @@ export function GuardianOverlay({
                         onClick={onIgnore}
                         className="px-4 py-2.75 min-h-[44px] text-slate-400 hover:text-white text-sm font-medium rounded-md transition-colors"
                       >
-                        Ignore Risk
+                        Proceed Anyway
                       </button>
                     </>
                   )}

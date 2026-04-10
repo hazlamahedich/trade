@@ -112,7 +112,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
       onGuardianInterrupt(guardianInterruptPayload({ riskLevel: 'critical' }));
     });
 
-    // Then: only "I Understand" button, no "Ignore Risk", debate ended text shown
+    // Then: only "I Understand" button, no "Proceed Anyway", debate ended text shown
     const overlay = screen.getByTestId('guardian-overlay');
     expect(within(overlay).getByTestId('guardian-understand-btn')).toBeInTheDocument();
     expect(within(overlay).queryByTestId('guardian-ignore-btn')).not.toBeInTheDocument();
@@ -160,7 +160,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
     expect(stream.style.filter).toBe('grayscale(60%)');
     expect(screen.getByTestId('guardian-overlay')).toBeInTheDocument();
 
-    // When: "Ignore Risk" is clicked
+    // When: "Proceed Anyway" is clicked
     fireEvent.click(screen.getByTestId('guardian-ignore-btn'));
 
     // Then: state clears to active
@@ -301,7 +301,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
     expect(mod.useGuardianFreeze).toBeDefined();
   });
 
-  test('[2-3-COMP-013] @p1 Screen reader: aria-live="assertive" region announces freeze event text', () => {
+  test('[2-3-COMP-013] @p1 Screen reader: role="alertdialog" announces freeze event via dialog ARIA', () => {
     // Given: overlay is shown after guardian interrupt
     render(<DebateStream debateId="test-debate-unit" />);
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
@@ -310,10 +310,10 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
       onGuardianInterrupt(guardianInterruptPayload());
     });
 
-    // Then: assertive live region announces the freeze event
-    const liveRegion = screen.getByText(/Guardian alert: High Risk/);
-    expect(liveRegion).toBeInTheDocument();
-    expect(liveRegion.closest('[aria-live="assertive"]')).toBeTruthy();
+    // Then: alertdialog role is present for screen reader announcement
+    const alertDialog = screen.getByRole('alertdialog');
+    expect(alertDialog).toBeInTheDocument();
+    expect(alertDialog).toHaveAttribute('aria-modal', 'true');
   });
 
   test('[2-3-UNIT-021] Multiple interrupts — new data replaces current overlay content', () => {

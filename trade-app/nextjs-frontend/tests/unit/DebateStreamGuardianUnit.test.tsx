@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { DebateStream } from '../../features/debate/components/DebateStream';
@@ -63,17 +62,6 @@ function guardianInterruptPayload(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function debatePausedPayload(overrides: Record<string, unknown> = {}) {
-  return {
-    debateId: 'test-debate-unit',
-    reason: 'Risk Guardian detected a potential cognitive bias.',
-    riskLevel: 'high',
-    summaryVerdict: 'High Risk',
-    turn: 2,
-    ...overrides,
-  };
-}
-
 describe('[2-3] DebateStream Guardian — Unit Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -99,15 +87,13 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
   });
 
   test('[2-3-UNIT-025] No inline "Acknowledge & Resume" button in guardian bubble', () => {
-    // Given: DebateStream receives a guardian interrupt + pause
+    // Given: DebateStream receives a guardian interrupt
     render(<DebateStream debateId="test-debate-unit" />);
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
-    const onDebatePaused = capturedSocketOptions.onDebatePaused as (p: Record<string, unknown>) => void;
 
-    // When: both events are delivered
+    // When: interrupt is delivered
     act(() => {
       onGuardianInterrupt(guardianInterruptPayload());
-      onDebatePaused(debatePausedPayload());
     });
 
     // Then: no inline acknowledge button exists (moved to overlay)
@@ -115,14 +101,12 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
   });
 
   test('[2-3-UNIT-025b] No "awaiting your acknowledgment" paused indicator', () => {
-    // Given: DebateStream receives a guardian interrupt + pause
+    // Given: DebateStream receives a guardian interrupt
     render(<DebateStream debateId="test-debate-unit" />);
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
-    const onDebatePaused = capturedSocketOptions.onDebatePaused as (p: Record<string, unknown>) => void;
 
     act(() => {
       onGuardianInterrupt(guardianInterruptPayload());
-      onDebatePaused(debatePausedPayload());
     });
 
     // Then: no paused indicator (replaced by overlay)
@@ -133,11 +117,9 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
     // Given: DebateStream receives a critical guardian interrupt
     render(<DebateStream debateId="test-debate-unit" />);
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
-    const onDebatePaused = capturedSocketOptions.onDebatePaused as (p: Record<string, unknown>) => void;
 
     act(() => {
       onGuardianInterrupt(guardianInterruptPayload({ riskLevel: 'critical' }));
-      onDebatePaused(debatePausedPayload({ riskLevel: 'critical' }));
     });
 
     // Then: no inline critical text in guardian bubble (moved to overlay)
@@ -223,7 +205,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
     expect(mockSendGuardianAck).toHaveBeenCalledTimes(1);
   });
 
-  test('[2-3-UNIT-008] "Ignore Risk" calls sendGuardianAck via ignoreFreeze', () => {
+  test('[2-3-UNIT-008] "Proceed Anyway" calls sendGuardianAck via ignoreFreeze', () => {
     // Given: overlay is shown with non-critical interrupt
     render(<DebateStream debateId="test-debate-unit" />);
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
@@ -232,7 +214,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
       onGuardianInterrupt(guardianInterruptPayload());
     });
 
-    // When: "Ignore Risk" is clicked
+    // When: "Proceed Anyway" is clicked
     fireEvent.click(screen.getByTestId('guardian-ignore-btn'));
 
     // Then: sendGuardianAck is called exactly once

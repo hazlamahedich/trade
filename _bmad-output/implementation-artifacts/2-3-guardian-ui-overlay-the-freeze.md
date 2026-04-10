@@ -649,9 +649,9 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - [x] [Review][Patch] UNIT-004/005/006 tests only assert overlay renders — never exercise the actual handlers [GuardianOverlay.test.tsx] — fixed: tests now exercise event handlers and verify prevention behavior
   Tests for click-outside blocking and Escape blocking only check `toBeInTheDocument()`, never simulate the actual events or verify the prevention behavior. **Sources: auditor**
 
-- [ ] [Review][Defer] handleDebatePaused is a typed no-op still wired to socket [DebateStream.tsx:260] — deferred, pre-existing from Story 2.2 cleanup
-- [ ] [Review][Defer] useReducedMotion() returns null during SSR — hydration mismatch risk [DebateStream.tsx:71,273] — deferred, framer-motion SSR behavior
-- [ ] [Review][Defer] Unsafe type cast in error display (state as { status: "error" }) [GuardianOverlay.tsx:488] — deferred, guarded by runtime check
+- [x] [Review][Defer→Fixed] handleDebatePaused is a typed no-op still wired to socket [DebateStream.tsx] — fixed: removed dead no-op callback and its socket wiring (onDebatePaused is optional)
+- [x] [Review][Defer→Fixed] useReducedMotion() returns null during SSR — hydration mismatch risk [DebateStream.tsx] — fixed: `useReducedMotion() ?? false` ensures consistent SSR/client rendering
+- [x] [Review][Defer→Fixed] Unsafe type cast in error display (state as { status: "error" }) [GuardianOverlay.tsx] — fixed: uses discriminated union narrowing via `state.status === "error" ? state.error : ""`
 
 ### Change Log
 
@@ -659,6 +659,7 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - 2026-04-10: Code review complete. 11 findings from 3 adversarial layers (Blind Hunter, Edge Case Hunter, Acceptance Auditor). All resolved: (1) sendGuardianAck returns boolean for real error recovery, (2) stale data grayscale no longer overridden by inline style, (3) cooldown uses statusRef to prevent stale closure bypass, (4) error state included in cooldown guard, (5) Dismiss Anyway calls clearFreeze instead of ignoreFreeze, (6) ArgumentMessage imported instead of duplicated, (7) dead latestGuardianIdx removed, (8) all missing tests implemented (haptic UNIT-013–017, unmount UNIT-022, component COMP-002/003/004/005/006/011/013), (9) UNIT-011 fixed to test reduced-motion case, (10) UNIT-004/005/006 strengthened. 178 tests passing, 0 regressions.
 - 2026-04-11: E2E test automation complete. Generated 3 Playwright E2E tests (2-3-E2E-001/002/003), all P0, all passing across 5 browsers. Updated Story 2.2 E2E test suite (7 tests) to match Story 2.3 UI changes (ring-violet-600 → grayscale filter, inline ack → GuardianOverlay buttons, paused indicator → overlay verdict/reason). Enhanced WS helpers with outgoing message capture. Validation: 178 unit tests + 10 E2E tests passing, 0 regressions.
 - 2026-04-11: Test quality review (TEA/Murat): initial score 95/100 (A). All 6 issues addressed: (1) split DebateStreamPauseResume.test.tsx (572 lines) into DebateStreamGuardianUnit.test.tsx + DebateStreamGuardianComp.test.tsx, (2) consolidated makeGuardianPayload/makeTriggerArg into shared debate-payloads.ts, (3) removed dead UNIT-017 test, (4) added G-W-T comments to all GuardianOverlay + useGuardianFreeze tests, (5) resolved module-level mutable state via file split, (6) upgraded score to 98/100 (A+). Validation: 177 unit tests + 50 E2E tests passing, 0 regressions.
+- 2026-04-11: Implementation review (party mode: Winston, Sally, Amelia, Murat). All deferred items promoted to fixes. 6 issues resolved: (1) SSR hydration fix — `useReducedMotion() ?? false`, (2) unsafe type cast replaced with discriminated union narrowing, (3) handleDebatePaused dead no-op deleted, (4) "Ignore Risk" renamed to "Proceed Anyway" (respects user agency), (5) `overflow-y: auto` + `max-h-[85vh]` added for mobile long-content, (6) redundant `aria-live="assertive"` sr-only div removed to prevent screen reader double-announcement (role="alertdialog" is sufficient). Validation: 177 unit tests passing, 0 regressions.
 
 ### File List
 

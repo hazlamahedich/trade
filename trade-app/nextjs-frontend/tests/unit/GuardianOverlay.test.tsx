@@ -56,7 +56,7 @@ describe('[2-3] GuardianOverlay — Unit Tests', () => {
     expect(within(overlay).getByTestId('guardian-fallacy-badge')).toHaveTextContent('confirmation_bias');
   });
 
-  test('[2-3-UNIT-002] @p0 Shows "I Understand" + "Ignore Risk" for non-critical', () => {
+  test('[2-3-UNIT-002] @p0 Shows "I Understand" + "Proceed Anyway" for non-critical', () => {
     // Given: overlay is in frozen state with non-critical risk level
     renderOverlay(frozenState());
 
@@ -122,11 +122,11 @@ describe('[2-3] GuardianOverlay — Unit Tests', () => {
     expect(handlers.onUnderstand).toHaveBeenCalledTimes(1);
   });
 
-  test('[2-3-UNIT-008] @p0 "Ignore Risk" calls onIgnore callback', () => {
+  test('[2-3-UNIT-008] @p0 "Proceed Anyway" calls onIgnore callback', () => {
     // Given: overlay is rendered in frozen state
     const { handlers } = renderOverlay(frozenState());
 
-    // When: "Ignore Risk" button is clicked
+    // When: "Proceed Anyway" button is clicked
     fireEvent.click(screen.getByTestId('guardian-ignore-btn'));
 
     // Then: onIgnore callback is invoked exactly once

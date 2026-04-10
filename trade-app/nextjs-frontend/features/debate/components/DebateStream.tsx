@@ -68,7 +68,7 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
 
   const parentRef = useRef<HTMLDivElement>(null);
   const lastArgumentRef = useRef<ArgumentMessage | null>(null);
-  const shouldReduceMotion = useReducedMotion();
+  const shouldReduceMotion = useReducedMotion() ?? false;
   const vibrationActive = useRef(false);
 
   const triggerFreezeRef = useRef<(payload: GuardianInterruptPayload, triggerArg: ArgumentMessage | null) => void>(() => {});
@@ -175,8 +175,6 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
     triggerHapticRef.current(payload.riskLevel);
   }, []);
 
-  const handleDebatePaused = useCallback((): void => {}, []);
-
   const handleDebateResumed = useCallback(() => {
     freezeHandleResumedRef.current();
   }, []);
@@ -189,7 +187,6 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
     onDataRefreshed: handleDataRefreshed,
     onReasoningNode: handleReasoningNode,
     onGuardianInterrupt: handleGuardianInterrupt,
-    onDebatePaused: handleDebatePaused,
     onDebateResumed: handleDebateResumed,
   });
 
