@@ -1,4 +1,29 @@
+import type { GuardianInterruptPayload } from '../../../features/debate/hooks/useDebateSocket';
+
 const DEFAULT_DEBATE_ID = 'test-debate-guardian-001';
+
+export function makeGuardianPayload(overrides: Partial<GuardianInterruptPayload> = {}): GuardianInterruptPayload {
+  return {
+    debateId: 'd1',
+    riskLevel: 'high',
+    reason: 'Detected confirmation bias in bear argument.',
+    fallacyType: 'confirmation_bias',
+    originalAgent: 'bear',
+    summaryVerdict: 'High Risk',
+    turn: 3,
+    ...overrides,
+  };
+}
+
+export function makeTriggerArg() {
+  return {
+    id: 'arg-1',
+    type: 'argument' as const,
+    agent: 'bear' as const,
+    content: 'The market will definitely crash because I feel strongly about it.',
+    timestamp: '2026-04-10T12:00:00Z',
+  };
+}
 
 export function guardianInterruptPayload(overrides: Record<string, unknown> = {}) {
   return {

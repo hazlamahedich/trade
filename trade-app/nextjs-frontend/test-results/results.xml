@@ -1,0 +1,122 @@
+<testsuites id="" name="" tests="50" failures="0" skipped="0" errors="0" time="93.129157">
+<testsuite name="e2e/guardian-pause-resume.spec.ts" timestamp="2026-04-10T16:43:37.028Z" hostname="chromium" tests="7" failures="0" skipped="0" time="33.984" errors="0">
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-001] Guardian interrupt pauses debate and ack resumes @p0 @smoke" classname="e2e/guardian-pause-resume.spec.ts" time="5.93">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-002] Critical interrupt ends debate with no resume @p0" classname="e2e/guardian-pause-resume.spec.ts" time="5.607">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-003] Guardian message renders as centered Violet-600 bubble @p1" classname="e2e/guardian-pause-resume.spec.ts" time="5.943">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-004] Guardian overlay shows verdict and reason when active @p1" classname="e2e/guardian-pause-resume.spec.ts" time="5.217">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-005] Grayscale filter applied to stream when paused @p1" classname="e2e/guardian-pause-resume.spec.ts" time="5.413">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-006] Rapid sequential pauses update guardian message @p2" classname="e2e/guardian-pause-resume.spec.ts" time="2.959">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-007] Resume after ack clears paused state completely @p2" classname="e2e/guardian-pause-resume.spec.ts" time="2.915">
+</testcase>
+</testsuite>
+<testsuite name="e2e/guardian-ui-overlay-freeze.spec.ts" timestamp="2026-04-10T16:43:37.028Z" hostname="chromium" tests="3" failures="0" skipped="0" time="8.453" errors="0">
+<testcase name="[2-3] Guardian UI Overlay — The Freeze › [2-3-E2E-001] Visual freeze — grayscale + overlay with correct content @p0 @smoke" classname="e2e/guardian-ui-overlay-freeze.spec.ts" time="2.955">
+</testcase>
+<testcase name="[2-3] Guardian UI Overlay — The Freeze › [2-3-E2E-002] Click-outside and Escape blocking for critical @p0" classname="e2e/guardian-ui-overlay-freeze.spec.ts" time="2.875">
+</testcase>
+<testcase name="[2-3] Guardian UI Overlay — The Freeze › [2-3-E2E-003] Full interrupt → acknowledge flow via WebSocket @p0" classname="e2e/guardian-ui-overlay-freeze.spec.ts" time="2.623">
+</testcase>
+</testsuite>
+<testsuite name="e2e/guardian-pause-resume.spec.ts" timestamp="2026-04-10T16:43:37.028Z" hostname="firefox" tests="7" failures="0" skipped="0" time="52.656" errors="0">
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-001] Guardian interrupt pauses debate and ack resumes @p0 @smoke" classname="e2e/guardian-pause-resume.spec.ts" time="8.798">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-002] Critical interrupt ends debate with no resume @p0" classname="e2e/guardian-pause-resume.spec.ts" time="8.005">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-003] Guardian message renders as centered Violet-600 bubble @p1" classname="e2e/guardian-pause-resume.spec.ts" time="7.334">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-004] Guardian overlay shows verdict and reason when active @p1" classname="e2e/guardian-pause-resume.spec.ts" time="8.797">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-005] Grayscale filter applied to stream when paused @p1" classname="e2e/guardian-pause-resume.spec.ts" time="7.934">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-006] Rapid sequential pauses update guardian message @p2" classname="e2e/guardian-pause-resume.spec.ts" time="6.707">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-007] Resume after ack clears paused state completely @p2" classname="e2e/guardian-pause-resume.spec.ts" time="5.081">
+</testcase>
+</testsuite>
+<testsuite name="e2e/guardian-ui-overlay-freeze.spec.ts" timestamp="2026-04-10T16:43:37.028Z" hostname="firefox" tests="3" failures="0" skipped="0" time="14.216" errors="0">
+<testcase name="[2-3] Guardian UI Overlay — The Freeze › [2-3-E2E-001] Visual freeze — grayscale + overlay with correct content @p0 @smoke" classname="e2e/guardian-ui-overlay-freeze.spec.ts" time="5.142">
+</testcase>
+<testcase name="[2-3] Guardian UI Overlay — The Freeze › [2-3-E2E-002] Click-outside and Escape blocking for critical @p0" classname="e2e/guardian-ui-overlay-freeze.spec.ts" time="3.737">
+</testcase>
+<testcase name="[2-3] Guardian UI Overlay — The Freeze › [2-3-E2E-003] Full interrupt → acknowledge flow via WebSocket @p0" classname="e2e/guardian-ui-overlay-freeze.spec.ts" time="5.337">
+</testcase>
+</testsuite>
+<testsuite name="e2e/guardian-pause-resume.spec.ts" timestamp="2026-04-10T16:43:37.028Z" hostname="webkit" tests="7" failures="0" skipped="0" time="32.228" errors="0">
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-001] Guardian interrupt pauses debate and ack resumes @p0 @smoke" classname="e2e/guardian-pause-resume.spec.ts" time="5.631">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-002] Critical interrupt ends debate with no resume @p0" classname="e2e/guardian-pause-resume.spec.ts" time="5.047">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-003] Guardian message renders as centered Violet-600 bubble @p1" classname="e2e/guardian-pause-resume.spec.ts" time="4.105">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-004] Guardian overlay shows verdict and reason when active @p1" classname="e2e/guardian-pause-resume.spec.ts" time="4.015">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-005] Grayscale filter applied to stream when paused @p1" classname="e2e/guardian-pause-resume.spec.ts" time="4.728">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-006] Rapid sequential pauses update guardian message @p2" classname="e2e/guardian-pause-resume.spec.ts" time="4.217">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-007] Resume after ack clears paused state completely @p2" classname="e2e/guardian-pause-resume.spec.ts" time="4.485">
+</testcase>
+</testsuite>
+<testsuite name="e2e/guardian-ui-overlay-freeze.spec.ts" timestamp="2026-04-10T16:43:37.028Z" hostname="webkit" tests="3" failures="0" skipped="0" time="13.524" errors="0">
+<testcase name="[2-3] Guardian UI Overlay — The Freeze › [2-3-E2E-001] Visual freeze — grayscale + overlay with correct content @p0 @smoke" classname="e2e/guardian-ui-overlay-freeze.spec.ts" time="4.447">
+</testcase>
+<testcase name="[2-3] Guardian UI Overlay — The Freeze › [2-3-E2E-002] Click-outside and Escape blocking for critical @p0" classname="e2e/guardian-ui-overlay-freeze.spec.ts" time="5.298">
+</testcase>
+<testcase name="[2-3] Guardian UI Overlay — The Freeze › [2-3-E2E-003] Full interrupt → acknowledge flow via WebSocket @p0" classname="e2e/guardian-ui-overlay-freeze.spec.ts" time="3.779">
+</testcase>
+</testsuite>
+<testsuite name="e2e/guardian-pause-resume.spec.ts" timestamp="2026-04-10T16:43:37.028Z" hostname="mobile-chrome" tests="7" failures="0" skipped="0" time="20.781" errors="0">
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-001] Guardian interrupt pauses debate and ack resumes @p0 @smoke" classname="e2e/guardian-pause-resume.spec.ts" time="2.427">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-002] Critical interrupt ends debate with no resume @p0" classname="e2e/guardian-pause-resume.spec.ts" time="2.169">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-003] Guardian message renders as centered Violet-600 bubble @p1" classname="e2e/guardian-pause-resume.spec.ts" time="3.152">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-004] Guardian overlay shows verdict and reason when active @p1" classname="e2e/guardian-pause-resume.spec.ts" time="3.247">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-005] Grayscale filter applied to stream when paused @p1" classname="e2e/guardian-pause-resume.spec.ts" time="3.174">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-006] Rapid sequential pauses update guardian message @p2" classname="e2e/guardian-pause-resume.spec.ts" time="3.092">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-007] Resume after ack clears paused state completely @p2" classname="e2e/guardian-pause-resume.spec.ts" time="3.52">
+</testcase>
+</testsuite>
+<testsuite name="e2e/guardian-ui-overlay-freeze.spec.ts" timestamp="2026-04-10T16:43:37.028Z" hostname="mobile-chrome" tests="3" failures="0" skipped="0" time="11.491" errors="0">
+<testcase name="[2-3] Guardian UI Overlay — The Freeze › [2-3-E2E-001] Visual freeze — grayscale + overlay with correct content @p0 @smoke" classname="e2e/guardian-ui-overlay-freeze.spec.ts" time="4.14">
+</testcase>
+<testcase name="[2-3] Guardian UI Overlay — The Freeze › [2-3-E2E-002] Click-outside and Escape blocking for critical @p0" classname="e2e/guardian-ui-overlay-freeze.spec.ts" time="3.678">
+</testcase>
+<testcase name="[2-3] Guardian UI Overlay — The Freeze › [2-3-E2E-003] Full interrupt → acknowledge flow via WebSocket @p0" classname="e2e/guardian-ui-overlay-freeze.spec.ts" time="3.673">
+</testcase>
+</testsuite>
+<testsuite name="e2e/guardian-pause-resume.spec.ts" timestamp="2026-04-10T16:43:37.028Z" hostname="mobile-safari" tests="7" failures="0" skipped="0" time="25.495" errors="0">
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-001] Guardian interrupt pauses debate and ack resumes @p0 @smoke" classname="e2e/guardian-pause-resume.spec.ts" time="3.505">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-002] Critical interrupt ends debate with no resume @p0" classname="e2e/guardian-pause-resume.spec.ts" time="3.973">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-003] Guardian message renders as centered Violet-600 bubble @p1" classname="e2e/guardian-pause-resume.spec.ts" time="4.222">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-004] Guardian overlay shows verdict and reason when active @p1" classname="e2e/guardian-pause-resume.spec.ts" time="3.939">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-005] Grayscale filter applied to stream when paused @p1" classname="e2e/guardian-pause-resume.spec.ts" time="3.942">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-006] Rapid sequential pauses update guardian message @p2" classname="e2e/guardian-pause-resume.spec.ts" time="2.776">
+</testcase>
+<testcase name="[2-2] Guardian Pause &amp; Resume › [2-2-E2E-007] Resume after ack clears paused state completely @p2" classname="e2e/guardian-pause-resume.spec.ts" time="3.138">
+</testcase>
+</testsuite>
+<testsuite name="e2e/guardian-ui-overlay-freeze.spec.ts" timestamp="2026-04-10T16:43:37.028Z" hostname="mobile-safari" tests="3" failures="0" skipped="0" time="7.363" errors="0">
+<testcase name="[2-3] Guardian UI Overlay — The Freeze › [2-3-E2E-001] Visual freeze — grayscale + overlay with correct content @p0 @smoke" classname="e2e/guardian-ui-overlay-freeze.spec.ts" time="2.802">
+</testcase>
+<testcase name="[2-3] Guardian UI Overlay — The Freeze › [2-3-E2E-002] Click-outside and Escape blocking for critical @p0" classname="e2e/guardian-ui-overlay-freeze.spec.ts" time="2.494">
+</testcase>
+<testcase name="[2-3] Guardian UI Overlay — The Freeze › [2-3-E2E-003] Full interrupt → acknowledge flow via WebSocket @p0" classname="e2e/guardian-ui-overlay-freeze.spec.ts" time="2.067">
+</testcase>
+</testsuite>
+</testsuites>

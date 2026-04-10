@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Counterpoint - Project Overview</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent-bull: #10b981;
+            --accent-bear: #ef4444;
+            --accent-guardian: #3b82f6;
+            --text-light: #f8fafc;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --bg-page: #f1f5f9;
+            --bg-card: #ffffff;
+            --border-subtle: #e2e8f0;
+        }
+
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+            body {
+                background: white;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+            .no-print {
+                display: none;
+            }
+            .container {
+                box-shadow: none !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+                border-radius: 0 !important;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background-color: var(--bg-page);
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 210mm; /* A4 width approx */
+            margin: 0 auto;
+            background: var(--bg-card);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* --- Header / Hero --- */
+        header {
+            background-color: var(--primary);
+            color: var(--text-light);
+            padding: 80px 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: "";
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(59,130,246,0.2) 0%, rgba(15,23,42,0) 70%);
+            border-radius: 50%;
+        }
+
+        .brand-subtitle {
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.85rem;
+            color: var(--accent-guardian);
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            background: linear-gradient(to right, #ffffff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tagline {
+            font-size: 1.25rem;
+            color: #cbd5e1;
+            max-width: 600px;
+            font-weight: 300;
+        }
+
+        /* --- Content Sections --- */
+        section {
+            padding: 60px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--primary);
+            margin-bottom: 30px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h2::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--border-subtle);
+            margin-left: 16px;
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: var(--text-dark);
+        }
+
+        .problem-solution-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .card {
+            background: #f8fafc;
+            padding: 30px;
+            border-radius: 12px;
+            border-left: 4px solid transparent;
+        }
+
+        .card.problem {
+            border-left-color: var(--text-muted);
+        }
+
+        .card.solution {
+            border-left-color: var(--accent-guardian);
+            background: #eff6ff; /* Light blue tint */
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+        }
+        
+        .card.solution h3 {
+            color: var(--accent-guardian);
+        }
+
+        /* --- The Agents Visualization --- */
+        .agents-visual {
+            display: flex;
+            justify-content: space-between; /* Evenly spaced */
+            align-items: flex-start; /* Changed from center to allow different content heights */
+            margin: 40px 0;
+            position: relative;
+            z-index: 1; /* Ensure on top of connectors */
+        }
+
+        .agent-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 0 10px;
+            z-index: 2; /* Ensure agents are above lines */
+        }
+
+        .agent-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            background: white;
+            border: 2px solid;
+            font-size: 2rem;
+        }
+
+        .bull .agent-icon { border-color: var(--accent-bull); color: var(--accent-bull); }
+        .bear .agent-icon { border-color: var(--accent-bear); color: var(--accent-bear); }
+        .guardian .agent-icon { border-color: var(--accent-guardian); color: var(--accent-guardian); background: var(--primary); }
+
+        .agent-name {
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        
+        .agent-role {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* Connecting lines for the debate flow */
+        .debate-connectors {
+            position: absolute;
+            top: 40px; /* Align with center of icons approx */
+            left: 15%; /* Start after first agent */
+            right: 15%; /* End before last agent */
+            height: 2px;
+            background: var(--border-subtle);
+            z-index: 0;
+        }
+        
+        /* Central "Vs" badge */
+        .vs-badge {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: var(--text-muted);
+            border: 1px solid var(--border-subtle);
+            z-index: 1;
+        }
+
+        /* --- Feature Highlights --- */
+        .feature-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .check-icon {
+            color: var(--accent-guardian);
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+
+        /* --- Tech Stack Tags --- */
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .tech-tag {
+            background: #f1f5f9;
+            color: var(--text-dark);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* --- Footer --- */
+        footer {
+            background: var(--primary);
+            color: var(--text-muted);
+            padding: 30px 60px;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        /* --- SVGs --- */
+        svg {
+            fill: currentColor;
+            width: 24px;
+            height: 24px;
+        }
+        
+        .agent-icon svg {
+             width: 40px;
+             height: 40px;
+        }
+
+        /* --- Print PDF Help --- */
+        .print-instruction {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 0.9rem;
+            max-width: 250px;
+        }
+        
+        .print-btn {
+            background: var(--accent-guardian);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .print-btn:hover {
+            background: #2563eb;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Instructions for User (Hidden in Print) -->
+    <div class="print-instruction no-print">
+        <strong>Create your PDF:</strong>
+        <p>Click the button below or press <code>Cmd + P</code> (Mac) / <code>Ctrl + P</code> (Win). Select "Save as PDF" in the destination.</p>
+        <button class="print-btn" onclick="window.print()">Print to PDF</button>
+    </div>
+
+    <!-- MAIN DOCUMENT CONTAINER -->
+    <div class="container">
+        
+        <!-- HEADER -->
+        <header>
+            <span class="brand-subtitle">Project Portfolio</span>
+            <h1>Counterpoint</h1>
+            <p class="tagline">Transparent AI Reasoning for Traders. <br>The first platform to visualize the "Why" behind market moves.</p>
+        </header>
+
+        <!-- PROBLEM vs SOLUTION -->
+        <section>
+            <div class="problem-solution-grid">
+                <div class="card problem">
+                    <h3>The Problem</h3>
+                    <h2>Black-Box Confusion</h2>
+                    <p>Trading signals today are opaque. Users receive a "BUY" alert without context, leading to blind following and inevitable losses. There is no learning, only dependency.</p>
+                    <ul style="list-style: none; margin-top: 16px;">
+                        <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px; color: var(--text-muted);">
+                            <span style="color: var(--accent-bear);">✕</span> No Explanation
+                        </li>
+                        <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px; color: var(--text-muted);">
+                            <span style="color: var(--accent-bear);">✕</span> No Risk Context
+                        </li>
+                        <li style="display: flex; align-items: center; gap: 8px; color: var(--text-muted);">
+                            <span style="color: var(--accent-bear);">✕</span> "Trust Me Bro" Culture
+                        </li>
+                    </ul>
+                </div>
+                <div class="card solution">
+                    <h3>The Solution</h3>
+                    <h2>Transparent Debate</h2>
+                    <p>Counterpoint replaces blind signals with a live debate between reasoning agents. Users watch the logic unfold, understand the risks, and make their own informed decisions.</p>
+                    <ul style="list-style: none; margin-top: 16px;">
+                        <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px; color: var(--text-dark);">
+                            <span style="color: var(--accent-bull);">✓</span> Logic in Plain English
+                        </li>
+                        <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px; color: var(--text-dark);">
+                            <span style="color: var(--accent-bull);">✓</span> Real-Time Risk Checks
+                        </li>
+                        <li style="display: flex; align-items: center; gap: 8px; color: var(--text-dark);">
+                            <span style="color: var(--accent-bull);">✓</span> Confidence Scores
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- THE TRIAD DIAGRAM -->
+        <section class="page-break">
+            <h2>The Architecture of Reasoning</h2>
+            <p>At the core of Counterpoint is a proprietary 3-Agent Debate System designed to mimic the internal monologue of a professional trader.</p>
+
+            <div class="agents-visual">
+                <!-- Connectors -->
+                <div class="debate-connectors"></div>
+                <div class="vs-badge">DEBATE</div>
+
+                <!-- Bull -->
+                <div class="agent-container bull">
+                    <div class="agent-icon">
+                        <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"></path></svg>
+                    </div>
+                    <div class="agent-name">The Bull</div>
+                    <div class="agent-role">Analyzes upside potential.<br>"Why should we buy?"</div>
+                </div>
+
+                <!-- Bear -->
+                <div class="agent-container bear">
+                    <div class="agent-icon">
+                        <svg viewBox="0 0 24 24"><path d="M16 22H6l7-12h4l-4 8h3z" style="transform: rotate(180deg); transform-origin: center;"></path></svg> 
+                        <!-- Simple arrow down metaphor for bear -->
+                    </div>
+                    <div class="agent-name">The Bear</div>
+                    <div class="agent-role">Identifies downside risks.<br>"Why might this fail?"</div>
+                </div>
+
+                <!-- Guardian -->
+                <div class="agent-container guardian">
+                    <div class="agent-icon">
+                        <svg viewBox="0 0 24 24" style="color: white;"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"></path></svg>
+                    </div>
+                    <div class="agent-name">Risk Guardian</div>
+                    <div class="agent-role">The Adult in the Room.<br>Checks volatility & exposure.</div>
+                </div>
+            </div>
+
+            <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-top: 30px; text-align: center;">
+                <p><strong>The Result: The Verdict.</strong> A synthesized, logic-backed recommendation with clear Entry, Exit, and Stop-Loss levels.</p>
+            </div>
+        </section>
+
+        <!-- TECHNICAL IMPLEMENTATION -->
+        <section>
+            <h2>Technical Implementation & Innovation</h2>
+            <p>Counterpoint isn't just a UI wrapper; it is a sophisticated orchestration of multiple LLM agents working in parallel.</p>
+            
+            <div class="feature-list" style="margin-top: 30px;">
+                <div class="feature-item">
+                    <div class="check-icon">➜</div>
+                    <div>
+                        <strong>Orchestration Layer</strong>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0;">Manages the debate protocol, ensuring agents stay on topic and adhere to strict financial reasoning constraints.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="check-icon">➜</div>
+                    <div>
+                        <strong>Real-Time Data Integration</strong>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0;">Agents analyze live market feeds (Price, Volume, RSI) to ground their arguments in factual reality.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="check-icon">➜</div>
+                    <div>
+                        <strong>Customizable Strategy Injection</strong>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0;">Users can "teach" the agents their own rules (e.g., "Argue based on RSI divergence"), making the platform highly personalized.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="check-icon">➜</div>
+                    <div>
+                        <strong>Visual Confidence Engine</strong>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0;">Proprietary algorithm converts qualitative arguments into a quantitative "Traffic Light" confidence score.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 40px;">
+                <h3>Core Tech Stack</h3>
+                <div class="tech-stack">
+                    <span class="tech-tag">Next.js 14</span>
+                    <span class="tech-tag">TypeScript</span>
+                    <span class="tech-tag">Tailwind CSS</span>
+                    <span class="tech-tag">OpenAI API / LLMs</span>
+                    <span class="tech-tag">Supabase</span>
+                    <span class="tech-tag">React Flow</span>
+                    <span class="tech-tag">WebSockets</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer>
+            <p>Project Portfolio: Counterpoint &copy; 2026. Designed & Developed by Sherwin Gorechomante.</p>
+        </footer>
+
+    </div>
+
+</body>
+</html>

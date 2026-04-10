@@ -368,6 +368,15 @@ No new backend dependencies. Frontend already has all needed libraries from Stor
 - **The Pause:** User must explicitly click "Acknowledge" — no auto-dismiss, no click-outside-to-close
 - **Resume flow:** After acknowledgment, `DEBATE/DEBATE_RESUMED` is broadcast, UI unfreezes in Story 2-3
 
+### Story 2.3 Inline Code Removal
+
+Story 2.3 (Guardian UI Overlay) will **remove** the following inline UI elements that this story added to `DebateStream.tsx`:
+- The inline "Acknowledge & Resume" button on the latest guardian message bubble (replaced by GuardianOverlay modal)
+- The inline "Critical risk detected. Debate ended." text in the guardian bubble (moved to overlay)
+- The `isPaused` ring styling (`ring-2 ring-violet-600`) and paused indicator text ("awaiting your acknowledgment") (replaced by full-screen `grayscale(60%)` filter)
+
+The guardian message bubble itself stays in the virtualized list for history — only the interactive elements are removed. The `isPaused` state in DebateStream will be replaced by the `useGuardianFreeze` hook's discriminated union state.
+
 ### References
 
 - [Source: epics.md#Story 2.2 Acceptance Criteria]
@@ -479,3 +488,4 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - 2026-04-02: Beads sync completed — review-passed label applied to trade-1s3. sprint-status.yaml updated to review. Story file finalized.
 - 2026-04-10: Testarch automation completed. 3 API + 2 integration + 6 component + 7 E2E tests generated and passing. Total Story 2.2 coverage: 28 backend + 30 frontend unit + 7 E2E = 65 tests. E2E burn-in: 10/10 runs, zero flakiness. Lint fixes applied. Created /test/debate-stream test route. Updated ports to 3002 (frontend) / 8001 (API). Fixed WS test helpers (onmessage direct call, instance-based connection check). Status → testarch-complete.
 - 2026-04-10: Party-mode review — addressed all agent concerns. (1) Moved RiskLevel from ws_schemas.py to state.py (domain layer). (2) Timeout now ends debate for all risk levels, not just critical. (3) WS disconnect during pause immediately unblocks engine. (4) Concurrent ACK guard with debug log. Added 2 new tests (INT-012, API-004). Backend 30/30, frontend 30/30, lint clean. Status → review.
+- 2026-04-10: Adversarial review of Story 2.3 — added note about inline code removal in Story 2.3 (acknowledge button, critical text, ring styling). Updated UX Context section with cross-reference.

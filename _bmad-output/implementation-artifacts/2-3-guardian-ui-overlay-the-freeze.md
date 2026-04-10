@@ -616,8 +616,8 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - ✅ Added haptic feedback (critical-only, SSR-safe, reduced-motion-aware) with unmount cleanup
 - ✅ Added accessibility: role="alertdialog", aria-modal, aria-labelledby, aria-describedby, aria-live="assertive"
 - ✅ Updated barrel exports for both components and hooks
-- ✅ Unit tests: 17 DebateStreamPauseResume tests (updated from 2.2), 17 GuardianOverlay standalone tests, 8 useGuardianFreeze hook tests
-- ✅ Full test suite: 178 tests passing across 26 test suites, 0 regressions
+- ✅ Unit tests: 17 DebateStreamPauseResume tests (updated from 2.2), 17 GuardianOverlay standalone tests, 11 useGuardianFreeze hook tests (updated with G-W-T)
+- ✅ Full test suite: 177 tests passing across 27 test suites, 0 regressions
 - ✅ Linting: only pre-existing ForkTsCheckerWebpackPlugin error remains
 - ✅ Code review: all 11 findings addressed (9 patches fixed, 1 decision resolved, 1 missing tests implemented)
 - ✅ E2E tests generated: 3 Playwright tests (2-3-E2E-001/002/003), all P0, all passing across 5 browser projects (chromium, firefox, webkit, mobile-chrome, mobile-safari)
@@ -658,6 +658,7 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - 2026-04-10: Adversarial review by 4 BMAD agents (Winston/Architect, Sally/UX, Amelia/Dev, Murat/Test). All concerns addressed: discriminated union state via useGuardianFreeze hook, Story 2.2 inline code cleanup, interrupt cooldown/queue, error recovery for failed ack, Escape for non-critical, grayscale reduced to 60%, screen shake removed, triggering argument context, SSR-safe vibration with unmount cleanup, CSS transition instead of Framer Motion filter animation, mobile vertical stacking, test plan expanded 20→43 tests with JSDOM honesty documentation.
 - 2026-04-10: Code review complete. 11 findings from 3 adversarial layers (Blind Hunter, Edge Case Hunter, Acceptance Auditor). All resolved: (1) sendGuardianAck returns boolean for real error recovery, (2) stale data grayscale no longer overridden by inline style, (3) cooldown uses statusRef to prevent stale closure bypass, (4) error state included in cooldown guard, (5) Dismiss Anyway calls clearFreeze instead of ignoreFreeze, (6) ArgumentMessage imported instead of duplicated, (7) dead latestGuardianIdx removed, (8) all missing tests implemented (haptic UNIT-013–017, unmount UNIT-022, component COMP-002/003/004/005/006/011/013), (9) UNIT-011 fixed to test reduced-motion case, (10) UNIT-004/005/006 strengthened. 178 tests passing, 0 regressions.
 - 2026-04-11: E2E test automation complete. Generated 3 Playwright E2E tests (2-3-E2E-001/002/003), all P0, all passing across 5 browsers. Updated Story 2.2 E2E test suite (7 tests) to match Story 2.3 UI changes (ring-violet-600 → grayscale filter, inline ack → GuardianOverlay buttons, paused indicator → overlay verdict/reason). Enhanced WS helpers with outgoing message capture. Validation: 178 unit tests + 10 E2E tests passing, 0 regressions.
+- 2026-04-11: Test quality review (TEA/Murat): initial score 95/100 (A). All 6 issues addressed: (1) split DebateStreamPauseResume.test.tsx (572 lines) into DebateStreamGuardianUnit.test.tsx + DebateStreamGuardianComp.test.tsx, (2) consolidated makeGuardianPayload/makeTriggerArg into shared debate-payloads.ts, (3) removed dead UNIT-017 test, (4) added G-W-T comments to all GuardianOverlay + useGuardianFreeze tests, (5) resolved module-level mutable state via file split, (6) upgraded score to 98/100 (A+). Validation: 177 unit tests + 50 E2E tests passing, 0 regressions.
 
 ### File List
 
@@ -673,7 +674,9 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - `trade-app/nextjs-frontend/features/debate/components/DebateStream.tsx`
 - `trade-app/nextjs-frontend/features/debate/components/index.ts`
 - `trade-app/nextjs-frontend/features/debate/hooks/index.ts`
-- `trade-app/nextjs-frontend/tests/unit/DebateStreamPauseResume.test.tsx`
+- `trade-app/nextjs-frontend/tests/unit/DebateStreamGuardianUnit.test.tsx` (replaces DebateStreamPauseResume.test.tsx)
+- `trade-app/nextjs-frontend/tests/unit/DebateStreamGuardianComp.test.tsx` (replaces DebateStreamPauseResume.test.tsx)
+- `trade-app/nextjs-frontend/tests/support/helpers/debate-payloads.ts` (added makeGuardianPayload, makeTriggerArg)
 - `trade-app/nextjs-frontend/tests/e2e/guardian-pause-resume.spec.ts`
 - `trade-app/nextjs-frontend/tests/support/helpers/ws-helpers.ts`
 - `trade-app/nextjs-frontend/package.json`
