@@ -80,10 +80,20 @@ So that the user pays attention to the risk warning.
   - [x] Component tests: 6 tests in DebateStreamPauseResume.test.tsx (paused indicator, guardian bubble, ack button, critical overlay, ring styling, resume clears state) — required @tanstack/react-virtual mock
   - [x] E2E tests: 7 tests in guardian-pause-resume.spec.ts (pause+ack resume, critical ends debate, guardian bubble styling, paused indicator text, violet ring, rapid sequential pauses @p2, full resume lifecycle @p2) — uses /test/debate-stream test route
   - [x] WS helper fixes: sendWebSocketMessage calls onmessage directly (not just dispatchEvent), waitForWebSocketConnection checks instance exists
-  - [x] Created /test/debate-stream test route (page.tsx) for mounting DebateStream in isolation
+  - [x] Created /test/debate-stream test route (page.tsx) for mounting DebateStream in E2E isolation
   - [x] Updated playwright.config.ts to use port 3002 (frontend) and 8001 (API/WS)
   - [x] Lint fixes: removed unused imports in test_ws_guardian_ack.py, test_debate_pause.py, DebateStreamPauseResume.test.tsx
   - [x] Burn-in: 10/10 E2E runs passed (70/70 tests) — zero flakiness
+
+- [x] Test quality review (testarch-test-review workflow — score 93/100 A)
+  - [x] Split test_debate_pause.py (704 lines) into 4 focused files: test_pause_event_lifecycle.py (72 lines), test_guardian_ack_wait.py (108 lines), test_debate_broadcasting.py (105 lines), test_debate_pause_integration.py (355 lines)
+  - [x] Created test_helpers.py with shared patched_debate_engine, get_action_types, schedule_ack utilities
+  - [x] Converted mutable dict constants (_DEFAULT_BULL_RETURN, _DEFAULT_BEAR_RETURN) to factory functions (_default_bull_return(), _default_bear_return()) — prevents shared-state mutation risk
+  - [x] Added @p priority markers and BDD Given-When-Then docstrings to all 28 backend tests
+  - [x] Fixed API-003 docstring: [2-2-API-001 extended] → [2-2-API-003] @p0
+  - [x] Moved UNIT-016 to separate TestDebateStateBackwardCompat class (was in TestEnginePauseIntegration)
+  - [x] Updated broadcasting tests to use mock_manager fixture from conftest (removed inline MagicMock)
+  - [x] Extracted E2E payload builders to tests/support/helpers/debate-payloads.ts (guardian-pause-resume.spec.ts 301→233 lines)
 
 ## Dev Notes
 

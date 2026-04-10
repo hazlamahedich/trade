@@ -4,6 +4,12 @@ import {
   waitForWebSocketConnection,
   sendWebSocketMessage,
 } from '../support/helpers/ws-helpers';
+import {
+  guardianInterruptPayload,
+  debatePausedPayload,
+  debateResumedPayload,
+  argumentCompletePayload,
+} from '../support/helpers/debate-payloads';
 
 /**
  * Story 2.2: Debate Engine Integration — The Pause
@@ -29,63 +35,6 @@ test.describe('[2-2] Guardian Pause & Resume', () => {
     await page.goto(`/test/debate-stream?debateId=${DEBATE_ID}`);
     await expect(page.locator('[data-testid="debate-stream"]')).toBeVisible({ timeout: 15_000 });
     await waitForWebSocketConnection(page);
-  }
-
-  /** Deterministic payload builders */
-  function guardianInterruptPayload(overrides: Record<string, unknown> = {}) {
-    return {
-      type: 'DEBATE/GUARDIAN_INTERRUPT',
-      payload: {
-        debateId: DEBATE_ID,
-        riskLevel: 'high',
-        reason: 'Detected anchoring bias in bull argument — confidence exceeds evidence.',
-        fallacyType: 'anchoring_bias',
-        originalAgent: 'bull',
-        summaryVerdict: 'High Risk',
-        turn: 2,
-        ...overrides,
-      },
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  function debatePausedPayload(overrides: Record<string, unknown> = {}) {
-    return {
-      type: 'DEBATE/DEBATE_PAUSED',
-      payload: {
-        debateId: DEBATE_ID,
-        reason: 'Risk Guardian detected a potential cognitive bias.',
-        riskLevel: 'high',
-        summaryVerdict: 'High Risk',
-        turn: 2,
-        ...overrides,
-      },
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  function debateResumedPayload() {
-    return {
-      type: 'DEBATE/DEBATE_RESUMED',
-      payload: {
-        debateId: DEBATE_ID,
-        turn: 3,
-      },
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  function argumentCompletePayload(agent: 'bull' | 'bear', turn: number) {
-    return {
-      type: 'DEBATE/ARGUMENT_COMPLETE',
-      payload: {
-        debateId: DEBATE_ID,
-        agent,
-        content: `${agent === 'bull' ? 'Bullish' : 'Bearish'} argument for turn ${turn}.`,
-        turn,
-      },
-      timestamp: new Date().toISOString(),
-    };
   }
 
   // ---------------------------------------------------------------------------

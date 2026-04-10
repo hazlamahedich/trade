@@ -87,7 +87,7 @@ class TestWSGuardianInterruptAck:
 
     @pytest.mark.asyncio
     async def test_2_2_api_003_guardian_ack_sets_event_in_wait_loop(self):
-        """[2-2-API-001 extended] Verify ACK unblocks a coroutine waiting on the event.
+        """[2-2-API-003] @p0 ACK unblocks a coroutine waiting on _wait_for_guardian_ack.
 
         Given a coroutine waiting on _wait_for_guardian_ack
         When the GUARDIAN_INTERRUPT_ACK handler sets the event

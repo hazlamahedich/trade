@@ -1,6 +1,7 @@
-import pytest
 from unittest.mock import MagicMock, AsyncMock
 from datetime import datetime, timezone
+
+import pytest
 
 from app.services.market.schemas import MarketContext, FreshnessStatus
 from app.services.debate.agents.guardian import GuardianAnalysisResult
