@@ -289,13 +289,15 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
     }
   }, [debateId, maxRetries, onTokenReceived, onArgumentComplete, onStatusUpdate, onTurnChange, onError, onDataStale, onDataRefreshed, onReasoningNode, onGuardianInterrupt, onDebatePaused, onDebateResumed, onConnected, onDisconnected]);
 
-  const sendGuardianAck = useCallback(() => {
+  const sendGuardianAck = useCallback((): boolean => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         type: "DEBATE/GUARDIAN_INTERRUPT_ACK",
         payload: { debateId },
       }));
+      return true;
     }
+    return false;
   }, [debateId]);
 
   const disconnect = useCallback(() => {

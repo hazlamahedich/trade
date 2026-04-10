@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -11,12 +11,13 @@ import {
   type DataStalePayload,
   type ReasoningNodePayload,
   type GuardianInterruptPayload,
-  type DebatePausedPayload,
 } from "../hooks/useDebateSocket";
 import { useReasoningGraph } from "../hooks/useReasoningGraph";
+import { useGuardianFreeze } from "../hooks/useGuardianFreeze";
 import { ArgumentBubble, type AgentType } from "./ArgumentBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { StaleDataWarning } from "./StaleDataWarning";
+import { GuardianOverlay } from "./GuardianOverlay";
 import { cn } from "@/lib/utils";
 
 const ReasoningGraph = dynamic(
@@ -24,7 +25,7 @@ const ReasoningGraph = dynamic(
   { ssr: false }
 );
 
-interface ArgumentMessage {
+export interface ArgumentMessage {
   id: string;
   type: "argument";
   agent: AgentType;
@@ -64,18 +65,15 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
     ageSeconds: number;
   } | null>(null);
   const [reasoningNodes, setReasoningNodes] = useState<ReasoningNodePayload[]>([]);
-  const [isPaused, setIsPaused] = useState(false);
-  const [lastGuardianRiskLevel, setLastGuardianRiskLevel] = useState<string | null>(null);
 
   const parentRef = useRef<HTMLDivElement>(null);
+  const lastArgumentRef = useRef<ArgumentMessage | null>(null);
   const shouldReduceMotion = useReducedMotion();
+  const vibrationActive = useRef(false);
 
-  const latestGuardianIdx = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].type === "guardian") return i;
-    }
-    return -1;
-  }, [messages]);
+  const triggerFreezeRef = useRef<(payload: GuardianInterruptPayload, triggerArg: ArgumentMessage | null) => void>(() => {});
+  const triggerHapticRef = useRef<(riskLevel: string) => void>(() => {});
+  const freezeHandleResumedRef = useRef<() => void>(() => {});
 
   const rowVirtualizer = useVirtualizer({
     count: messages.length,
@@ -91,16 +89,15 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
   }, []);
 
   const handleArgumentComplete = useCallback((payload: ArgumentPayload) => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: generateId(),
-        type: "argument" as const,
-        agent: payload.agent,
-        content: payload.content,
-        timestamp: new Date().toISOString(),
-      },
-    ]);
+    const argMsg: ArgumentMessage = {
+      id: generateId(),
+      type: "argument",
+      agent: payload.agent,
+      content: payload.content,
+      timestamp: new Date().toISOString(),
+    };
+    lastArgumentRef.current = argMsg;
+    setMessages((prev) => [...prev, argMsg]);
     setStreamingText("");
     setIsStreaming(false);
     setCurrentAgent(null);
@@ -124,6 +121,44 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
     setReasoningNodes((prev) => [...prev, payload]);
   }, []);
 
+  const handleAcknowledge = useCallback(() => {
+    setIsDataStale(false);
+  }, []);
+
+  const triggerHaptic = useCallback(
+    (riskLevel: string) => {
+      if (riskLevel !== "critical") return;
+      try {
+        if (typeof navigator !== "undefined" && navigator.vibrate && !shouldReduceMotion) {
+          navigator.vibrate([100, 50, 100]);
+          vibrationActive.current = true;
+        }
+      } catch {
+        // vibration not supported
+      }
+    },
+    [shouldReduceMotion]
+  );
+
+  useEffect(() => {
+    triggerHapticRef.current = triggerHaptic;
+  }, [triggerHaptic]);
+
+  useEffect(() => {
+    return () => {
+      if (vibrationActive.current) {
+        try {
+          if (typeof navigator !== "undefined" && navigator.vibrate) {
+            navigator.vibrate([]);
+          }
+        } catch {
+          // ignore
+        }
+        vibrationActive.current = false;
+      }
+    };
+  }, []);
+
   const handleGuardianInterrupt = useCallback((payload: GuardianInterruptPayload) => {
     setMessages((prev) => [
       ...prev,
@@ -136,20 +171,14 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
         timestamp: new Date().toISOString(),
       },
     ]);
+    triggerFreezeRef.current(payload, lastArgumentRef.current);
+    triggerHapticRef.current(payload.riskLevel);
   }, []);
 
-  const handleDebatePaused = useCallback((payload: DebatePausedPayload) => {
-    setIsPaused(true);
-    setLastGuardianRiskLevel(payload.riskLevel);
-  }, []);
+  const handleDebatePaused = useCallback((): void => {}, []);
 
   const handleDebateResumed = useCallback(() => {
-    setIsPaused(false);
-    setLastGuardianRiskLevel(null);
-  }, []);
-
-  const handleAcknowledge = useCallback(() => {
-    setIsDataStale(false);
+    freezeHandleResumedRef.current();
   }, []);
 
   const { status, sendGuardianAck } = useDebateSocket({
@@ -163,6 +192,25 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
     onDebatePaused: handleDebatePaused,
     onDebateResumed: handleDebateResumed,
   });
+
+  const {
+    state: freezeState,
+    isFrozen,
+    triggerFreeze,
+    acknowledgeFreeze,
+    ignoreFreeze,
+    retryAck,
+    clearFreeze,
+    handleDebateResumed: freezeHandleResumed,
+  } = useGuardianFreeze({ sendGuardianAck });
+
+  useEffect(() => {
+    triggerFreezeRef.current = triggerFreeze;
+  }, [triggerFreeze]);
+
+  useEffect(() => {
+    freezeHandleResumedRef.current = freezeHandleResumed;
+  }, [freezeHandleResumed]);
 
   const { nodes: graphNodes, edges: graphEdges, onNodesChange, onEdgesChange } = useReasoningGraph(reasoningNodes);
 
@@ -192,6 +240,14 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
           onAcknowledge={handleAcknowledge}
         />
       )}
+      <GuardianOverlay
+        state={freezeState}
+        onUnderstand={acknowledgeFreeze}
+        onIgnore={ignoreFreeze}
+        onRetry={retryAck}
+        onClear={clearFreeze}
+        shouldReduceMotion={!!shouldReduceMotion}
+      />
       <div
         ref={parentRef}
         data-testid="debate-stream"
@@ -203,10 +259,12 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
         className={cn(
           "flex flex-col gap-4 h-full overflow-y-auto p-4",
           "bg-slate-900 rounded-lg",
-          isDataStale && "grayscale",
-          isPaused && "ring-2 ring-violet-600",
           className
         )}
+        style={{
+          filter: isFrozen ? "grayscale(60%)" : isDataStale ? "grayscale(100%)" : "none",
+          transition: shouldReduceMotion ? "none" : "filter 0.3s ease",
+        }}
       >
         {isEmpty && (
           <div
@@ -252,20 +310,6 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
                         <span>GUARDIAN: {message.summaryVerdict}</span>
                       </div>
                       <p className="text-violet-200 text-sm">{message.content}</p>
-                      {isPaused && virtualRow.index === latestGuardianIdx && lastGuardianRiskLevel !== "critical" && (
-                        <button
-                          data-testid={`ack-guardian-${message.id}`}
-                          onClick={sendGuardianAck}
-                          className="mt-2 px-4 py-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-md transition-colors"
-                        >
-                          Acknowledge &amp; Resume
-                        </button>
-                      )}
-                      {isPaused && virtualRow.index === latestGuardianIdx && lastGuardianRiskLevel === "critical" && (
-                        <div className="mt-2 text-red-400 text-sm font-semibold">
-                          Critical risk detected. Debate ended.
-                        </div>
-                      )}
                     </div>
                   </div>
                 ) : (
@@ -279,16 +323,6 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
             );
           })}
         </div>
-
-        {isPaused && (
-          <div
-            data-testid="debate-paused-indicator"
-            className="flex items-center justify-center gap-2 text-violet-400 text-sm"
-          >
-            <span className="animate-pulse">⏸</span>
-            <span>Debate paused — awaiting your acknowledgment</span>
-          </div>
-        )}
 
         <AnimatePresence>
           {isStreaming && currentAgent && (
