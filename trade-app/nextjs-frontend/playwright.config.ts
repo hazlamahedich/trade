@@ -3,9 +3,9 @@ import path from 'path';
 
 const envConfigMap = {
   local: {
-    baseURL: 'http://localhost:3000',
-    apiURL: 'http://localhost:8000',
-    wsURL: 'ws://localhost:8000/ws',
+    baseURL: 'http://localhost:3002',
+    apiURL: 'http://localhost:8001',
+    wsURL: 'ws://localhost:8001/ws',
   },
   staging: {
     baseURL: process.env.STAGING_BASE_URL || 'https://staging.trade-app.vercel.app',
@@ -86,8 +86,8 @@ export default defineConfig({
     },
   ],
   webServer: environment === 'local' ? {
-    command: 'pnpm run dev',
-    url: 'http://localhost:3000',
+    command: 'PORT=3002 pnpm run dev',
+    url: 'http://localhost:3002',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   } : undefined,

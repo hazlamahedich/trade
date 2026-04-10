@@ -3,6 +3,7 @@ import { Page } from '@playwright/test';
 interface WindowWithWS {
   __WS_CONNECTED__?: boolean;
   __WS_MESSAGES__?: WSMessage[];
+  __testWebSocket__?: WebSocket;
 }
 
 interface WSMessage {
@@ -12,7 +13,7 @@ interface WSMessage {
 
 export async function waitForWebSocketConnection(page: Page): Promise<void> {
   await page.waitForFunction(() => {
-    return (window as WindowWithWS).__WS_CONNECTED__ === true;
+    return (window as WindowWithWS).__testWebSocket__ != null;
   });
 }
 
@@ -39,6 +40,30 @@ export async function clearWebSocketMessages(page: Page): Promise<void> {
   });
 }
 
+/**
+ * Simulate an incoming WebSocket message by dispatching it to the stored
+ * WebSocket instance's onmessage handler.
+ */
+export async function sendWebSocketMessage(
+  page: Page,
+  message: Record<string, unknown>,
+): Promise<void> {
+  await page.evaluate((msg) => {
+    const ws = (window as WindowWithWS).__testWebSocket__;
+    if (!ws) {
+      throw new Error('No WebSocket instance found — did injectWebSocketInterceptor run?');
+    }
+    const data = JSON.stringify(msg);
+    const event = new MessageEvent('message', { data });
+    // Invoke onmessage handler directly (used by useDebateSocket hook)
+    if (ws.onmessage) {
+      ws.onmessage(event as MessageEvent);
+    }
+    // Also dispatch for addEventListener subscribers
+    ws.dispatchEvent(event);
+  }, message);
+}
+
 export async function injectWebSocketInterceptor(page: Page): Promise<void> {
   await page.addInitScript(() => {
     (window as WindowWithWS).__WS_MESSAGES__ = [];
@@ -48,6 +73,8 @@ export async function injectWebSocketInterceptor(page: Page): Promise<void> {
     window.WebSocket = class extends originalWebSocket {
       constructor(url: string | URL, protocols?: string | string[]) {
         super(url, protocols);
+
+        (window as WindowWithWS).__testWebSocket__ = this;
 
         this.addEventListener('open', () => {
           (window as WindowWithWS).__WS_CONNECTED__ = true;

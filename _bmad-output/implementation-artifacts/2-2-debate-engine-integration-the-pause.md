@@ -1,6 +1,6 @@
 # Story 2.2: Debate Engine Integration (The Pause)
 
-Status: review
+Status: testarch-complete
 
 ## Story
 
@@ -73,6 +73,17 @@ So that the user pays attention to the risk warning.
   - [x] [AI-Review M2] Reduce test duplication — extracted `_patched_debate_engine()` context manager, `_get_action_types()`, `_schedule_ack()` helpers in test_debate_pause.py (877 → 532 lines)
   - [x] [AI-Review M3] Consolidate double cleanup of paused state — extracted `_reset_pause_state(current_state)` helper in engine.py, used in critical-break and resume paths
   - [x] [AI-Review M4] Guardian messages rendered inside virtualized list — unified `DebateMessage` discriminated union type (ArgumentMessage | GuardianMsg), merged into single virtualized array with `latestGuardianIdx` memo
+
+- [x] Testarch automation (testarch-automate workflow)
+  - [x] API contract tests: 3 tests in test_ws_guardian_ack.py (pause event set on ack, no-op when no event, event set from wait loop)
+  - [x] Integration tests: 2 new tests in test_debate_pause.py (int_011 multiple interrupts, unit_016 backward compat)
+  - [x] Component tests: 6 tests in DebateStreamPauseResume.test.tsx (paused indicator, guardian bubble, ack button, critical overlay, ring styling, resume clears state) — required @tanstack/react-virtual mock
+  - [x] E2E tests: 7 tests in guardian-pause-resume.spec.ts (pause+ack resume, critical ends debate, guardian bubble styling, paused indicator text, violet ring, rapid sequential pauses @p2, full resume lifecycle @p2) — uses /test/debate-stream test route
+  - [x] WS helper fixes: sendWebSocketMessage calls onmessage directly (not just dispatchEvent), waitForWebSocketConnection checks instance exists
+  - [x] Created /test/debate-stream test route (page.tsx) for mounting DebateStream in isolation
+  - [x] Updated playwright.config.ts to use port 3002 (frontend) and 8001 (API/WS)
+  - [x] Lint fixes: removed unused imports in test_ws_guardian_ack.py, test_debate_pause.py, DebateStreamPauseResume.test.tsx
+  - [x] Burn-in: 10/10 E2E runs passed (70/70 tests) — zero flakiness
 
 ## Dev Notes
 
@@ -283,6 +294,22 @@ current_state.setdefault("pause_history", []).append({
 | Stale data during pause | Stale event still triggers after resume | P1 |
 | Pause history audit log | pause_history entries correct | P1 |
 | DebateState backward compatible | Old code works without pause fields | P1 |
+| API: pause event set on guardian ack | test_ws_guardian_ack — event lifecycle | P0 |
+| API: no-op when no pause event | Graceful handling of missing event | P0 |
+| API: event set from wait loop | Concurrent signal pattern | P0 |
+| Component: paused indicator visible | DebateStreamPauseResume test | P0 |
+| Component: guardian bubble renders | Violet-600, shield icon, GUARDIAN label | P1 |
+| Component: ack button for non-critical | Shows only on latest high/medium/low guardian | P0 |
+| Component: critical overlay | No ack button, "Critical risk detected" text | P0 |
+| Component: violet ring on stream | ring-violet-600 class when paused | P1 |
+| Component: resume clears paused state | All indicators removed after resume | P1 |
+| E2E: Guardian interrupt pauses and ack resumes | Full pause→ack→resume flow | P0 |
+| E2E: Critical interrupt ends debate | No resume button, final verdict | P0 |
+| E2E: Guardian message Violet-600 bubble | Visual styling verification | P1 |
+| E2E: Paused indicator text | "awaiting your acknowledgment" + ⏸ | P1 |
+| E2E: Violet ring appears when paused | CSS class toggles correctly | P1 |
+| E2E: Rapid sequential pauses | Multiple interrupts accumulate messages | P2 |
+| E2E: Full resume lifecycle | Resume clears all paused state + new args work | P2 |
 
 ### Performance Considerations
 
@@ -365,6 +392,9 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - Frontend useDebateSocket tests: 24/24 passed (0.807s)
 - Pre-existing lint issues in test files (unused vars/imports) — NOT introduced by this story
 - Pre-existing TS errors in DebateStreamReasoningGraph tests — NOT related to Story 2.2
+- Testarch automation (2026-04-10): Backend 28/28, Frontend unit 30/30, E2E 7/7 (chromium), Burn-in 70/70 (10 runs)
+- Lint: ruff clean, eslint clean after fixing unused imports in test_ws_guardian_ack.py, test_debate_pause.py, DebateStreamPauseResume.test.tsx
+- @tanstack/react-virtual mock required for component tests — useVirtualizer doesn't render in JSDOM
 
 ### Completion Notes List
 
@@ -385,6 +415,14 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - ✅ [M2 FIX] Extracted `_patched_debate_engine()` context manager (ExitStack-based), `_get_action_types()`, `_schedule_ack()` helpers — reduced test file from 877 to ~440 lines
 - ✅ [M3 FIX] Extracted `_reset_pause_state(current_state)` helper in engine.py — replaced two inline cleanup blocks
 - ✅ [M4 FIX] Unified `Argument` + `GuardianMessage` into discriminated union `DebateMessage` type — all messages now rendered through the single virtualized list with `latestGuardianIdx` computed via useMemo
+- ✅ [Testarch] 3 API contract tests (test_ws_guardian_ack.py) — pause event lifecycle on ACK handler
+- ✅ [Testarch] 2 new integration tests — int_011 multiple interrupts, unit_016 backward compat
+- ✅ [Testarch] 6 component tests (DebateStreamPauseResume.test.tsx) — required @tanstack/react-virtual mock for JSDOM
+- ✅ [Testarch] 7 E2E tests (guardian-pause-resume.spec.ts) — rewrote to use /test/debate-stream test route; fixed WS helpers (onmessage direct call, instance-based connection wait)
+- ✅ [Testarch] 2 P2 edge cases added to E2E: rapid sequential pauses, full resume lifecycle with new arguments
+- ✅ [Testarch] Lint fixes: removed unused imports in test_ws_guardian_ack.py (AsyncMock, MagicMock, patch), test_debate_pause.py (_pause_events import, resume_events var), DebateStreamPauseResume.test.tsx (argumentCompletePayload func)
+- ✅ [Testarch] Burn-in: 10/10 E2E runs passed (70/70), zero flakiness detected
+- ✅ [Testarch] Ports: frontend 3002, API/WS 8001 (matching backend .env)
 
 ### File List
 
@@ -397,14 +435,26 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - trade-app/nextjs-frontend/features/debate/hooks/useDebateSocket.ts — Added GuardianInterruptPayload, DebatePausedPayload, DebateResumedPayload interfaces; onGuardianInterrupt, onDebatePaused, onDebateResumed callbacks; sendGuardianAck()
 - trade-app/nextjs-frontend/features/debate/hooks/index.ts — Added barrel exports for DataStalePayload, DataRefreshedPayload, GuardianInterruptPayload, DebatePausedPayload, DebateResumedPayload
 - trade-app/nextjs-frontend/features/debate/components/DebateStream.tsx — Added paused state, guardian message bubbles, acknowledge button (latest-only), critical verdict display
-- trade-app/fastapi_backend/tests/services/debate/test_debate_pause.py — Added int_009 pause_history audit, int_010 stale data during pause
+- trade-app/fastapi_backend/tests/services/debate/test_debate_pause.py — Added int_009 pause_history audit, int_010 stale data during pause, int_011 multiple interrupts, unit_016 backward compat
 - trade-app/fastapi_backend/tests/services/debate/conftest.py — Existing fixtures verified sufficient
 - trade-app/nextjs-frontend/tests/unit/useDebateSocket.test.ts — Added 5 tests in "[2-2] Guardian Pause/Resume Actions", MockWebSocket static OPEN/CLOSED constants
+- trade-app/nextjs-frontend/playwright.config.ts — Updated to port 3002 (frontend) and 8001 (API/WS)
+- trade-app/nextjs-frontend/.env — Updated BASE_URL to port 3002, API_URL and WS_URL to port 8001
+- trade-app/nextjs-frontend/tests/support/fixtures/index.ts — Updated wsURL default to port 8001
+- trade-app/nextjs-frontend/tests/support/helpers/ws-helpers.ts — Fixed sendWebSocketMessage to call onmessage directly, fixed waitForWebSocketConnection to check instance exists
 - _bmad-output/implementation-artifacts/sprint-status.yaml — Updated 2-2 status to review
-- _bmad-output/implementation-artifacts/2-2-debate-engine-integration-the-pause.md — Updated tasks, dev record, status, code review notes
+- _bmad-output/implementation-artifacts/2-2-debate-engine-integration-the-pause.md — Updated tasks, dev record, status, code review notes, testarch results
+
+**Created:**
+- trade-app/fastapi_backend/tests/routes/test_ws_guardian_ack.py — 3 API contract tests for WS guardian ack handler
+- trade-app/nextjs-frontend/tests/e2e/guardian-pause-resume.spec.ts — 7 E2E tests (5 P0/P1 + 2 P2 edge cases)
+- trade-app/nextjs-frontend/tests/unit/DebateStreamPauseResume.test.tsx — 6 component tests for pause/resume UI
+- trade-app/nextjs-frontend/app/test/debate-stream/page.tsx — Test-only route for mounting DebateStream in E2E
+- _bmad-output/test-artifacts/automation-summary-2-2.md — Testarch automation summary
 
 ## Change Log
 
 - 2026-03-31: Story 2.2 implementation complete — all 6 task groups implemented (backend pause/resume engine, WS acknowledgment, frontend hook, DebateStream UI, tests, fixtures). 23 backend + 24 frontend tests passing. Status → review.
 - 2026-03-31: Code review completed — 4 HIGH + 4 MEDIUM + 3 LOW issues found. All HIGH+MEDIUM issues fixed: (H1) barrel exports, (H2) RiskLevel type safety, (H3) paused state cleanup on critical, (H4) latest-only ack button, (M2) test helper extraction (877→440 lines), (M3) _reset_pause_state() helper, (M4) unified DebateMessage discriminated union. 3 LOW items deferred (cosmetic). Status → review.
 - 2026-04-02: Beads sync completed — review-passed label applied to trade-1s3. sprint-status.yaml updated to review. Story file finalized.
+- 2026-04-10: Testarch automation completed. 3 API + 2 integration + 6 component + 7 E2E tests generated and passing. Total Story 2.2 coverage: 28 backend + 30 frontend unit + 7 E2E = 65 tests. E2E burn-in: 10/10 runs, zero flakiness. Lint fixes applied. Created /test/debate-stream test route. Updated ports to 3002 (frontend) / 8001 (API). Fixed WS test helpers (onmessage direct call, instance-based connection check). Status → testarch-complete.

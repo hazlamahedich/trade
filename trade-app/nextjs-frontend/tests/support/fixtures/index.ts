@@ -24,7 +24,7 @@ export const test = base.extend<Fixtures>({
   },
 
   wsConnection: async ({ page }, use) => {
-    const wsUrl = process.env.WS_URL || 'ws://localhost:8000/ws';
+    const wsUrl = process.env.WS_URL || 'ws://localhost:8001/ws';
     const token = process.env.FIXED_QA_TOKEN || '';
     
     await page.addInitScript(`

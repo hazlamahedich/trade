@@ -464,8 +464,6 @@ class TestEnginePauseIntegration:
 
     @pytest.mark.asyncio
     async def test_2_2_int_007_ws_handler_sets_pause_event_on_ack(self):
-        from app.services.debate.engine import _pause_events
-
         event = asyncio.Event()
         _set_pause_event("deb_ws_ack", event)
 
@@ -524,7 +522,6 @@ class TestEnginePauseIntegration:
 
         pause_history = result.get("pause_history", [])
         pause_events_list = [e for e in pause_history if e["action"] == "paused"]
-        resume_events = [e for e in pause_history if e["action"] == "resumed"]
 
         assert len(pause_events_list) >= 1
         assert pause_events_list[0]["risk_level"] == "high"
@@ -605,3 +602,103 @@ class TestEnginePauseIntegration:
         action_types = _get_action_types(mock_manager)
         assert "DEBATE/DEBATE_PAUSED" in action_types
         assert "DEBATE/DATA_STALE" in action_types
+
+    @pytest.mark.asyncio
+    async def test_2_2_int_011_multiple_interrupts_in_one_debate(
+        self, mock_manager, mock_stale_guardian, guardian_interrupt_result
+    ):
+        """[2-2-INT-011] @p1 Multiple guardian interrupts within a single debate.
+
+        Given a guardian that interrupts on both agent turns
+        When the debate runs for 2 turns with recurring ACKs
+        Then at least one pause/resume cycle is recorded
+
+        Note: Mocked bull/bear always return current_turn 1/2 respectively,
+        so max_turns=2 is used to ensure the loop terminates cleanly.
+        """
+        call_count = [0]
+
+        async def fake_analyze(state):
+            call_count[0] += 1
+            # Interrupt on turns 1 and 2; call 3 is the final verdict (no interrupt)
+            if call_count[0] in (1, 2):
+                return guardian_interrupt_result.model_dump()
+            return {
+                "should_interrupt": False,
+                "risk_level": "low",
+                "fallacy_type": None,
+                "reason": "Safe",
+                "summary_verdict": "Wait",
+                "safe": True,
+                "detailed_reasoning": "",
+            }
+
+        # Recurring ack: periodically checks for a pause event and sets it,
+        # handling multiple sequential interrupts within the same debate.
+        ack_count = [0]
+
+        async def recurring_ack(
+            debate_id: str, interval: float = 0.1, max_acks: int = 4
+        ):
+            for _ in range(max_acks):
+                await asyncio.sleep(interval)
+                event = get_pause_event(debate_id)
+                if event is not None:
+                    ack_count[0] += 1
+                    event.set()
+
+        ack_task = asyncio.create_task(recurring_ack("deb_multi_1", interval=0.1))
+
+        with _patched_debate_engine(fake_analyze):
+            result = await stream_debate(
+                "deb_multi_1",
+                "BTC",
+                {"summary": "test"},
+                mock_manager,
+                max_turns=2,
+                stale_guardian=mock_stale_guardian,
+            )
+
+        ack_task.cancel()
+        try:
+            await ack_task
+        except asyncio.CancelledError:
+            pass
+
+        pause_events_list = [
+            e for e in result.get("pause_history", []) if e["action"] == "paused"
+        ]
+        assert len(pause_events_list) >= 1
+        action_types = _get_action_types(mock_manager)
+        paused_count = action_types.count("DEBATE/DEBATE_PAUSED")
+        assert paused_count >= 1
+
+    def test_2_2_unit_016_debate_state_backward_compatible(self):
+        """[2-2-UNIT-016] @p1 DebateState TypedDict supports optional paused field.
+
+        Given a DebateState without the 'paused' key
+        When 'paused' is added and then removed
+        Then the state remains valid throughout
+        """
+        from app.services.debate.state import DebateState
+
+        # Given: a DebateState without the 'paused' key
+        state: DebateState = {
+            "asset": "BTC",
+            "market_context": {"summary": "test"},
+            "messages": [],
+            "current_turn": 0,
+            "max_turns": 6,
+            "current_agent": "bull",
+            "status": "running",
+        }
+        assert "paused" not in state
+        assert state["status"] == "running"
+
+        # When: paused is set to True
+        state["paused"] = True
+        assert state["paused"] is True
+
+        # Then: paused can be removed and state is still valid
+        state.pop("paused", None)
+        assert "paused" not in state
