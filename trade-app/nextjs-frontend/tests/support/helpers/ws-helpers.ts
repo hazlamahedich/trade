@@ -3,6 +3,7 @@ import { Page } from '@playwright/test';
 interface WindowWithWS {
   __WS_CONNECTED__?: boolean;
   __WS_MESSAGES__?: WSMessage[];
+  __WS_SENT_MESSAGES__?: WSMessage[];
   __testWebSocket__?: WebSocket;
 }
 
@@ -40,6 +41,18 @@ export async function clearWebSocketMessages(page: Page): Promise<void> {
   });
 }
 
+export async function getSentWebSocketMessages(page: Page): Promise<WSMessage[]> {
+  return await page.evaluate(() => {
+    return (window as WindowWithWS).__WS_SENT_MESSAGES__ || [];
+  });
+}
+
+export async function clearSentWebSocketMessages(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    (window as WindowWithWS).__WS_SENT_MESSAGES__ = [];
+  });
+}
+
 /**
  * Simulate an incoming WebSocket message by dispatching it to the stored
  * WebSocket instance's onmessage handler.
@@ -67,6 +80,7 @@ export async function sendWebSocketMessage(
 export async function injectWebSocketInterceptor(page: Page): Promise<void> {
   await page.addInitScript(() => {
     (window as WindowWithWS).__WS_MESSAGES__ = [];
+    (window as WindowWithWS).__WS_SENT_MESSAGES__ = [];
     (window as WindowWithWS).__WS_CONNECTED__ = false;
 
     const originalWebSocket = window.WebSocket;
@@ -75,6 +89,17 @@ export async function injectWebSocketInterceptor(page: Page): Promise<void> {
         super(url, protocols);
 
         (window as WindowWithWS).__testWebSocket__ = this;
+
+        const originalSend = this.send.bind(this);
+        this.send = (data: string) => {
+          try {
+            const parsed = JSON.parse(data);
+            (window as WindowWithWS).__WS_SENT_MESSAGES__!.push(parsed);
+          } catch {
+            (window as WindowWithWS).__WS_SENT_MESSAGES__!.push({ raw: data });
+          }
+          return originalSend(data);
+        };
 
         this.addEventListener('open', () => {
           (window as WindowWithWS).__WS_CONNECTED__ = true;
