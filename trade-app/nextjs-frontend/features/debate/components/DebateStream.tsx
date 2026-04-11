@@ -31,6 +31,7 @@ export interface ArgumentMessage {
   agent: AgentType;
   content: string;
   timestamp: string;
+  isRedacted?: boolean;
 }
 
 interface GuardianMsg {
@@ -95,6 +96,7 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
       agent: payload.agent,
       content: payload.content,
       timestamp: new Date().toISOString(),
+      isRedacted: payload.isRedacted,
     };
     lastArgumentRef.current = argMsg;
     setMessages((prev) => [...prev, argMsg]);
@@ -314,6 +316,7 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
                     agent={message.agent}
                     content={message.content}
                     timestamp={message.timestamp}
+                    isRedacted={message.isRedacted}
                   />
                 )}
               </div>

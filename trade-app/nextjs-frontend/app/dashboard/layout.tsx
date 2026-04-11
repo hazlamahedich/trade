@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Home, Users2, List } from "lucide-react";
 import Image from "next/image";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 import {
   Breadcrumb,
@@ -106,7 +107,11 @@ export default function DashboardLayout({
             </DropdownMenu>
           </div>
         </header>
-        <section className="grid gap-6">{children}</section>
+        <section className="grid gap-6">
+          <TooltipProvider delayDuration={300}>
+            {children}
+          </TooltipProvider>
+        </section>
       </main>
     </div>
   );

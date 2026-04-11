@@ -1,16 +1,40 @@
 "use client";
 
-import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { AgentAvatar, type AgentType } from "./AgentAvatar";
 export type { AgentType };
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+
+function ShieldIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  );
+}
 
 interface ArgumentBubbleProps {
   agent: AgentType;
   content: string;
   timestamp: string;
   isStreaming?: boolean;
+  isRedacted?: boolean;
 }
 
 const messageVariants = {
@@ -45,9 +69,10 @@ function renderContent(content: string, isRedacted: boolean) {
   ));
 }
 
-export function ArgumentBubble({ agent, content, timestamp, isStreaming }: ArgumentBubbleProps) {
+export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedacted }: ArgumentBubbleProps) {
   const isBull = agent === "bull";
-  const isRedacted = content.includes("[REDACTED]");
+  const hasRedactedContent = content.includes("[REDACTED]");
+  const showBadge = isRedacted === true;
 
   return (
     <motion.div
@@ -89,11 +114,11 @@ export function ArgumentBubble({ agent, content, timestamp, isStreaming }: Argum
         </div>
         <div
           data-testid="argument-content"
-          role={isRedacted ? "text" : undefined}
-          aria-label={isRedacted ? "Debate argument containing filtered phrases for safety compliance" : undefined}
+          role={hasRedactedContent ? "text" : undefined}
+          aria-label={hasRedactedContent ? "Debate argument containing filtered phrases for safety compliance" : undefined}
           className="text-slate-200 text-base leading-relaxed break-words"
         >
-          {renderContent(content, isRedacted)}
+          {renderContent(content, hasRedactedContent)}
           {isStreaming && (
             <span
               data-testid="streaming-cursor"
@@ -101,6 +126,33 @@ export function ArgumentBubble({ agent, content, timestamp, isStreaming }: Argum
             />
           )}
         </div>
+
+        {showBadge && (
+          <div className="mt-1.5">
+            <div className="hidden sm:block">
+              <Tooltip delayDuration={300}>
+                <TooltipTrigger asChild>
+                  <span
+                    data-testid="safety-filtered-badge"
+                    tabIndex={0}
+                    aria-label="This message was filtered by the safety system"
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs bg-violet-600/20 text-violet-400 rounded-md cursor-help focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900"
+                  >
+                    <ShieldIcon />
+                    Safety Filtered
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Part of this message was removed by our safety system.</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="sm:hidden flex items-start gap-1.5 text-xs text-violet-400/80" data-testid="safety-filtered-mobile">
+              <ShieldIcon />
+              <span>Safety Filtered — Part of this message was removed by our safety system.</span>
+            </div>
+          </div>
+        )}
       </div>
     </motion.div>
   );
