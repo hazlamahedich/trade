@@ -173,23 +173,23 @@ class TestSanitizeContentWithContext:
 
 class TestSanitizeContentConfigurable:
     def test_custom_phrase_list_overrides(self):
+        import re as _re
+
+        custom_phrases = ["custombad"]
+        custom_patterns = [
+            _re.compile(_re.escape(p), _re.IGNORECASE) for p in custom_phrases
+        ]
+
         with (
+            patch("app.services.debate.sanitization.FORBIDDEN_PHRASES", custom_phrases),
             patch(
-                "app.services.debate.sanitization.FORBIDDEN_PHRASES",
-                ["custombad"],
-            ),
-            patch(
-                "app.services.debate.sanitization._COMPILED_PATTERNS",
-                [
-                    __import__("re").compile(
-                        __import__("re").escape("custombad"),
-                        __import__("re").IGNORECASE,
-                    )
-                ],
+                "app.services.debate.sanitization._COMPILED_PATTERNS", custom_patterns
             ),
         ):
             result = sanitize_content("This has custombad word")
             assert "[REDACTED]" in result.content
+            assert result.is_redacted is True
+            assert "custombad" in result.redacted_phrases
 
     def test_empty_phrase_list(self):
         with (
@@ -199,6 +199,7 @@ class TestSanitizeContentConfigurable:
             result = sanitize_content("This is guaranteed")
             assert result.content == "This is guaranteed"
             assert result.is_redacted is False
+            assert result.redacted_phrases == []
 
 
 class TestTruncationQuality:

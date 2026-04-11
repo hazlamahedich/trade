@@ -1,141 +1,17 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { useDebateSocket } from "../../features/debate/hooks/useDebateSocket";
 import type { ArgumentPayload } from "../../features/debate/hooks/useDebateSocket";
-
-interface MockWebSocketInstance {
-  readyState: number;
-  url: string;
-  onopen: ((event: Event) => void) | null;
-  onclose: ((event: CloseEvent) => void) | null;
-  onmessage: ((event: MessageEvent) => void) | null;
-  onerror: ((event: Event) => void) | null;
-  send: jest.Mock;
-  close: jest.Mock;
-  simulateOpen: () => void;
-  simulateMessage: (data: unknown) => void;
-  simulateClose: (code?: number, reason?: string) => void;
-  simulateError: () => void;
-}
+import { createMockWebSocketSetup } from "../support/helpers/mock-websocket";
 
 describe("[2-4] useDebateSocket — isRedacted Field Handling", () => {
-  let wsInstances: MockWebSocketInstance[] = [];
-  const originalWebSocket = global.WebSocket;
-  let mockStore: Record<string, string> = {};
-
-  const mockLocalStorage = {
-    getItem: jest.fn((key: string) => mockStore[key] || null),
-    setItem: jest.fn((key: string, value: string) => {
-      mockStore[key] = value;
-    }),
-    removeItem: jest.fn((key: string) => {
-      delete mockStore[key];
-    }),
-    clear: jest.fn(() => {
-      mockStore = {};
-    }),
-    get length() {
-      return Object.keys(mockStore).length;
-    },
-    key: jest.fn((index: number) => Object.keys(mockStore)[index] || null),
-  };
-
-  function createMockWebSocket(url: string): MockWebSocketInstance {
-    const instance: MockWebSocketInstance = {
-      readyState: 0,
-      url,
-      onopen: null,
-      onclose: null,
-      onmessage: null,
-      onerror: null,
-      send: jest.fn(),
-      close: jest.fn((code = 1000, reason = "") => {
-        instance.readyState = 3;
-        if (instance.onclose) {
-          instance.onclose({ code, reason } as CloseEvent);
-        }
-      }),
-      simulateOpen: () => {
-        instance.readyState = 1;
-        if (instance.onopen) {
-          instance.onopen(new Event("open"));
-        }
-      },
-      simulateMessage: (data: unknown) => {
-        if (instance.onmessage) {
-          instance.onmessage({
-            data: JSON.stringify(data),
-          } as MessageEvent);
-        }
-      },
-      simulateClose: (code = 1000, reason = "") => {
-        instance.readyState = 3;
-        if (instance.onclose) {
-          instance.onclose({ code, reason } as CloseEvent);
-        }
-      },
-      simulateError: () => {
-        if (instance.onerror) {
-          instance.onerror(new Event("error"));
-        }
-      },
-    };
-    return instance;
-  }
-
-  function waitForWebSocket(): Promise<void> {
-    return new Promise((resolve) => {
-      const check = () => {
-        if (wsInstances.length > 0) {
-          resolve();
-        } else {
-          setTimeout(check, 10);
-        }
-      };
-      check();
-    });
-  }
+  const wsSetup = createMockWebSocketSetup();
 
   beforeEach(() => {
-    wsInstances = [];
-    mockStore = { accessToken: "mock-token-123" };
-
-    Object.defineProperty(global, "localStorage", {
-      value: mockLocalStorage,
-      writable: true,
-      configurable: true,
-    });
-
-    class MockWS {
-      static OPEN = 1;
-      static CLOSED = 3;
-      static CONNECTING = 0;
-      static CLOSING = 2;
-      private instance: MockWebSocketInstance;
-      constructor(url: string) {
-        this.instance = createMockWebSocket(url);
-        wsInstances.push(this.instance);
-        return this.instance as unknown as MockWS;
-      }
-      get readyState() { return this.instance.readyState; }
-      get url() { return this.instance.url; }
-      get onopen() { return this.instance.onopen; }
-      set onopen(fn: ((event: Event) => void) | null) { this.instance.onopen = fn; }
-      get onclose() { return this.instance.onclose; }
-      set onclose(fn: ((event: CloseEvent) => void) | null) { this.instance.onclose = fn; }
-      get onmessage() { return this.instance.onmessage; }
-      set onmessage(fn: ((event: MessageEvent) => void) | null) { this.instance.onmessage = fn; }
-      get onerror() { return this.instance.onerror; }
-      set onerror(fn: ((event: Event) => void) | null) { this.instance.onerror = fn; }
-      send = (...args: Parameters<jest.Mock>) => this.instance.send(...args);
-      close = (...args: Parameters<jest.Mock>) => this.instance.close(...args);
-    }
-
-    global.WebSocket = MockWS as unknown as typeof WebSocket;
+    wsSetup.install();
   });
 
   afterEach(() => {
-    global.WebSocket = originalWebSocket;
-    mockStore = {};
+    wsSetup.cleanup();
   });
 
   describe("[P0] isRedacted Field in ARGUMENT_COMPLETE", () => {
@@ -149,14 +25,11 @@ describe("[2-4] useDebateSocket — isRedacted Field Handling", () => {
         })
       );
 
-      await waitForWebSocket();
+      const ws = await wsSetup.waitForInstance();
+      await act(async () => { ws.simulateOpen(); });
 
       await act(async () => {
-        wsInstances[0].simulateOpen();
-      });
-
-      await act(async () => {
-        wsInstances[0].simulateMessage({
+        ws.simulateMessage({
           type: "DEBATE/ARGUMENT_COMPLETE",
           payload: {
             debateId: "test-debate-redacted",
@@ -187,14 +60,11 @@ describe("[2-4] useDebateSocket — isRedacted Field Handling", () => {
         })
       );
 
-      await waitForWebSocket();
+      const ws = await wsSetup.waitForInstance();
+      await act(async () => { ws.simulateOpen(); });
 
       await act(async () => {
-        wsInstances[0].simulateOpen();
-      });
-
-      await act(async () => {
-        wsInstances[0].simulateMessage({
+        ws.simulateMessage({
           type: "DEBATE/ARGUMENT_COMPLETE",
           payload: {
             debateId: "test-debate-clean",
@@ -224,14 +94,11 @@ describe("[2-4] useDebateSocket — isRedacted Field Handling", () => {
         })
       );
 
-      await waitForWebSocket();
+      const ws = await wsSetup.waitForInstance();
+      await act(async () => { ws.simulateOpen(); });
 
       await act(async () => {
-        wsInstances[0].simulateOpen();
-      });
-
-      await act(async () => {
-        wsInstances[0].simulateMessage({
+        ws.simulateMessage({
           type: "DEBATE/ARGUMENT_COMPLETE",
           payload: {
             debateId: "test-debate-legacy",
@@ -281,14 +148,11 @@ describe("[2-4] useDebateSocket — isRedacted Field Handling", () => {
         })
       );
 
-      await waitForWebSocket();
+      const ws = await wsSetup.waitForInstance();
+      await act(async () => { ws.simulateOpen(); });
 
       await act(async () => {
-        wsInstances[0].simulateOpen();
-      });
-
-      await act(async () => {
-        wsInstances[0].simulateMessage({
+        ws.simulateMessage({
           type: "DEBATE/ARGUMENT_COMPLETE",
           payload: {
             debateId: "test-debate-multi",
@@ -302,7 +166,7 @@ describe("[2-4] useDebateSocket — isRedacted Field Handling", () => {
       });
 
       await act(async () => {
-        wsInstances[0].simulateMessage({
+        ws.simulateMessage({
           type: "DEBATE/ARGUMENT_COMPLETE",
           payload: {
             debateId: "test-debate-multi",

@@ -533,7 +533,10 @@ No debug issues encountered during implementation.
 - `trade-app/nextjs-frontend/tests/unit/useDebateSocketRedacted.test.ts`
 - `trade-app/nextjs-frontend/tests/unit/ArgumentBubbleRedacted.test.tsx`
 - `trade-app/nextjs-frontend/tests/e2e/debate-stream-redacted.spec.ts`
+- `trade-app/nextjs-frontend/tests/support/helpers/mock-websocket.ts` — shared Jest mock WebSocket factory
+- `trade-app/nextjs-frontend/tests/support/helpers/e2e-mock-websocket.ts` — shared Playwright mock WS builder
 - `_bmad-output/test-artifacts/automation-summary-2-4.md`
+- `_bmad-output/test-artifacts/test-reviews/test-review-story-2-4.md`
 
 **MODIFIED (test automation):**
 - `trade-app/nextjs-frontend/features/debate/hooks/useDebateSocket.ts` — added `isRedacted?: boolean` to `ArgumentPayload` interface
@@ -545,6 +548,7 @@ No debug issues encountered during implementation.
 
 - 2026-04-11: Story 2.4 implementation complete — forbidden phrase filter with two-layer defense, structured audit logging, configurable phrase list, `isRedacted` WebSocket field, 42 new tests
 - 2026-04-11: Test automation expansion — added `isRedacted` to `ArgumentPayload` type, 15 new frontend tests (5 unit, 6 component, 4 E2E), updated test helpers/fixtures, automation summary at `_bmad-output/test-artifacts/automation-summary-2-4.md`
+- 2026-04-11: Test quality review (97/100 A+ Excellent) — extracted shared mock WebSocket helpers (`mock-websocket.ts`, `e2e-mock-websocket.ts`), eliminated hardcoded timeouts, improved configurable phrase test coupling, replaced polling loops with Promise-based `waitForInstance()`, fixed bug in mock helper where `waitForInstance()` resolved `undefined`
 
 ### Review Findings
 
