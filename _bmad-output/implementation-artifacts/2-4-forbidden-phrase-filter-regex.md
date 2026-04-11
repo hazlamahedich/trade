@@ -510,11 +510,19 @@ No debug issues encountered during implementation.
 - Refactored `send_argument_complete()` from raw dict to `ArgumentCompletePayload` Pydantic model with `is_redacted`/`isRedacted` field
 - Made forbidden phrase list configurable via `config.py` Settings with env var override support
 - Expanded phrase list from 7 to 16 phrases
-- `turn_arguments` now stores `(raw_content, sanitized_content)` tuples for correct data flow
+- `turn_arguments` now uses typed `ArgumentEntry` NamedTuple with `raw`/`sanitized` fields
 - All 15 existing backward-compat tests pass unchanged (guardian.py uses `sanitize_response()` wrapper)
-- 33 new unit tests + 9 integration tests = 42 new tests, all passing
+- 39 unit tests + 11 integration tests = 50 backend tests, all passing
+- 15 frontend tests (5 unit + 10 component + 4 E2E), all passing
 - High-redaction warning logged when >2 phrases or >50% content redacted
-- No changes to guardian.py, TokenStreamingHandler, or frontend code
+- `redaction_ratio` computed inside `SanitizationResult` — single source of truth
+- `messages[-1]` bounds guard added to both bull and bear agent nodes
+- Guardian data contract explicitly documented in code comments
+- Startup log reports compiled pattern count for observability
+- Module-level compilation limitation documented with TODO comment
+- `redactedPhrases` field added to WS payload for richer Story 2.5 contract
+- `[REDACTED]` text rendered with purple styling + ARIA labels for accessibility
+- Concurrency test confirms safe parallel sanitization
 
 ### File List
 
@@ -526,6 +534,7 @@ No debug issues encountered during implementation.
 - `trade-app/fastapi_backend/app/services/debate/agents/bull.py`
 - `trade-app/fastapi_backend/app/services/debate/agents/bear.py`
 - `trade-app/fastapi_backend/app/config.py`
+- `trade-app/nextjs-frontend/features/debate/components/ArgumentBubble.tsx`
 
 **NEW:**
 - `trade-app/fastapi_backend/tests/services/debate/test_sanitization.py`
@@ -549,6 +558,7 @@ No debug issues encountered during implementation.
 - 2026-04-11: Story 2.4 implementation complete — forbidden phrase filter with two-layer defense, structured audit logging, configurable phrase list, `isRedacted` WebSocket field, 42 new tests
 - 2026-04-11: Test automation expansion — added `isRedacted` to `ArgumentPayload` type, 15 new frontend tests (5 unit, 6 component, 4 E2E), updated test helpers/fixtures, automation summary at `_bmad-output/test-artifacts/automation-summary-2-4.md`
 - 2026-04-11: Test quality review (97/100 A+ Excellent) — extracted shared mock WebSocket helpers (`mock-websocket.ts`, `e2e-mock-websocket.ts`), eliminated hardcoded timeouts, improved configurable phrase test coupling, replaced polling loops with Promise-based `waitForInstance()`, fixed bug in mock helper where `waitForInstance()` resolved `undefined`
+- 2026-04-11: Party mode implementation review (Winston/Amelia/Murat/Sally) — addressed all concerns: added `messages[-1]` bounds guard, moved `redaction_ratio` into `SanitizationResult`, replaced plain tuples with `ArgumentEntry` NamedTuple, added `redactedPhrases` to WS payload for Story 2.5, added purple `[REDACTED]` styling with ARIA attributes, documented guardian data contract, added startup pattern count log, added concurrency test, fixed `test_empty_phrase_list`. 66 backend tests + 10 frontend component tests passing.
 
 ### Review Findings
 
@@ -564,13 +574,52 @@ No debug issues encountered during implementation.
 - [x] [Review][Patch] `redacted_ratio` calculation fixed — now removes matched phrases from original text and computes ratio from removed character count, immune to pre-existing `[REDACTED]` literals [`engine.py:104-122`, `engine.py:161-179`]
 - [x] [Review][Patch] `sanitize_content()` now logs warning for non-string input — restored backward-compat diagnostic [`sanitization.py:63-64`]
 - [x] [Review][Patch] Whitespace-only input now returns `""` consistent with non-string path [`sanitization.py:67-69`]
+- [x] [Review][Patch] `messages[-1]` bounds guard added — bull and bear agent nodes return early with warning if messages list is empty [`engine.py`]
+- [x] [Review][Patch] `redaction_ratio` moved into `SanitizationResult` — single source of truth, eliminates duplicate ratio computation in engine.py [`sanitization.py`, `engine.py`]
+- [x] [Review][Patch] `turn_arguments` plain tuples replaced with typed `ArgumentEntry` NamedTuple — self-documenting data contract with explicit `raw`/`sanitized` fields [`sanitization.py`, `engine.py`]
+- [x] [Review][Patch] `redactedPhrases` added to `ArgumentCompletePayload` WS payload — richer contract for Story 2.5 moderation badge [`ws_schemas.py`, `streaming.py`]
+- [x] [Review][Patch] Guardian data contract documented — explicit comment explaining intentional raw content flow to guardian for risk assessment [`engine.py`]
+- [x] [Review][Patch] Startup log reports compiled pattern count for observability [`sanitization.py`]
+- [x] [Review][Patch] Module-level compilation limitation documented with TODO comment [`sanitization.py`]
+- [x] [Review][Patch] `[REDACTED]` text now renders with purple background/border styling and ARIA labels for accessibility [`ArgumentBubble.tsx`]
+- [x] [Review][Patch] `test_empty_phrase_list` renamed with clarifying docstring — test validates patched runtime state, not production config path [`test_sanitization.py`]
+- [x] [Review][Patch] Concurrency test added — 100 parallel `sanitize_content` calls via `asyncio.gather` + `to_thread` [`test_sanitization_integration.py`]
+- [x] [Review][Patch] Empty messages bounds check test added — verifies graceful handling when agent returns no messages [`test_sanitization_integration.py`]
+- [x] [Review][Patch] `redactedPhrases` serialization contract test added — verifies exact JSON key in WS payload [`test_sanitization_integration.py`]
+- [x] [Review][Patch] 4 new accessibility tests for `[REDACTED]` rendering — ARIA labels, purple styling, container ARIA, clean content no-extra-ARIA [`ArgumentBubbleRedacted.test.tsx`]
+
+#### Party Mode Review (2026-04-11)
+
+Agents: 🏗️ Winston (Architect), 💻 Amelia (Developer), 🧪 Murat (Test Architect), 🎨 Sally (UX Designer)
+
+| Agent | Finding | Resolution |
+|-------|---------|------------|
+| 🏗️ Winston | Streaming gap needs explicit decision | **Accepted as known limitation** — documented in AC#5. Prompt-level prevention is primary defense. |
+| 🏗️ Winston | `turn_arguments` plain tuples need self-documenting data contract | **Fixed** — replaced with `ArgumentEntry` NamedTuple |
+| 🏗️ Winston | Module-level compilation is stale on config hot-reload | **Documented** — added TODO comment + startup log for observability |
+| 🏗️ Winston | High-redaction ratio duplicated logic | **Fixed** — `redaction_ratio` moved into `SanitizationResult` |
+| 🏗️ Winston | `messages[-1]` needs bounds guard | **Fixed** — guard added in bull/bear nodes + `stream_debate` loop |
+| 💻 Amelia | `messages[-1]` IndexError on empty messages | **Fixed** — bounds guard returns early with warning |
+| 💻 Amelia | Guardian receives unsanitized content — ambiguous contract | **Fixed** — explicit design comment added documenting intentional raw flow |
+| 💻 Amelia | Streaming bypasses filter | **Accepted** — AC#5 known limitation. Token-level filtering would compromise real-time UX. |
+| 💻 Amelia | `result["_sanitization_result"]` untyped side-channel | **Accepted** — LangGraph state is dict-based by design. Would require State model change across all stories. |
+| 💻 Amelia | Module-load compilation requires restart | **Documented** — startup log + TODO comment |
+| 💻 Amelia | `test_empty_phrase_list` validates unreachable state | **Fixed** — renamed with clarifying docstring |
+| 🧪 Murat | Guardian unsanitized content is P0 disguised as deferred | **Resolved** — documented as intentional by design. Guardian needs raw context for risk assessment. |
+| 🧪 Murat | Mutation testing not optional for regex | **Acknowledged** — deferred to follow-up PR. 16 phrases use `re.escape()` which is inherently narrow. |
+| 🧪 Murat | No concurrency coverage | **Fixed** — added test with 100 parallel calls via `asyncio.gather` + `to_thread` |
+| 🎨 Sally | Streaming leak is broken UX promise | **Accepted** — AC#5 documents the trade-off. Prompt-level prevention makes occurrences rare. |
+| 🎨 Sally | `[REDACTED]` needs visual treatment now | **Fixed** — purple background/border styling applied to `[REDACTED]` spans |
+| 🎨 Sally | False positives erode trust | **Accepted** — AC#10 documents this limitation. Phase 2 would need contextual filtering. |
+| 🎨 Sally | Screen reader users get no context | **Fixed** — ARIA labels added: `"filtered phrase removed for safety compliance"` |
+| 🎨 Sally | Need richer data contract for Story 2.5 | **Fixed** — `redactedPhrases: string[]` added to WS payload |
 
 #### Deferred
 
 - [x] [Review][Defer] Duplicate `DataRefreshedPayload` import in `streaming.py` — pre-existing, not introduced by this change [`streaming.py:10-11`] — deferred, pre-existing
-- [x] [Review][Defer] `_COMPILED_PATTERNS` compiled once at module load, runtime config changes ignored — architectural limitation, same pattern as before [`sanitization.py:45-47`] — deferred, pre-existing
-- [x] [Review][Defer] Guardian agent receives unsanitized content in its LLM prompt via `current_state["messages"]` — pre-existing design decision, out of scope [`engine.py:351`] — deferred, pre-existing
-- [x] [Review][Defer] `result["messages"][-1]` has no bounds check — pre-existing, not introduced by this change [`engine.py:94`] — deferred, pre-existing
+- [x] [Review][Defer] `_COMPILED_PATTERNS` compiled once at module load, runtime config changes ignored — **documented with TODO comment**, same pattern as before [`sanitization.py:45-47`]
+- [x] [Review][Defer] Guardian agent receives unsanitized content in its LLM prompt via `current_state["messages"]` — **documented as intentional by design** with explicit comment [`engine.py`]
+- [x] [Review][Defer] ~~`result["messages"][-1]` has no bounds check~~ — **FIXED**: bounds guard added [`engine.py`]
 - [x] [Review][Defer] Double iteration over patterns in `sanitize_content` — performance micro-optimization, not a bug [`sanitization.py:80-87`] — deferred, pre-existing
 - [x] [Review][Defer] `zip` truncation on length mismatch between `FORBIDDEN_PHRASES` and `_COMPILED_PATTERNS` — theoretical risk, always generated from same list [`sanitization.py:80`] — deferred, pre-existing
-- [x] [Review][Defer] Test `test_empty_phrase_list` validates unreachable state — `FORBIDDEN_PHRASES=[]` treated as falsy by `_load_forbidden_phrases()` [`test_sanitization.py:194-201`] — deferred, test design
+- [x] [Review][Defer] ~~Test `test_empty_phrase_list` validates unreachable state~~ — **FIXED**: renamed with clarifying docstring [`test_sanitization.py`]

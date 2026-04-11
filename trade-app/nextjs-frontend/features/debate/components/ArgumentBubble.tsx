@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { AgentAvatar, type AgentType } from "./AgentAvatar";
 export type { AgentType };
@@ -22,8 +23,31 @@ function formatTime(isoString: string): string {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+const REDACTED_RE = /\[REDACTED\]/g;
+
+function renderContent(content: string, isRedacted: boolean) {
+  if (!isRedacted) return content;
+
+  const parts = content.split(REDACTED_RE);
+  return parts.map((part, i) => (
+    <span key={i}>
+      {part}
+      {i < parts.length - 1 && (
+        <span
+          role="presentation"
+          aria-label="filtered phrase removed for safety compliance"
+          className="bg-purple-500/20 text-purple-300 px-1 py-0.5 rounded text-sm border border-purple-500/30"
+        >
+          [REDACTED]
+        </span>
+      )}
+    </span>
+  ));
+}
+
 export function ArgumentBubble({ agent, content, timestamp, isStreaming }: ArgumentBubbleProps) {
   const isBull = agent === "bull";
+  const isRedacted = content.includes("[REDACTED]");
 
   return (
     <motion.div
@@ -65,9 +89,11 @@ export function ArgumentBubble({ agent, content, timestamp, isStreaming }: Argum
         </div>
         <div
           data-testid="argument-content"
+          role={isRedacted ? "text" : undefined}
+          aria-label={isRedacted ? "Debate argument containing filtered phrases for safety compliance" : undefined}
           className="text-slate-200 text-base leading-relaxed break-words"
         >
-          {content}
+          {renderContent(content, isRedacted)}
           {isStreaming && (
             <span
               data-testid="streaming-cursor"

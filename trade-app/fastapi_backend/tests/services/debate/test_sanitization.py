@@ -191,7 +191,8 @@ class TestSanitizeContentConfigurable:
             assert result.is_redacted is True
             assert "custombad" in result.redacted_phrases
 
-    def test_empty_phrase_list(self):
+    def test_empty_phrase_list_returns_content_unchanged(self):
+        """When patched to empty lists (simulating runtime override), no redaction occurs."""
         with (
             patch("app.services.debate.sanitization.FORBIDDEN_PHRASES", []),
             patch("app.services.debate.sanitization._COMPILED_PATTERNS", []),
@@ -200,6 +201,7 @@ class TestSanitizeContentConfigurable:
             assert result.content == "This is guaranteed"
             assert result.is_redacted is False
             assert result.redacted_phrases == []
+            assert result.redaction_ratio == 0.0
 
 
 class TestTruncationQuality:
@@ -209,3 +211,34 @@ class TestTruncationQuality:
         summary = result.content[:100]
         if "[REDACTED]" in summary:
             assert summary.count("[REDACTED]") <= 1
+
+
+class TestRedactionRatio:
+    def test_ratio_zero_for_clean_text(self):
+        result = sanitize_content("Bitcoin may increase in value")
+        assert result.redaction_ratio == 0.0
+
+    def test_ratio_positive_for_redacted_text(self):
+        result = sanitize_content("This is guaranteed profit")
+        assert result.redaction_ratio > 0.0
+        assert result.redaction_ratio <= 1.0
+
+    def test_ratio_high_for_heavily_redacted(self):
+        result = sanitize_content("guaranteed risk-free safe bet sure thing")
+        assert result.redaction_ratio > 0.5
+
+    def test_ratio_for_single_phrase(self):
+        result = sanitize_content("The market is guaranteed to rise tomorrow")
+        assert 0.0 < result.redaction_ratio < 0.3
+
+    def test_ratio_zero_for_empty(self):
+        result = sanitize_content("")
+        assert result.redaction_ratio == 0.0
+
+    def test_argument_entry_named_tuple(self):
+        from app.services.debate.sanitization import ArgumentEntry
+
+        entry = ArgumentEntry(raw="guaranteed", sanitized="[REDACTED]")
+        assert entry.raw == "guaranteed"
+        assert entry.sanitized == "[REDACTED]"
+        assert isinstance(entry, tuple)

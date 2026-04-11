@@ -218,6 +218,7 @@ async def send_argument_complete(
     content: str,
     turn: int | None = None,
     is_redacted: bool = False,
+    redacted_phrases: list[str] | None = None,
 ) -> None:
     """Send DEBATE/ARGUMENT_COMPLETE action to all viewers."""
     payload = ArgumentCompletePayload(
@@ -226,6 +227,7 @@ async def send_argument_complete(
         content=content,
         turn=turn,
         is_redacted=is_redacted,
+        redacted_phrases=redacted_phrases or [],
     )
     action = WebSocketAction(
         type="DEBATE/ARGUMENT_COMPLETE",

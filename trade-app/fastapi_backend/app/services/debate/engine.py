@@ -1,7 +1,6 @@
 import asyncio
 import json
 import logging
-import re
 from datetime import datetime, timezone
 from typing import Any, cast
 
@@ -28,6 +27,7 @@ from app.services.debate.streaming import (
 )
 from app.services.debate.agents.guardian import GuardianAgent
 from app.services.debate.sanitization import (
+    ArgumentEntry,
     SanitizationContext,
     SanitizationResult,
     sanitize_content,
@@ -93,7 +93,13 @@ async def bull_agent_node(
     logger.info(f"Bull agent generated argument, turn {state['current_turn']}")
 
     if manager and debate_id:
-        raw_content = result["messages"][-1]["content"]
+        messages = result.get("messages", [])
+        if not messages:
+            logger.warning(f"Bull agent returned empty messages for debate {debate_id}")
+            result["_sanitization_result"] = None
+            return result
+
+        raw_content = messages[-1]["content"]
         sanitization_result = sanitize_content(
             raw_content,
             SanitizationContext(
@@ -102,20 +108,14 @@ async def bull_agent_node(
         )
         if sanitization_result.is_redacted and len(raw_content) > 0:
             redacted_count = len(sanitization_result.redacted_phrases)
-            redacted_text = raw_content
-            for phrase in sanitization_result.redacted_phrases:
-                redacted_text = re.sub(
-                    re.escape(phrase), "", redacted_text, flags=re.IGNORECASE
-                )
-            removed_ratio = 1 - len(redacted_text) / max(len(raw_content), 1)
-            if redacted_count > 2 or removed_ratio > 0.5:
+            if redacted_count > 2 or sanitization_result.redaction_ratio > 0.5:
                 logger.warning(
                     json.dumps(
                         {
                             "event": "high_redaction_warning",
                             "debate_id": debate_id,
                             "agent": "bull",
-                            "redaction_ratio": round(removed_ratio, 2),
+                            "redaction_ratio": sanitization_result.redaction_ratio,
                             "redacted_phrase_count": redacted_count,
                         }
                     )
@@ -127,6 +127,7 @@ async def bull_agent_node(
             sanitization_result.content,
             result["current_turn"],
             is_redacted=sanitization_result.is_redacted,
+            redacted_phrases=sanitization_result.redacted_phrases,
         )
         await send_turn_change(manager, debate_id, "bear")
     else:
@@ -150,7 +151,13 @@ async def bear_agent_node(
     logger.info(f"Bear agent generated argument, turn {state['current_turn']}")
 
     if manager and debate_id:
-        raw_content = result["messages"][-1]["content"]
+        messages = result.get("messages", [])
+        if not messages:
+            logger.warning(f"Bear agent returned empty messages for debate {debate_id}")
+            result["_sanitization_result"] = None
+            return result
+
+        raw_content = messages[-1]["content"]
         sanitization_result = sanitize_content(
             raw_content,
             SanitizationContext(
@@ -159,20 +166,14 @@ async def bear_agent_node(
         )
         if sanitization_result.is_redacted and len(raw_content) > 0:
             redacted_count = len(sanitization_result.redacted_phrases)
-            redacted_text = raw_content
-            for phrase in sanitization_result.redacted_phrases:
-                redacted_text = re.sub(
-                    re.escape(phrase), "", redacted_text, flags=re.IGNORECASE
-                )
-            removed_ratio = 1 - len(redacted_text) / max(len(raw_content), 1)
-            if redacted_count > 2 or removed_ratio > 0.5:
+            if redacted_count > 2 or sanitization_result.redaction_ratio > 0.5:
                 logger.warning(
                     json.dumps(
                         {
                             "event": "high_redaction_warning",
                             "debate_id": debate_id,
                             "agent": "bear",
-                            "redaction_ratio": round(removed_ratio, 2),
+                            "redaction_ratio": sanitization_result.redaction_ratio,
                             "redacted_phrase_count": redacted_count,
                         }
                     )
@@ -184,6 +185,7 @@ async def bear_agent_node(
             sanitization_result.content,
             result["current_turn"],
             is_redacted=sanitization_result.is_redacted,
+            redacted_phrases=sanitization_result.redacted_phrases,
         )
         await send_turn_change(manager, debate_id, "bull")
     else:
@@ -306,7 +308,7 @@ async def stream_debate(
     )
 
     current_state = initial_state
-    turn_arguments: dict[tuple[str, int], tuple[str, str]] = {}
+    turn_arguments: dict[tuple[str, int], ArgumentEntry] = {}
 
     from app.config import settings as app_settings
 
@@ -338,16 +340,18 @@ async def stream_debate(
                 else f"{current_agent}-turn-{result['current_turn'] - 1}"
             )
 
-            argument_content = result["messages"][-1]["content"]
+            argument_content = (
+                result["messages"][-1]["content"] if result.get("messages") else ""
+            )
             sanitization_result: SanitizationResult | None = result.get(
                 "_sanitization_result"
             )
             if sanitization_result is None:
                 sanitization_result = sanitize_content(argument_content)
 
-            turn_arguments[(current_agent, result["current_turn"])] = (
-                argument_content,
-                sanitization_result.content,
+            turn_arguments[(current_agent, result["current_turn"])] = ArgumentEntry(
+                raw=argument_content,
+                sanitized=sanitization_result.content,
             )
 
             await send_reasoning_node(
@@ -362,6 +366,10 @@ async def stream_debate(
                 turn=result["current_turn"],
             )
 
+            # DATA CONTRACT: Guardian receives raw unsanitized content via
+            # current_state["messages"]. This is intentional — the guardian needs full
+            # unfiltered context to accurately evaluate argument quality and detect risks.
+            # Sanitized content is only sent to the user-facing WebSocket and reasoning graph.
             if guardian is not None:
                 try:
                     analysis = await guardian.analyze(current_state)
@@ -542,14 +550,16 @@ async def stream_debate(
         for turn in range(1, final_turn + 1):
             for agent in ["bull", "bear"]:
                 node_id = f"{agent}-turn-{turn}"
-                raw, sanitized = turn_arguments.get((agent, turn), ("", ""))
+                entry = turn_arguments.get(
+                    (agent, turn), ArgumentEntry(raw="", sanitized="")
+                )
                 await send_reasoning_node(
                     manager,
                     debate_id,
                     node_id=node_id,
                     node_type="bull_analysis" if agent == "bull" else "bear_counter",
                     label=f"{agent.title()} Argument #{turn}",
-                    summary=sanitized[:100],
+                    summary=entry.sanitized[:100],
                     agent=agent,
                     is_winning=True,
                     turn=turn,

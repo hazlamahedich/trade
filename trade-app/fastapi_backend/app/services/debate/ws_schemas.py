@@ -59,6 +59,9 @@ class ArgumentCompletePayload(BaseModel):
     content: str
     turn: int | None = None
     is_redacted: bool = Field(default=False, serialization_alias="isRedacted")
+    redacted_phrases: list[str] = Field(
+        default_factory=list, serialization_alias="redactedPhrases"
+    )
 
 
 class StatusUpdatePayload(BaseModel):

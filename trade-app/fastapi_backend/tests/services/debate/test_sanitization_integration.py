@@ -109,6 +109,20 @@ class TestArgumentCompletePayloadContract:
         assert "isRedacted" in data
         assert data["isRedacted"] is True
         assert "is_redacted" not in data
+        assert "redactedPhrases" in data
+
+    def test_redacted_phrases_serializes_to_redactedPhrases(self):
+        payload = ArgumentCompletePayload(
+            debate_id="deb-1",
+            agent="bull",
+            content="[REDACTED] profit",
+            turn=1,
+            is_redacted=True,
+            redacted_phrases=["guaranteed"],
+        )
+        data = payload.model_dump(by_alias=True)
+        assert data["redactedPhrases"] == ["guaranteed"]
+        assert "redacted_phrases" not in data
 
     def test_default_is_redacted_false(self):
         payload = ArgumentCompletePayload(
@@ -182,3 +196,42 @@ class TestEngineSanitizationIntegration:
             sanitize_content(text)
         elapsed = (time.perf_counter() - start) / 100
         assert elapsed < 0.01, f"Sanitization took {elapsed * 1000:.2f}ms per call"
+
+    @pytest.mark.asyncio
+    async def test_empty_messages_handled_gracefully(self, mock_manager):
+        with patch("app.services.debate.engine.BullAgent") as mock_cls:
+            mock = MagicMock()
+            mock.generate = AsyncMock(
+                return_value={
+                    "messages": [],
+                    "current_turn": 1,
+                    "current_agent": "bear",
+                }
+            )
+            mock_cls.return_value = mock
+            state = _make_debate_state()
+            result = await bull_agent_node(state, mock_manager, "deb-empty")
+
+        assert result is not None
+        assert result.get("_sanitization_result") is None
+
+    @pytest.mark.asyncio
+    async def test_concurrent_sanitization_is_safe(self):
+        import asyncio
+        from app.services.debate.sanitization import sanitize_content
+
+        texts = [
+            "This is guaranteed profit",
+            "Risk-free investment opportunity",
+            "Bitcoin may rise based on fundamentals",
+            "A sure thing and a safe bet combined",
+        ] * 25
+
+        results = await asyncio.gather(
+            *[asyncio.to_thread(sanitize_content, t) for t in texts]
+        )
+
+        assert len(results) == 100
+        assert results[0].is_redacted is True
+        assert results[2].is_redacted is False
+        assert all(isinstance(r.content, str) for r in results)
