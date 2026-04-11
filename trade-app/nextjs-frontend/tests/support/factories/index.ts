@@ -83,3 +83,51 @@ export const createActiveDebate = (overrides: Partial<Debate> = {}): Debate =>
 
 export const createCompletedDebate = (overrides: Partial<Debate> = {}): Debate =>
   createDebate({ status: 'completed', ...overrides });
+
+export type ArgumentMessage = {
+  id: string;
+  type: 'argument';
+  agent: 'bull' | 'bear';
+  content: string;
+  timestamp: string;
+  isRedacted?: boolean;
+};
+
+export type ArgumentPayload = {
+  debateId: string;
+  agent: 'bull' | 'bear';
+  content: string;
+  turn?: number;
+  isRedacted?: boolean;
+};
+
+export const createArgumentMessage = (overrides: Partial<ArgumentMessage> = {}): ArgumentMessage => ({
+  id: `msg-${faker.string.alphanumeric(8)}`,
+  type: 'argument',
+  agent: faker.helpers.arrayElement(['bull', 'bear']),
+  content: faker.lorem.sentence(),
+  timestamp: faker.date.recent().toISOString(),
+  ...overrides,
+});
+
+export const createRedactedArgumentMessage = (overrides: Partial<ArgumentMessage> = {}): ArgumentMessage =>
+  createArgumentMessage({
+    content: `This is a [REDACTED] ${faker.lorem.words(3)}.`,
+    isRedacted: true,
+    ...overrides,
+  });
+
+export const createArgumentPayload = (overrides: Partial<ArgumentPayload> = {}): ArgumentPayload => ({
+  debateId: faker.string.uuid(),
+  agent: faker.helpers.arrayElement(['bull', 'bear']),
+  content: faker.lorem.sentence(),
+  turn: faker.number.int({ min: 1, max: 10 }),
+  ...overrides,
+});
+
+export const createRedactedArgumentPayload = (overrides: Partial<ArgumentPayload> = {}): ArgumentPayload =>
+  createArgumentPayload({
+    content: `This is a [REDACTED] ${faker.lorem.words(3)}.`,
+    isRedacted: true,
+    ...overrides,
+  });

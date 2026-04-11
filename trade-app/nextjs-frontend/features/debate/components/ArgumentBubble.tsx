@@ -74,6 +74,7 @@ export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedac
       <AgentAvatar agent={agent} />
       <div className="flex-1 min-w-0">
         <div
+          data-testid="argument-header"
           className={cn(
             "flex items-center gap-2 mb-1",
             isBull ? "flex-row" : "flex-row-reverse"

@@ -153,22 +153,12 @@ describe('[2-5] ArgumentBubble — Safety Filtered Badge', () => {
         <ArgumentBubble {...defaultProps} isRedacted={true} />
       );
 
-      const badge = screen.getByTestId('safety-filtered-badge');
-      const badgeContainer = badge.closest('[data-testid="argument-bubble"]');
+      const badgeContainer = screen.getByTestId('argument-bubble');
+      expect(badgeContainer.textContent).toContain('Safety Filtered');
+      expect(badgeContainer.textContent).toContain('Bull');
 
-      const contentDiv = screen.getByTestId('argument-content');
-      const contentParent = contentDiv.parentElement;
-
-      if (badgeContainer && contentParent) {
-        const allText = badgeContainer.textContent || '';
-        expect(allText).toContain('Safety Filtered');
-        expect(allText).toContain('Bull');
-
-        const headerArea = contentParent.querySelector('.flex.items-center.gap-2.mb-1');
-        if (headerArea) {
-          expect(headerArea.textContent).not.toContain('Safety Filtered');
-        }
-      }
+      const headerArea = screen.getByTestId('argument-header');
+      expect(headerArea.textContent).not.toContain('Safety Filtered');
     });
   });
 
