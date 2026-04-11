@@ -53,6 +53,15 @@ function renderContent(content: string, isRedacted: boolean) {
 
 export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedacted }: ArgumentBubbleProps) {
   const isBull = agent === "bull";
+  // Two independent signals for redaction:
+  // - hasRedactedContent: string-based detection for inline [REDACTED] span rendering.
+  //   Handles the visual content layer — if [REDACTED] tokens exist, render them as purple spans.
+  // - showBadge: prop-driven from backend isRedacted flag for the Safety Filtered badge.
+  //   Handles the metadata layer — backend signals the message was filtered.
+  // These CAN disagree: backend may set isRedacted=false while content contains [REDACTED] tokens
+  // (or vice versa). This is intentional — the badge is a backend trust signal, the spans are a
+  // content rendering concern. Disagreement indicates a backend data inconsistency, not a UI bug.
+  // See: Story 2.5 Dev Notes, "Separation of Concerns: Badge vs. Inline Redaction".
   const hasRedactedContent = content.includes("[REDACTED]");
   const showBadge = isRedacted === true;
 
@@ -126,13 +135,13 @@ export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedac
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Part of this message was removed by our safety system.</p>
+                  <p>This content was filtered to keep the discussion respectful.</p>
                 </TooltipContent>
               </Tooltip>
             </div>
             <div className="sm:hidden flex items-start gap-1.5 text-xs text-violet-400/80" data-testid="safety-filtered-mobile" aria-label="This message was filtered by the safety system">
               <Shield className="w-3 h-3 shrink-0 mt-px" aria-hidden="true" />
-              <span>Safety Filtered — Part of this message was removed by our safety system.</span>
+              <span>Safety Filtered — This content was filtered to keep the discussion respectful.</span>
             </div>
           </div>
         )}

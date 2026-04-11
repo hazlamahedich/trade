@@ -12,9 +12,9 @@ So that I trust the platform is being transparent about content modifications.
 
 1. **Given** a `DEBATE/ARGUMENT_COMPLETE` message with `isRedacted: true` **When** it is displayed in the debate chat **Then** a "Safety Filtered" indicator with a shield icon is visible below the message content, within the bubble, as a secondary metadata footer — NOT next to the agent name/timestamp
 
-2. **Given** the "Safety Filtered" indicator on desktop (viewport >= 640px) **When** hovered or focused via keyboard **Then** a tooltip appears with the text "Part of this message was removed by our safety system"
+2. **Given** the "Safety Filtered" indicator on desktop (viewport >= 640px) **When** hovered or focused via keyboard **Then** a tooltip appears with the text "This content was filtered to keep the discussion respectful"
 
-3. **Given** the "Safety Filtered" indicator on mobile (viewport < 640px) **When** displayed **Then** the explanation text "Part of this message was removed by our safety system" is always visible inline below the shield icon — no tooltip interaction required
+3. **Given** the "Safety Filtered" indicator on mobile (viewport < 640px) **When** displayed **Then** the explanation text "This content was filtered to keep the discussion respectful" is always visible inline below the shield icon — no tooltip interaction required
 
 4. **Given** a message with `isRedacted: false` or no `isRedacted` field **When** displayed **Then** no "Safety Filtered" indicator appears and the message renders normally
 
@@ -51,7 +51,7 @@ So that I trust the platform is being transparent about content modifications.
   - [x] Add "Safety Filtered" indicator BELOW the message content div (after the content `</div>`), NOT in the agent/timestamp header row — this separates agent identity from moderation action
   - [x] Badge structure: a `div` with `flex items-center gap-1.5 mt-1.5` containing shield icon + "Safety Filtered" text
   - [x] Badge styling: `inline-flex items-center gap-1.5 px-2 py-0.5 text-xs bg-violet-600/20 text-violet-400 rounded-md` — muted treatment, visually subordinate to inline `[REDACTED]` spans
-  - [x] Desktop: wrap badge in `<Tooltip>` / `<TooltipTrigger>` / `<TooltipContent>` — tooltip text: "Part of this message was removed by our safety system"
+  - [x] Desktop: wrap badge in `<Tooltip>` / `<TooltipTrigger>` / `<TooltipContent>` — tooltip text: "This content was filtered to keep the discussion respectful"
   - [x] Mobile: render the explanation text inline below the badge, hidden on desktop (`sm:hidden`). Desktop tooltip shown only on `sm:` and above
   - [x] Add `aria-label="This message was filtered by the safety system"` to the badge container — do NOT use `role="status"`
   - [x] Ensure badge container is keyboard focusable for tooltip trigger on desktop (use `<span tabIndex={0}>` or `asChild` with a focusable element)
@@ -66,7 +66,7 @@ So that I trust the platform is being transparent about content modifications.
   - [x] `[2-5-COMP-002]` @p0 `ArgumentBubble` with `isRedacted={false}` does NOT render indicator
   - [x] `[2-5-COMP-003]` @p0 `ArgumentBubble` with no `isRedacted` prop (undefined) does NOT render indicator (backward compat)
   - [x] `[2-5-COMP-004]` @p0 Indicator has `aria-label` for screen reader accessibility, no `role="status"`
-  - [x] `[2-5-COMP-005]` @p0 Hovering/focusing badge shows tooltip with exact text "Part of this message was removed by our safety system"
+  - [x] `[2-5-COMP-005]` @p0 Hovering/focusing badge shows tooltip with exact text "This content was filtered to keep the discussion respectful"
   - [x] `[2-5-COMP-006]` @p0 Mobile inline explanation text is present in DOM and matches expected copy
   - [x] `[2-5-COMP-007]` @p0 Tooltip dismisses on Escape key press
   - [x] `[2-5-COMP-008]` @p1 Badge is keyboard focusable with visible focus ring
@@ -195,7 +195,7 @@ Radix Tooltip supports pointer-down on touch devices, but tooltips on mobile are
 - Discoverable only by accidental tap
 - Competes with scroll gestures
 
-**Solution:** On mobile (< `sm` breakpoint), the explanation text "Part of this message was removed by our safety system" is always visible inline below the shield icon. No interaction required. The tooltip component is used on desktop only (`hidden sm:inline-flex` for the tooltip wrapper, `sm:hidden` for the mobile inline text).
+**Solution:** On mobile (< `sm` breakpoint), the explanation text "This content was filtered to keep the discussion respectful" is always visible inline below the shield icon. No interaction required. The tooltip component is used on desktop only (`hidden sm:inline-flex` for the tooltip wrapper, `sm:hidden` for the mobile inline text).
 
 ### Tooltip Installation
 
@@ -348,14 +348,14 @@ export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedac
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Part of this message was removed by our safety system.</p>
+                  <p>This content was filtered to keep the discussion respectful.</p>
                 </TooltipContent>
               </Tooltip>
             </div>
             {/* Mobile: always visible inline */}
             <div className="sm:hidden flex items-start gap-1.5 text-xs text-violet-400/80">
               <ShieldIcon />
-              <span>Safety Filtered — Part of this message was removed by our safety system.</span>
+              <span>Safety Filtered — This content was filtered to keep the discussion respectful.</span>
             </div>
           </div>
         )}
@@ -538,12 +538,21 @@ No blocking issues encountered during implementation.
 - [x] [Review][Defer] Mobile indicator lacks `bg-violet-600/20` background — deferred, intentional design (mobile renders as inline text, not a pill/badge; background would look heavy)
 - [x] [Review][Defer] Mobile text may wrap on narrow viewports — deferred, pre-existing responsive behavior (mobile text legibility > single-line constraint)
 
+### Architecture Notes (Post-Implementation Review)
+
+#### WebSocket Schema Validation (Deferred — Winston)
+The current `payload.isRedacted === true` coercion silently swallows missing fields. If the backend stops sending `isRedacted` (schema regression, bug), the badge simply disappears without error. A lightweight Zod validation layer at the WebSocket message boundary would surface missing fields as errors rather than silently degrading. This is a cross-cutting concern that should be addressed as a platform-level pattern before the message contract grows more complex. Not scoped for this story.
+
+#### a11y Follow-Up (Deferred — Murat)
+The badge has `aria-label` and keyboard focusability, but automated WCAG checks alone are insufficient for a safety-critical indicator. Manual validation with NVDA/VoiceOver should be performed to confirm: (1) the badge is reachable via Tab without interrupting reading flow, (2) the `aria-label` announcement is clear and not redundant with the content div's existing label, (3) mobile screen readers surface the inline text correctly. This should be part of the next accessibility audit.
+
 ### Change Log
 
 - 2026-04-11: Implemented Story 2.5 — Moderation Transparency (The Badge). Connected `isRedacted` data flow from WebSocket through to UI. Added Safety Filtered badge with desktop tooltip and mobile inline text. Full test coverage with 20 new tests.
 - 2026-04-11: Code review — replaced inline ShieldIcon SVG with Lucide `Shield` + `aria-hidden`, added `aria-label` to mobile indicator, removed redundant `delayDuration` from Tooltip, coerced `payload.isRedacted` to boolean. 26/26 tests pass.
 - 2026-04-11: Test automation expansion — added 7 P1 gap-filling tests (COMP-012 through COMP-016, INT-006, INT-007). Coverage: mobile aria-label, shield aria-hidden, bear agent badge, multiple [REDACTED] tokens, streaming=false combo, explicit isRedacted values. 27 total Story 2.5 tests, 215 suite-wide.
 - 2026-04-11: Test quality review fixes — rewrote 7 integration tests to use behavioral assertions (capturing socket callbacks via `act()` instead of disconnected local-variable checks). Replaced fragile CSS selector in COMP-011 with `data-testid="argument-header"`. Added test data factories (`createArgumentMessage`, `createRedactedArgumentMessage`, `createArgumentPayload`, `createRedactedArgumentPayload`) to `tests/support/factories/`. 215/215 tests pass, 0 new lint errors.
+- 2026-04-11: Implementation review (party mode) — documented `hasRedactedContent` vs `showBadge` dual-signal architecture with intentional disagreement handling. Updated tooltip/mobile text to protective framing ("This content was filtered to keep the discussion respectful"). Noted WS schema validation and a11y manual audit as deferred follow-ups.
 
 ### File List
 

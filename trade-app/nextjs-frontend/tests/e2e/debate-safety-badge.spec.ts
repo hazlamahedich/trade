@@ -81,7 +81,7 @@ test.describe('[2-5] Moderation Transparency — Safety Badge (P0)', () => {
     await expect(badge).toBeVisible({ timeout: 10000 });
 
     await badge.focus();
-    await expect(page.getByText('Part of this message was removed by our safety system.')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('This content was filtered to keep the discussion respectful.')).toBeVisible({ timeout: 5000 });
   });
 
   test('[2-5-E2E-004] Mobile viewport: inline explanation text visible without tooltip @p1', async ({ page }) => {
@@ -109,6 +109,6 @@ test.describe('[2-5] Moderation Transparency — Safety Badge (P0)', () => {
 
     const mobileBadge = page.getByTestId('safety-filtered-mobile');
     await expect(mobileBadge).toBeVisible({ timeout: 10000 });
-    await expect(mobileBadge).toContainText('Part of this message was removed by our safety system');
+    await expect(mobileBadge).toContainText('This content was filtered to keep the discussion respectful');
   });
 });

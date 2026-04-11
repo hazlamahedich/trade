@@ -89,7 +89,7 @@ describe('[2-5] ArgumentBubble — Safety Filtered Badge', () => {
       const badge = screen.getByTestId('safety-filtered-badge');
       fireEvent.focus(badge);
 
-      const tooltipElements = await screen.findAllByText('Part of this message was removed by our safety system.');
+      const tooltipElements = await screen.findAllByText('This content was filtered to keep the discussion respectful.');
       expect(tooltipElements.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -101,7 +101,7 @@ describe('[2-5] ArgumentBubble — Safety Filtered Badge', () => {
       const badge = screen.getByTestId('safety-filtered-badge');
       fireEvent.focus(badge);
 
-      const tooltipElements = await screen.findAllByText('Part of this message was removed by our safety system.');
+      const tooltipElements = await screen.findAllByText('This content was filtered to keep the discussion respectful.');
       expect(tooltipElements.length).toBeGreaterThanOrEqual(1);
 
       fireEvent.keyDown(badge, { key: 'Escape' });
@@ -119,7 +119,7 @@ describe('[2-5] ArgumentBubble — Safety Filtered Badge', () => {
 
       const mobileEl = screen.getByTestId('safety-filtered-mobile');
       expect(mobileEl).toBeInTheDocument();
-      expect(mobileEl.textContent).toContain('Part of this message was removed by our safety system');
+      expect(mobileEl.textContent).toContain('This content was filtered to keep the discussion respectful');
       expect(mobileEl.textContent).toContain('Safety Filtered');
     });
   });
