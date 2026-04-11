@@ -72,18 +72,6 @@ class VoteSuccessMeta(BaseModel):
     is_final: Literal[True] = Field(serialization_alias="isFinal")
 
 
-class VoteErrorMeta(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    retry_after_ms: int | None = Field(None, serialization_alias="retryAfterMs")
-    estimated_wait_ms: int | None = Field(None, serialization_alias="estimatedWaitMs")
-    supported_choices: list[str] | None = Field(
-        None, serialization_alias="supportedChoices"
-    )
-    debate_status: str | None = Field(None, serialization_alias="debateStatus")
-    is_final: bool | None = Field(None, serialization_alias="isFinal")
-
-
 class StandardVoteResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 

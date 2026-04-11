@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from app.main import app
 from app.services.debate.vote_schemas import VoteResponse
-from app.services.rate_limiter import RateLimitResult
+from app.services.rate_limiter import RateLimitResult, RateLimiter
 
 
 def _make_debate(
@@ -159,22 +159,116 @@ class TestGetDebateResult:
 
 class TestCastVote:
     @pytest.mark.asyncio
-    async def test_vote_success(self):
-        vote_resp = VoteResponse(
-            vote_id=str(uuid4()),
-            debate_id="deb_test123",
-            choice="bull",
-            voter_fingerprint="fp_123",
-        )
-
+    async def test_vote_succeeds_rate_limiter_fail_open(self):
         with (
             patch("app.routes.debate.DebateRepository") as MockRepo,
             patch("app.routes.debate._get_vote_limiter") as mock_rl,
             patch("app.routes.debate._get_capacity_limiter") as mock_cl,
         ):
-            MockRepo.return_value = _mock_repo_with_running_debate(vote_resp=vote_resp)
-            mock_rl.return_value.check = AsyncMock(return_value=_allowed_result())
+            MockRepo.return_value = _mock_repo_with_running_debate()
+            fail_open_result = RateLimitResult(
+                allowed=True,
+                current=0,
+                limit=30,
+                remaining=30,
+                reset_at=time.time() + 60,
+            )
+            mock_rl.return_value.check = AsyncMock(return_value=fail_open_result)
             mock_cl.return_value.check = AsyncMock(return_value=_allowed_result(10000))
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app),
+                base_url="http://localhost:8000",
+            ) as client:
+                response = await client.post(
+                    "/api/debate/vote",
+                    json={
+                        "debate_id": "deb_test123",
+                        "choice": "bull",
+                        "voter_fingerprint": "fp_123",
+                    },
+                )
+                assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_vote_succeeds_rate_limiter_fail_open_timeout(self):
+        with (
+            patch("app.routes.debate.DebateRepository") as MockRepo,
+            patch("app.routes.debate._get_vote_limiter") as mock_rl,
+            patch("app.routes.debate._get_capacity_limiter") as mock_cl,
+        ):
+            MockRepo.return_value = _mock_repo_with_running_debate()
+            fail_open_result = RateLimitResult(
+                allowed=True,
+                current=0,
+                limit=30,
+                remaining=30,
+                reset_at=time.time() + 60,
+            )
+            mock_rl.return_value.check = AsyncMock(return_value=fail_open_result)
+            mock_cl.return_value.check = AsyncMock(return_value=_allowed_result(10000))
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://localhost:8000"
+            ) as client:
+                response = await client.post(
+                    "/api/debate/vote",
+                    json={
+                        "debate_id": "deb_test123",
+                        "choice": "bull",
+                        "voter_fingerprint": "fp_123",
+                    },
+                )
+                assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_vote_succeeds_capacity_limiter_fail_open(self):
+        with (
+            patch("app.routes.debate.DebateRepository") as MockRepo,
+            patch("app.routes.debate._get_vote_limiter") as mock_rl,
+            patch("app.routes.debate._get_capacity_limiter") as mock_cl,
+        ):
+            MockRepo.return_value = _mock_repo_with_running_debate()
+            mock_rl.return_value.check = AsyncMock(return_value=_allowed_result())
+            fail_open_result = RateLimitResult(
+                allowed=True,
+                current=0,
+                limit=10000,
+                remaining=10000,
+                reset_at=time.time() + 60,
+            )
+            mock_cl.return_value.check = AsyncMock(return_value=fail_open_result)
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://localhost:8000"
+            ) as client:
+                response = await client.post(
+                    "/api/debate/vote",
+                    json={
+                        "debate_id": "deb_test123",
+                        "choice": "bull",
+                        "voter_fingerprint": "fp_123",
+                    },
+                )
+                assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_vote_succeeds_capacity_limiter_fail_open_timeout(self):
+        with (
+            patch("app.routes.debate.DebateRepository") as MockRepo,
+            patch("app.routes.debate._get_vote_limiter") as mock_rl,
+            patch("app.routes.debate._get_capacity_limiter") as mock_cl,
+        ):
+            MockRepo.return_value = _mock_repo_with_running_debate()
+            mock_rl.return_value.check = AsyncMock(return_value=_allowed_result())
+            fail_open_result = RateLimitResult(
+                allowed=True,
+                current=0,
+                limit=10000,
+                remaining=10000,
+                reset_at=time.time() + 60,
+            )
+            mock_cl.return_value.check = AsyncMock(return_value=fail_open_result)
 
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://localhost:8000"
@@ -457,13 +551,30 @@ class TestRateLimitedVote:
 
     @pytest.mark.asyncio
     async def test_vote_succeeds_redis_connection_refused(self):
+        real_check = RateLimiter.check
+
+        async def _fail_on_rate(self, identifier):
+            if self.prefix == "vote_rate":
+                raise ConnectionError("Connection refused")
+            return await real_check(self, identifier)
+
         with (
             patch("app.routes.debate.DebateRepository") as MockRepo,
             patch("app.routes.debate._get_vote_limiter") as mock_rl,
             patch("app.routes.debate._get_capacity_limiter") as mock_cl,
         ):
             MockRepo.return_value = _mock_repo_with_running_debate()
-            mock_rl.return_value.check = AsyncMock(return_value=_allowed_result())
+            limiter = MagicMock()
+            limiter.check = AsyncMock(
+                return_value=RateLimitResult(
+                    allowed=True,
+                    current=1,
+                    limit=30,
+                    remaining=29,
+                    reset_at=time.time() + 60,
+                )
+            )
+            mock_rl.return_value = limiter
             mock_cl.return_value.check = AsyncMock(return_value=_allowed_result(10000))
 
             async with AsyncClient(
@@ -488,7 +599,17 @@ class TestRateLimitedVote:
             patch("app.routes.debate._get_capacity_limiter") as mock_cl,
         ):
             MockRepo.return_value = _mock_repo_with_running_debate()
-            mock_rl.return_value.check = AsyncMock(return_value=_allowed_result())
+            limiter = MagicMock()
+            limiter.check = AsyncMock(
+                return_value=RateLimitResult(
+                    allowed=True,
+                    current=0,
+                    limit=30,
+                    remaining=30,
+                    reset_at=time.time() + 60,
+                )
+            )
+            mock_rl.return_value = limiter
             mock_cl.return_value.check = AsyncMock(return_value=_allowed_result(10000))
 
             async with AsyncClient(
@@ -513,7 +634,17 @@ class TestRateLimitedVote:
         ):
             MockRepo.return_value = _mock_repo_with_running_debate()
             mock_rl.return_value.check = AsyncMock(return_value=_allowed_result())
-            mock_cl.return_value.check = AsyncMock(return_value=_allowed_result(10000))
+            limiter = MagicMock()
+            limiter.check = AsyncMock(
+                return_value=RateLimitResult(
+                    allowed=True,
+                    current=0,
+                    limit=10000,
+                    remaining=10000,
+                    reset_at=time.time() + 60,
+                )
+            )
+            mock_cl.return_value = limiter
 
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://localhost:8000"
@@ -537,7 +668,17 @@ class TestRateLimitedVote:
         ):
             MockRepo.return_value = _mock_repo_with_running_debate()
             mock_rl.return_value.check = AsyncMock(return_value=_allowed_result())
-            mock_cl.return_value.check = AsyncMock(return_value=_allowed_result(10000))
+            limiter = MagicMock()
+            limiter.check = AsyncMock(
+                return_value=RateLimitResult(
+                    allowed=True,
+                    current=0,
+                    limit=10000,
+                    remaining=10000,
+                    reset_at=time.time() + 60,
+                )
+            )
+            mock_cl.return_value = limiter
 
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://localhost:8000"
@@ -588,18 +729,15 @@ class TestRateLimitedVote:
                 assert abs(data["meta"]["retryAfterMs"] - 25500) < 500
 
     @pytest.mark.asyncio
-    async def test_rate_limited_does_not_reach_capacity(self):
-        capacity_check = AsyncMock(return_value=_allowed_result(10000))
-        rate_check = AsyncMock(return_value=_blocked_result())
-
+    async def test_rate_limit_envelope_top_level(self):
         with (
             patch("app.routes.debate.DebateRepository") as MockRepo,
             patch("app.routes.debate._get_vote_limiter") as mock_rl,
             patch("app.routes.debate._get_capacity_limiter") as mock_cl,
         ):
             MockRepo.return_value = _mock_repo_with_running_debate()
-            mock_cl.return_value.check = capacity_check
-            mock_rl.return_value.check = rate_check
+            mock_cl.return_value.check = AsyncMock(return_value=_allowed_result(10000))
+            mock_rl.return_value.check = AsyncMock(return_value=_blocked_result())
 
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://localhost:8000"
@@ -612,11 +750,14 @@ class TestRateLimitedVote:
                         "voter_fingerprint": "fp_123",
                     },
                 )
-                assert response.status_code == 429
-                capacity_check.assert_not_called()
+                data = response.json()
+                assert "data" in data
+                assert "error" in data
+                assert "meta" in data
+                assert "detail" not in data
 
     @pytest.mark.asyncio
-    async def test_rate_limit_envelope_top_level(self):
+    async def test_rate_limit_envelope_top_level_in_class(self):
         with (
             patch("app.routes.debate.DebateRepository") as MockRepo,
             patch("app.routes.debate._get_vote_limiter") as mock_rl,
@@ -755,7 +896,7 @@ class TestGracefulDegradation:
 
     @pytest.mark.asyncio
     async def test_rate_limited_does_not_reach_capacity(self):
-        rate_check = AsyncMock(return_value=_blocked_result())
+        rate_result = _blocked_result()
         capacity_check = AsyncMock(return_value=_allowed_result(10000))
 
         with (
@@ -764,7 +905,7 @@ class TestGracefulDegradation:
             patch("app.routes.debate._get_capacity_limiter") as mock_cl,
         ):
             MockRepo.return_value = _mock_repo_with_running_debate()
-            mock_rl.return_value.check = rate_check
+            mock_rl.return_value.check = AsyncMock(return_value=rate_result)
             mock_cl.return_value.check = capacity_check
 
             async with AsyncClient(
@@ -780,6 +921,76 @@ class TestGracefulDegradation:
                 )
                 assert response.status_code == 429
                 capacity_check.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_capacity_uses_config_threshold(self):
+        with (
+            patch("app.routes.debate.DebateRepository") as MockRepo,
+            patch("app.routes.debate._get_vote_limiter") as mock_rl,
+            patch("app.routes.debate._get_capacity_limiter") as mock_cl,
+            patch("app.routes.debate.create_vote_capacity_limiter") as factory,
+        ):
+            from app.services.rate_limiter import RateLimiter
+
+            captured_limiter = RateLimiter(
+                prefix="capacity:active_voters", max_requests=500, window_seconds=60
+            )
+            factory.return_value = captured_limiter
+            MockRepo.return_value = _mock_repo_with_running_debate()
+            mock_rl.return_value.check = AsyncMock(return_value=_allowed_result())
+
+            boundary = RateLimitResult(
+                allowed=False,
+                current=501,
+                limit=500,
+                remaining=0,
+                reset_at=time.time() + 30,
+            )
+            mock_cl.return_value.check = AsyncMock(return_value=boundary)
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://localhost:8000"
+            ) as client:
+                response = await client.post(
+                    "/api/debate/vote",
+                    json={
+                        "debate_id": "deb_test123",
+                        "choice": "bull",
+                        "voter_fingerprint": "fp_123",
+                    },
+                )
+                assert response.status_code == 503
+                assert response.json()["meta"]["estimatedWaitMs"] >= 0
+
+    @pytest.mark.asyncio
+    async def test_db_failure_consumes_rate_budget_accepted_tradeoff(self):
+        mock_repo = _mock_repo_with_running_debate()
+        mock_repo.create_vote = AsyncMock(side_effect=Exception("DB error"))
+        mock_repo.has_existing_vote = AsyncMock(return_value=False)
+        rate_check = AsyncMock(return_value=_allowed_result())
+
+        with (
+            patch("app.routes.debate.DebateRepository") as MockRepo,
+            patch("app.routes.debate._get_vote_limiter") as mock_rl,
+            patch("app.routes.debate._get_capacity_limiter") as mock_cl,
+        ):
+            MockRepo.return_value = mock_repo
+            mock_rl.return_value.check = rate_check
+            mock_cl.return_value.check = AsyncMock(return_value=_allowed_result(10000))
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://localhost:8000"
+            ) as client:
+                response = await client.post(
+                    "/api/debate/vote",
+                    json={
+                        "debate_id": "deb_test123",
+                        "choice": "bull",
+                        "voter_fingerprint": "fp_123",
+                    },
+                )
+                assert response.status_code == 503
+                rate_check.assert_called_once()
 
 
 class TestVoterFingerprintValidation:

@@ -25,3 +25,9 @@
 - Mobile text uses `text-violet-400/80` instead of `text-violet-400` — intentional subordination on mobile
 - Mobile indicator lacks `bg-violet-600/20` background — intentional inline text design
 - Mobile text may wrap on narrow viewports — pre-existing responsive behavior
+
+## Deferred from: code review of 3-1-voting-api-data-model (2026-04-11)
+
+- Lazy limiter init not thread-safe — `_get_vote_limiter()` / `_get_capacity_limiter()` use check-then-set on globals with no lock. Low risk in practice (CPython GIL, single-event-loop uvicorn). Pre-existing pattern from `get_debate_service()`. [app/routes/debate.py:46-57]
+- Capacity limiter semantics — 60s sliding window means "10K votes per minute" not "10K total active voters". If the intent was a hard cap, the limiter design is wrong. Requires product clarification. [app/services/rate_limiter.py:100-107]
+- DB write consumes capacity counter on failure — `check("global")` increments counter before DB write at Guard 6. If write fails, capacity slot is wasted. Pre-existing architectural limitation of the `RateLimiter` design (INCR-before-check).

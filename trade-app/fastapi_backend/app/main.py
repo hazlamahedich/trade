@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi_pagination import add_pagination
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -31,6 +32,38 @@ async def custom_http_exception_handler(
     if isinstance(exc.detail, dict) and "data" in exc.detail and "error" in exc.detail:
         return JSONResponse(status_code=exc.status_code, content=exc.detail)
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    errors = exc.errors()
+    first = errors[0] if errors else {}
+    loc = first.get("loc", [])
+    msg = first.get("msg", "Validation error")
+
+    field_name = loc[-1] if loc else "unknown"
+    if field_name == "voter_fingerprint":
+        error_code = "INVALID_FINGERPRINT"
+        message = (
+            "voterFingerprint must be a non-empty string between 1 and 128 characters"
+        )
+    elif field_name == "choice":
+        error_code = "INVALID_CHOICE"
+        message = msg
+    else:
+        error_code = "VALIDATION_ERROR"
+        message = msg
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "data": None,
+            "error": {"code": error_code, "message": message},
+            "meta": {},
+        },
+    )
 
 
 app.add_middleware(MockHeadersMiddleware)

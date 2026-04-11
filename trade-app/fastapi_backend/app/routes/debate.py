@@ -3,6 +3,7 @@ import logging
 import time
 
 from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_async_session
@@ -197,7 +198,7 @@ async def cast_vote(
     # so rate-limited requests never consume global capacity budget
     rate_result = await _get_vote_limiter().check(request.voter_fingerprint)
     if not rate_result.allowed:
-        retry_ms = int((rate_result.reset_at - time.time()) * 1000)
+        retry_ms = max(0, int((rate_result.reset_at - time.time()) * 1000))
         logger.warning(
             "Voting rejected: rate limited",
             extra={
@@ -222,7 +223,7 @@ async def cast_vote(
     # Guard 5: Capacity limiter (Redis global)
     capacity_result = await _get_capacity_limiter().check("global")
     if not capacity_result.allowed:
-        retry_ms = int((capacity_result.reset_at - time.time()) * 1000)
+        retry_ms = max(0, int((capacity_result.reset_at - time.time()) * 1000))
         logger.warning(
             "Voting rejected: capacity exceeded",
             extra={
@@ -251,6 +252,18 @@ async def cast_vote(
             debate_external_id=debate.external_id,
             choice=request.choice,
             voter_fingerprint=request.voter_fingerprint,
+        )
+    except IntegrityError:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "data": None,
+                "error": {
+                    "code": "DUPLICATE_VOTE",
+                    "message": "This voter has already voted on this debate",
+                },
+                "meta": {},
+            },
         )
     except Exception as e:
         logger.error(f"Vote write failed for debate {request.debate_id}: {e}")
