@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from datetime import datetime, timezone
 from typing import Any, cast
@@ -25,6 +26,10 @@ from app.services.debate.streaming import (
     stream_state,
 )
 from app.services.debate.agents.guardian import GuardianAgent
+from app.services.debate.sanitization import (
+    sanitize_content,
+    SanitizationContext,
+)
 from app.services.market.stale_data_guardian import StaleDataGuardian
 
 logger = logging.getLogger(__name__)
@@ -86,12 +91,35 @@ async def bull_agent_node(
     logger.info(f"Bull agent generated argument, turn {state['current_turn']}")
 
     if manager and debate_id:
+        raw_content = result["messages"][-1]["content"]
+        sanitization_result = sanitize_content(
+            raw_content,
+            SanitizationContext(
+                debate_id=debate_id, agent="bull", turn=result["current_turn"]
+            ),
+        )
+        if sanitization_result.is_redacted and len(raw_content) > 0:
+            redacted_ratio = 1 - len(
+                sanitization_result.content.replace("[REDACTED]", "")
+            ) / max(len(raw_content), 1)
+            if len(sanitization_result.redacted_phrases) > 2 or redacted_ratio > 0.5:
+                logger.warning(
+                    json.dumps(
+                        {
+                            "event": "high_redaction_warning",
+                            "debate_id": debate_id,
+                            "agent": "bull",
+                            "redaction_ratio": round(redacted_ratio, 2),
+                        }
+                    )
+                )
         await send_argument_complete(
             manager,
             debate_id,
             "bull",
-            result["messages"][-1]["content"],
+            sanitization_result.content,
             result["current_turn"],
+            is_redacted=sanitization_result.is_redacted,
         )
         await send_turn_change(manager, debate_id, "bear")
 
@@ -112,12 +140,35 @@ async def bear_agent_node(
     logger.info(f"Bear agent generated argument, turn {state['current_turn']}")
 
     if manager and debate_id:
+        raw_content = result["messages"][-1]["content"]
+        sanitization_result = sanitize_content(
+            raw_content,
+            SanitizationContext(
+                debate_id=debate_id, agent="bear", turn=result["current_turn"]
+            ),
+        )
+        if sanitization_result.is_redacted and len(raw_content) > 0:
+            redacted_ratio = 1 - len(
+                sanitization_result.content.replace("[REDACTED]", "")
+            ) / max(len(raw_content), 1)
+            if len(sanitization_result.redacted_phrases) > 2 or redacted_ratio > 0.5:
+                logger.warning(
+                    json.dumps(
+                        {
+                            "event": "high_redaction_warning",
+                            "debate_id": debate_id,
+                            "agent": "bear",
+                            "redaction_ratio": round(redacted_ratio, 2),
+                        }
+                    )
+                )
         await send_argument_complete(
             manager,
             debate_id,
             "bear",
-            result["messages"][-1]["content"],
+            sanitization_result.content,
             result["current_turn"],
+            is_redacted=sanitization_result.is_redacted,
         )
         await send_turn_change(manager, debate_id, "bull")
 
@@ -237,7 +288,7 @@ async def stream_debate(
     )
 
     current_state = initial_state
-    turn_arguments: dict[tuple[str, int], str] = {}
+    turn_arguments: dict[tuple[str, int], tuple[str, str]] = {}
 
     from app.config import settings as app_settings
 
@@ -270,7 +321,18 @@ async def stream_debate(
             )
 
             argument_content = result["messages"][-1]["content"]
-            turn_arguments[(current_agent, result["current_turn"])] = argument_content
+            sanitized_result = sanitize_content(
+                argument_content,
+                SanitizationContext(
+                    debate_id=debate_id,
+                    agent=current_agent,
+                    turn=result["current_turn"],
+                ),
+            )
+            turn_arguments[(current_agent, result["current_turn"])] = (
+                argument_content,
+                sanitized_result.content,
+            )
 
             await send_reasoning_node(
                 manager,
@@ -278,7 +340,7 @@ async def stream_debate(
                 node_id=f"{current_agent}-turn-{result['current_turn']}",
                 node_type=node_type,
                 label=f"{current_agent.title()} Argument #{result['current_turn']}",
-                summary=argument_content[:100],
+                summary=sanitized_result.content[:100],
                 agent=current_agent,
                 parent_id=previous_node_id,
                 turn=result["current_turn"],
@@ -464,13 +526,14 @@ async def stream_debate(
         for turn in range(1, final_turn + 1):
             for agent in ["bull", "bear"]:
                 node_id = f"{agent}-turn-{turn}"
+                raw, sanitized = turn_arguments.get((agent, turn), ("", ""))
                 await send_reasoning_node(
                     manager,
                     debate_id,
                     node_id=node_id,
                     node_type="bull_analysis" if agent == "bull" else "bear_counter",
                     label=f"{agent.title()} Argument #{turn}",
-                    summary=turn_arguments.get((agent, turn), "")[:100],
+                    summary=sanitized[:100],
                     agent=agent,
                     is_winning=True,
                     turn=turn,

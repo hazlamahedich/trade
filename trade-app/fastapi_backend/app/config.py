@@ -60,6 +60,26 @@ class Settings(BaseSettings):
     guardian_llm_temperature: float = 0.3
     guardian_enabled: bool = True
 
+    # Forbidden Phrases (configurable compliance list)
+    FORBIDDEN_PHRASES: list[str] = [
+        "guaranteed",
+        "risk-free",
+        "safe bet",
+        "sure thing",
+        "100%",
+        "certainly will",
+        "always goes",
+        "can't lose",
+        "foolproof",
+        "no-brainer",
+        "bulletproof",
+        "surefire",
+        "cannot fail",
+        "double your",
+        "moonshot",
+        "to the moon",
+    ]
+
     # LangGraph Checkpointer
     CHECKPOINTER_TYPE: str = "memory"
     CHECKPOINTER_URL: str | None = None

@@ -3,25 +3,27 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.callbacks import AsyncCallbackHandler
 
 from app.services.debate.state import DebateState
-from app.services.debate.sanitization import sanitize_response
+from app.services.debate.sanitization import FORBIDDEN_PHRASES
 from app.services.debate.llm_provider import get_llm_with_failover
 
 logger = logging.getLogger(__name__)
 
-BEAR_SYSTEM_PROMPT = """You are the BEAR agent in a trading debate.
+FORBIDDEN_LIST = ", ".join(f'"{p}"' for p in FORBIDDEN_PHRASES)
+
+BEAR_SYSTEM_PROMPT = f"""You are the BEAR agent in a trading debate.
 Your role is to present SKEPTICAL arguments against buying the asset.
 
 CRITICAL RULES:
 1. ALWAYS cite specific market data points (price, news)
-2. Focus on risks, uncertainties, and potential downsides
+2. Be confident but NEVER use promissory language. The following phrases are FORBIDDEN and must NEVER appear in your output: {FORBIDDEN_LIST}. This is a strict compliance requirement.
 3. Reference the Bull's arguments and provide counter-points
 4. Keep arguments concise (2-3 sentences max)
 
 Market Context:
-{market_context}
+{{market_context}}
 
 Previous Bull Argument:
-{bull_argument}
+{{bull_argument}}
 
 Generate your bearish counter-argument:"""
 
@@ -55,7 +57,7 @@ class BearAgent:
         raw_content = response.content
         if not isinstance(raw_content, str):
             raw_content = str(raw_content) if raw_content else ""
-        content = sanitize_response(raw_content)
+        content = raw_content
         new_message = {"role": "bear", "content": content}
         return {
             "messages": state["messages"] + [new_message],

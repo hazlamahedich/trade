@@ -58,6 +58,7 @@ class ArgumentCompletePayload(BaseModel):
     agent: str
     content: str
     turn: int | None = None
+    is_redacted: bool = Field(default=False, serialization_alias="isRedacted")
 
 
 class StatusUpdatePayload(BaseModel):

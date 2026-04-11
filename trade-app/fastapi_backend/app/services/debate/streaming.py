@@ -8,6 +8,7 @@ from langchain_core.callbacks import AsyncCallbackHandler
 
 from app.services.debate.state import RiskLevel
 from app.services.debate.ws_schemas import (
+    ArgumentCompletePayload,
     DataRefreshedPayload,
     DataStalePayload,
     DebatePausedPayload,
@@ -216,16 +217,19 @@ async def send_argument_complete(
     agent: str,
     content: str,
     turn: int | None = None,
+    is_redacted: bool = False,
 ) -> None:
     """Send DEBATE/ARGUMENT_COMPLETE action to all viewers."""
+    payload = ArgumentCompletePayload(
+        debate_id=debate_id,
+        agent=agent,
+        content=content,
+        turn=turn,
+        is_redacted=is_redacted,
+    )
     action = WebSocketAction(
         type="DEBATE/ARGUMENT_COMPLETE",
-        payload={
-            "debateId": debate_id,
-            "agent": agent,
-            "content": content,
-            "turn": turn,
-        },
+        payload=payload.model_dump(by_alias=True),
     )
     await manager.broadcast_to_debate(debate_id, action.model_dump(by_alias=True))
 
