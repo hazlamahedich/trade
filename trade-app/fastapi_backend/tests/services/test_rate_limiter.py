@@ -7,6 +7,7 @@ from app.services.rate_limiter import (
     RateLimitResult,
     create_debate_rate_limiter,
     create_vote_rate_limiter,
+    create_vote_capacity_limiter,
     create_ws_connection_rate_limiter,
 )
 
@@ -111,6 +112,53 @@ class TestRateLimiter:
             limiter = RateLimiter(prefix="test", max_requests=5, window_seconds=60)
             await limiter.reset("user_123")
 
+    @pytest.mark.asyncio
+    async def test_negative_ttl_sets_expiry(self):
+        mock_redis = AsyncMock()
+        mock_pipeline = AsyncMock()
+        mock_pipeline.incr = MagicMock(return_value=mock_pipeline)
+        mock_pipeline.ttl = MagicMock(return_value=mock_pipeline)
+        mock_pipeline.execute = AsyncMock(return_value=[2, -1])
+        mock_pipeline.__aenter__ = AsyncMock(return_value=mock_pipeline)
+        mock_pipeline.__aexit__ = AsyncMock(return_value=None)
+        mock_redis.pipeline = MagicMock(return_value=mock_pipeline)
+        mock_redis.expire = AsyncMock()
+
+        with patch(
+            "app.services.rate_limiter.get_redis_client", return_value=mock_redis
+        ):
+            limiter = RateLimiter(prefix="test", max_requests=5, window_seconds=60)
+            result = await limiter.check("user_123")
+
+            assert result.allowed is True
+            mock_redis.expire.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_key_format(self):
+        limiter = RateLimiter(prefix="vote_rate", max_requests=30, window_seconds=60)
+        assert limiter._key("fp_abc") == "vote_rate:fp_abc"
+
+    @pytest.mark.asyncio
+    async def test_exact_at_limit_allowed(self):
+        mock_redis = AsyncMock()
+        mock_pipeline = AsyncMock()
+        mock_pipeline.incr = MagicMock(return_value=mock_pipeline)
+        mock_pipeline.ttl = MagicMock(return_value=mock_pipeline)
+        mock_pipeline.execute = AsyncMock(return_value=[5, 30])
+        mock_pipeline.__aenter__ = AsyncMock(return_value=mock_pipeline)
+        mock_pipeline.__aexit__ = AsyncMock(return_value=None)
+        mock_redis.pipeline = MagicMock(return_value=mock_pipeline)
+
+        with patch(
+            "app.services.rate_limiter.get_redis_client", return_value=mock_redis
+        ):
+            limiter = RateLimiter(prefix="test", max_requests=5, window_seconds=60)
+            result = await limiter.check("user_123")
+
+            assert result.allowed is True
+            assert result.current == 5
+            assert result.remaining == 0
+
 
 class TestRateLimiterFactories:
     def test_debate_rate_limiter(self):
@@ -130,6 +178,19 @@ class TestRateLimiterFactories:
         assert limiter.prefix == "ws_rate"
         assert limiter.max_requests == 20
         assert limiter.window_seconds == 60
+
+    def test_vote_capacity_limiter_uses_config(self):
+        mock_settings = MagicMock()
+        mock_settings.VOTE_CAPACITY_LIMIT = 5000
+
+        with patch.dict(
+            "sys.modules", {"app.config": MagicMock(settings=mock_settings)}
+        ):
+            with patch("app.config.settings", mock_settings):
+                limiter = create_vote_capacity_limiter()
+                assert limiter.prefix == "capacity:active_voters"
+                assert limiter.max_requests == 5000
+                assert limiter.window_seconds == 60
 
 
 class TestRateLimitResult:

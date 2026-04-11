@@ -355,10 +355,16 @@ glm-5.1 (zai-coding-plan/glm-5.1)
 
 **Modified test files:**
 - `trade-app/fastapi_backend/tests/routes/test_vote_routes.py` — 41 tests across 7 test classes (review: fixed fail-open tests, removed duplicate, added config/DB-failure tests)
+- `trade-app/fastapi_backend/tests/services/test_rate_limiter.py` — 14 tests (added: capacity limiter config test, negative TTL edge case, key format, exact boundary)
+
+**New test files (testarch-automate):**
+- `trade-app/fastapi_backend/tests/services/debate/test_vote_repository.py` — 17 repository integration tests (PostgreSQL): CRUD, duplicate detection, result aggregation, camelCase serialization, concurrent duplicate IntegrityError
+- `trade-app/fastapi_backend/tests/routes/test_vote_edge_cases.py` — 11 route-level edge case tests: fingerprint hashing (5), missing request fields (4), choice normalization at route level (2)
 
 **Story/tracking files:**
 - `_bmad-output/implementation-artifacts/3-1-voting-api-data-model.md` — All tasks marked [x], status → "review"
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` — Status → "review"
+- `_bmad-output/test-artifacts/automation-summary-3-1.md` — Test automation coverage summary
 
 ### Review Findings
 
@@ -381,3 +387,4 @@ glm-5.1 (zai-coding-plan/glm-5.1)
 
 - 2026-04-11 — Story 3.1 implementation complete. All 14 tasks done. 62 tests pass. Lint clean.
 - 2026-04-11 — Code review: 2 decision-needed → resolved, 9 patch → all fixed, 3 deferred, 2 dismissed. 41 tests pass. Status → done.
+- 2026-04-11 — Test automation (testarch-automate): 32 new tests across 3 files. Repository integration (17), route edge cases (11), rate limiter edge cases (4). Total voting-related: 101/101 pass. Lint clean.
