@@ -388,3 +388,4 @@ glm-5.1 (zai-coding-plan/glm-5.1)
 - 2026-04-11 — Story 3.1 implementation complete. All 14 tasks done. 62 tests pass. Lint clean.
 - 2026-04-11 — Code review: 2 decision-needed → resolved, 9 patch → all fixed, 3 deferred, 2 dismissed. 41 tests pass. Status → done.
 - 2026-04-11 — Test automation (testarch-automate): 32 new tests across 3 files. Repository integration (17), route edge cases (11), rate limiter edge cases (4). Total voting-related: 101/101 pass. Lint clean.
+- 2026-04-11 — Test quality review (testarch-test-review): Score 86/100 → 96/100 after remediation. All 6 concerns addressed: split test_vote_routes.py (1223 lines) into 5 focused files (103-171 lines), removed duplicate test, renamed misleading fail-open tests, created shared vote_test_helpers.py with mock_vote_deps() context manager, added [3-1-{LEVEL}-{SEQ}] test IDs + @pytest.mark.p0/p1/p2 markers + G-W-T docstrings to all ~97 tests. 79 route/unit tests pass, lint clean.

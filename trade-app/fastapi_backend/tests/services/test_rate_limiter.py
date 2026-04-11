@@ -13,8 +13,10 @@ from app.services.rate_limiter import (
 
 
 class TestRateLimiter:
+    @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_first_request_allowed(self):
+        """[3-1-RL-001] Given first request, When rate check, Then allowed with remaining=4"""
         mock_redis = AsyncMock()
         mock_pipeline = AsyncMock()
         mock_pipeline.incr = MagicMock(return_value=mock_pipeline)
@@ -36,8 +38,10 @@ class TestRateLimiter:
             assert result.remaining == 4
             assert result.limit == 5
 
+    @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_under_limit_allowed(self):
+        """[3-1-RL-002] Given current=3 limit=5, When rate check, Then allowed with remaining=2"""
         mock_redis = AsyncMock()
         mock_pipeline = AsyncMock()
         mock_pipeline.incr = MagicMock(return_value=mock_pipeline)
@@ -57,8 +61,10 @@ class TestRateLimiter:
             assert result.current == 3
             assert result.remaining == 2
 
+    @pytest.mark.p0
     @pytest.mark.asyncio
     async def test_at_limit_blocked(self):
+        """[3-1-RL-003] Given current=6 limit=5, When rate check, Then blocked"""
         mock_redis = AsyncMock()
         mock_pipeline = AsyncMock()
         mock_pipeline.incr = MagicMock(return_value=mock_pipeline)
@@ -78,8 +84,10 @@ class TestRateLimiter:
             assert result.current == 6
             assert result.remaining == 0
 
+    @pytest.mark.p0
     @pytest.mark.asyncio
     async def test_redis_failure_allows_request(self):
+        """[3-1-RL-004] Given Redis down, When rate check, Then allowed (fail-open)"""
         with patch(
             "app.services.rate_limiter.get_redis_client",
             side_effect=Exception("Redis down"),
@@ -90,8 +98,10 @@ class TestRateLimiter:
             assert result.allowed is True
             assert result.remaining == 5
 
+    @pytest.mark.p2
     @pytest.mark.asyncio
     async def test_reset(self):
+        """[3-1-RL-005] Given valid key, When reset called, Then Redis delete called"""
         mock_redis = AsyncMock()
         mock_redis.delete = AsyncMock()
 
@@ -103,8 +113,10 @@ class TestRateLimiter:
 
             mock_redis.delete.assert_called_once_with("test:user_123")
 
+    @pytest.mark.p2
     @pytest.mark.asyncio
     async def test_reset_redis_failure(self):
+        """[3-1-RL-006] Given Redis down, When reset called, Then no exception"""
         with patch(
             "app.services.rate_limiter.get_redis_client",
             side_effect=Exception("Redis down"),
@@ -112,8 +124,10 @@ class TestRateLimiter:
             limiter = RateLimiter(prefix="test", max_requests=5, window_seconds=60)
             await limiter.reset("user_123")
 
+    @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_negative_ttl_sets_expiry(self):
+        """[3-1-RL-007] Given negative TTL, When rate check, Then expiry set on key"""
         mock_redis = AsyncMock()
         mock_pipeline = AsyncMock()
         mock_pipeline.incr = MagicMock(return_value=mock_pipeline)
@@ -133,13 +147,17 @@ class TestRateLimiter:
             assert result.allowed is True
             mock_redis.expire.assert_called_once()
 
+    @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_key_format(self):
+        """[3-1-RL-008] Given prefix and identifier, When key built, Then format is prefix:id"""
         limiter = RateLimiter(prefix="vote_rate", max_requests=30, window_seconds=60)
         assert limiter._key("fp_abc") == "vote_rate:fp_abc"
 
+    @pytest.mark.p0
     @pytest.mark.asyncio
     async def test_exact_at_limit_allowed(self):
+        """[3-1-RL-009] Given current=5 limit=5, When rate check, Then allowed (at limit ok)"""
         mock_redis = AsyncMock()
         mock_pipeline = AsyncMock()
         mock_pipeline.incr = MagicMock(return_value=mock_pipeline)
@@ -161,25 +179,33 @@ class TestRateLimiter:
 
 
 class TestRateLimiterFactories:
+    @pytest.mark.p1
     def test_debate_rate_limiter(self):
+        """[3-1-RL-010] Given debate factory, When created, Then prefix=debate_rate limit=10"""
         limiter = create_debate_rate_limiter()
         assert limiter.prefix == "debate_rate"
         assert limiter.max_requests == 10
         assert limiter.window_seconds == 60
 
+    @pytest.mark.p1
     def test_vote_rate_limiter(self):
+        """[3-1-RL-011] Given vote factory, When created, Then prefix=vote_rate limit=30"""
         limiter = create_vote_rate_limiter()
         assert limiter.prefix == "vote_rate"
         assert limiter.max_requests == 30
         assert limiter.window_seconds == 60
 
+    @pytest.mark.p1
     def test_ws_connection_rate_limiter(self):
+        """[3-1-RL-012] Given ws factory, When created, Then prefix=ws_rate limit=20"""
         limiter = create_ws_connection_rate_limiter()
         assert limiter.prefix == "ws_rate"
         assert limiter.max_requests == 20
         assert limiter.window_seconds == 60
 
+    @pytest.mark.p0
     def test_vote_capacity_limiter_uses_config(self):
+        """[3-1-RL-013] Given VOTE_CAPACITY_LIMIT=5000, When capacity factory, Then limit=5000"""
         mock_settings = MagicMock()
         mock_settings.VOTE_CAPACITY_LIMIT = 5000
 
@@ -194,7 +220,9 @@ class TestRateLimiterFactories:
 
 
 class TestRateLimitResult:
+    @pytest.mark.p2
     def test_frozen(self):
+        """[3-1-RL-014] Given RateLimitResult, When field modified, Then AttributeError raised"""
         result = RateLimitResult(
             allowed=True, current=1, limit=5, remaining=4, reset_at=time.time()
         )

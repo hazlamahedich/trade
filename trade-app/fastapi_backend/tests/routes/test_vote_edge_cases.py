@@ -7,32 +7,44 @@ from app.routes.debate import _hash_fingerprint
 
 
 class TestFingerprintHashing:
+    @pytest.mark.p2
     def test_hash_deterministic(self):
+        """[3-1-EDGE-001] Given same fingerprint input, When hashed twice, Then hashes are equal"""
         h1 = _hash_fingerprint("fp_123")
         h2 = _hash_fingerprint("fp_123")
         assert h1 == h2
 
+    @pytest.mark.p2
     def test_hash_different_inputs(self):
+        """[3-1-EDGE-002] Given different fingerprint inputs, When hashed, Then hashes differ"""
         h1 = _hash_fingerprint("fp_123")
         h2 = _hash_fingerprint("fp_456")
         assert h1 != h2
 
+    @pytest.mark.p2
     def test_hash_length(self):
+        """[3-1-EDGE-003] Given any fingerprint, When hashed, Then output is 16 chars"""
         h = _hash_fingerprint("fp_abc")
         assert len(h) == 16
 
+    @pytest.mark.p2
     def test_hash_unicode_input(self):
+        """[3-1-EDGE-004] Given unicode fingerprint, When hashed, Then output is 16 chars"""
         h = _hash_fingerprint("fp_emoji_🔥")
         assert len(h) == 16
 
+    @pytest.mark.p2
     def test_hash_empty_string(self):
+        """[3-1-EDGE-005] Given empty string, When hashed, Then output is 16 chars"""
         h = _hash_fingerprint("")
         assert len(h) == 16
 
 
 class TestVoteRequestMissingFields:
+    @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_missing_debate_id(self):
+        """[3-1-EDGE-006] Given request without debate_id, When POST /vote, Then 422"""
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://localhost:8000"
         ) as client:
@@ -42,8 +54,10 @@ class TestVoteRequestMissingFields:
             )
             assert response.status_code == 422
 
+    @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_missing_choice(self):
+        """[3-1-EDGE-007] Given request without choice, When POST /vote, Then 422"""
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://localhost:8000"
         ) as client:
@@ -53,8 +67,10 @@ class TestVoteRequestMissingFields:
             )
             assert response.status_code == 422
 
+    @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_missing_voter_fingerprint(self):
+        """[3-1-EDGE-008] Given request without voter_fingerprint, When POST /vote, Then 422"""
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://localhost:8000"
         ) as client:
@@ -64,8 +80,10 @@ class TestVoteRequestMissingFields:
             )
             assert response.status_code == 422
 
+    @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_empty_body(self):
+        """[3-1-EDGE-009] Given empty JSON body, When POST /vote, Then 422"""
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://localhost:8000"
         ) as client:
@@ -77,8 +95,10 @@ class TestVoteRequestMissingFields:
 
 
 class TestVoteChoiceNormalization:
+    @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_uppercase_choice_accepted(self):
+        """[3-1-EDGE-010] Given uppercase BULL choice, When POST /vote, Then 200 with normalized 'bull'"""
         from unittest.mock import MagicMock
         import time
         from uuid import uuid4
@@ -140,8 +160,10 @@ class TestVoteChoiceNormalization:
                 assert response.status_code == 200
                 assert response.json()["data"]["choice"] == "bull"
 
+    @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_mixed_case_with_whitespace(self):
+        """[3-1-EDGE-011] Given '  Bear  ' choice, When POST /vote, Then 200 with normalized 'bear'"""
         from unittest.mock import MagicMock
         import time
         from uuid import uuid4

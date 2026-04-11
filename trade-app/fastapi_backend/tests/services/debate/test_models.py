@@ -9,8 +9,10 @@ from app.models import Debate, Vote
 
 
 class TestDebateModel:
+    @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_create_debate(self, db_session: AsyncSession):
+        """[3-1-MODEL-001] Given valid debate data, When persisted, Then all fields correct"""
         debate = Debate(
             external_id="deb_abc12345",
             asset="bitcoin",
@@ -35,8 +37,10 @@ class TestDebateModel:
         assert debate.created_at is not None
         assert debate.completed_at is None
 
+    @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_debate_defaults(self, db_session: AsyncSession):
+        """[3-1-MODEL-002] Given minimal debate, When persisted, Then defaults applied (running, turns=0)"""
         debate = Debate(
             external_id="deb_defaults",
             asset="eth",
@@ -50,8 +54,10 @@ class TestDebateModel:
         assert debate.current_turn == 0
         assert debate.guardian_interrupts_count == 0
 
+    @pytest.mark.p0
     @pytest.mark.asyncio
     async def test_debate_completed_with_verdict(self, db_session: AsyncSession):
+        """[3-1-MODEL-003] Given completed debate with verdict, When persisted, Then status and verdict correct"""
         debate = Debate(
             external_id="deb_completed",
             asset="sol",
@@ -71,8 +77,10 @@ class TestDebateModel:
         assert debate.guardian_interrupts_count == 2
         assert debate.completed_at is not None
 
+    @pytest.mark.p0
     @pytest.mark.asyncio
     async def test_debate_external_id_unique(self, db_session: AsyncSession):
+        """[3-1-MODEL-004] Given duplicate external_id, When second insert, Then exception"""
         debate1 = Debate(external_id="deb_unique", asset="btc")
         db_session.add(debate1)
         await db_session.commit()
@@ -84,8 +92,10 @@ class TestDebateModel:
 
 
 class TestVoteModel:
+    @pytest.mark.p0
     @pytest.mark.asyncio
     async def test_create_vote(self, db_session: AsyncSession):
+        """[3-1-MODEL-005] Given valid vote data, When persisted, Then all fields correct"""
         debate = Debate(
             external_id="deb_vote_test",
             asset="bitcoin",
@@ -109,8 +119,10 @@ class TestVoteModel:
         assert vote.voter_fingerprint == "fp_abc123"
         assert vote.created_at is not None
 
+    @pytest.mark.p0
     @pytest.mark.asyncio
     async def test_vote_unique_debate_fingerprint(self, db_session: AsyncSession):
+        """[3-1-MODEL-006] Given duplicate debate+fingerprint, When second insert, Then exception"""
         debate = Debate(external_id="deb_vote_unique", asset="btc")
         db_session.add(debate)
         await db_session.commit()
@@ -133,8 +145,10 @@ class TestVoteModel:
         with pytest.raises(Exception):
             await db_session.commit()
 
+    @pytest.mark.p0
     @pytest.mark.asyncio
     async def test_same_fingerprint_different_debates(self, db_session: AsyncSession):
+        """[3-1-MODEL-007] Given same fingerprint different debates, When both inserted, Then both succeed"""
         debate1 = Debate(external_id="deb_v1", asset="btc")
         debate2 = Debate(external_id="deb_v2", asset="eth")
         db_session.add_all([debate1, debate2])
@@ -151,8 +165,10 @@ class TestVoteModel:
         count = result.scalar()
         assert count == 2
 
+    @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_debate_votes_relationship(self, db_session: AsyncSession):
+        """[3-1-MODEL-008] Given debate with 3 votes, When counted, Then count=3"""
         debate = Debate(external_id="deb_rel", asset="sol")
         db_session.add(debate)
         await db_session.commit()
