@@ -96,7 +96,7 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
       agent: payload.agent,
       content: payload.content,
       timestamp: new Date().toISOString(),
-      isRedacted: payload.isRedacted,
+      isRedacted: payload.isRedacted === true,
     };
     lastArgumentRef.current = argMsg;
     setMessages((prev) => [...prev, argMsg]);

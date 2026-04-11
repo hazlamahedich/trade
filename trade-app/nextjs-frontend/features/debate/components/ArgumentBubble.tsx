@@ -4,30 +4,12 @@ import { motion } from "framer-motion";
 import { AgentAvatar, type AgentType } from "./AgentAvatar";
 export type { AgentType };
 import { cn } from "@/lib/utils";
+import { Shield } from "lucide-react";
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-
-function ShieldIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  );
-}
 
 interface ArgumentBubbleProps {
   agent: AgentType;
@@ -130,7 +112,7 @@ export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedac
         {showBadge && (
           <div className="mt-1.5">
             <div className="hidden sm:block">
-              <Tooltip delayDuration={300}>
+              <Tooltip>
                 <TooltipTrigger asChild>
                   <span
                     data-testid="safety-filtered-badge"
@@ -138,7 +120,7 @@ export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedac
                     aria-label="This message was filtered by the safety system"
                     className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs bg-violet-600/20 text-violet-400 rounded-md cursor-help focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900"
                   >
-                    <ShieldIcon />
+                    <Shield className="w-3 h-3" aria-hidden="true" />
                     Safety Filtered
                   </span>
                 </TooltipTrigger>
@@ -147,8 +129,8 @@ export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedac
                 </TooltipContent>
               </Tooltip>
             </div>
-            <div className="sm:hidden flex items-start gap-1.5 text-xs text-violet-400/80" data-testid="safety-filtered-mobile">
-              <ShieldIcon />
+            <div className="sm:hidden flex items-start gap-1.5 text-xs text-violet-400/80" data-testid="safety-filtered-mobile" aria-label="This message was filtered by the safety system">
+              <Shield className="w-3 h-3 shrink-0 mt-px" aria-hidden="true" />
               <span>Safety Filtered — Part of this message was removed by our safety system.</span>
             </div>
           </div>

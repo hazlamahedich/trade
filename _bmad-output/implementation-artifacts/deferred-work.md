@@ -15,3 +15,13 @@
 - Double iteration over patterns in `sanitize_content` [sanitization.py:80-87] — performance micro-optimization, not a bug
 - `zip` truncation on length mismatch between `FORBIDDEN_PHRASES` and `_COMPILED_PATTERNS` [sanitization.py:80] — theoretical risk, always generated from same list
 - Test `test_empty_phrase_list` validates unreachable state — `FORBIDDEN_PHRASES=[]` treated as falsy by `_load_forbidden_phrases()` [test_sanitization.py:194-201]
+
+## Deferred from: code review of 2-5-moderation-transparency-the-badge (2026-04-11)
+
+- `isRedacted=true` with no `[REDACTED]` in content — backend inconsistency, spec says do NOT fix in UI
+- `isRedacted=false/undefined` with `[REDACTED]` in content — dual-signal architecture is by design per spec separation-of-concerns
+- `TooltipProvider` wraps all dashboard children — spec explicitly required layout-level placement
+- `formatTime` invalid date handling — pre-existing, not introduced by this change
+- Mobile text uses `text-violet-400/80` instead of `text-violet-400` — intentional subordination on mobile
+- Mobile indicator lacks `bg-violet-600/20` background — intentional inline text design
+- Mobile text may wrap on narrow viewports — pre-existing responsive behavior

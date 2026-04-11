@@ -1,6 +1,6 @@
 # Story 2.5: Moderation Transparency (The Badge)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -522,15 +522,31 @@ No blocking issues encountered during implementation.
 - ✅ Full regression suite: 208 tests pass, 0 failures
 - ✅ Lint clean on all changed files
 
+### Review Findings
+
+- [x] [Review][Patch] Missing `aria-label` on mobile Safety Filtered indicator [ArgumentBubble.tsx:150] — The mobile `<div data-testid="safety-filtered-mobile">` has no `aria-label`. AC#6 requires aria-label on the indicator regardless of viewport. Desktop badge has it at line 138.
+- [x] [Review][Patch] `ShieldIcon` SVG missing `aria-hidden="true"` [ArgumentBubble.tsx:15] — Decorative icon should be hidden from accessibility tree. The project pattern (RiskCheckNode.tsx:31, DataInputNode.tsx:30) uses `aria-hidden="true"` on all decorative Lucide icons.
+- [x] [Review][Patch] Redundant `delayDuration={300}` on individual Tooltip [ArgumentBubble.tsx:133] — The `TooltipProvider` at layout level already sets `delayDuration={300}`. The per-Tooltip override is redundant and creates a sync maintenance burden.
+- [x] [Review][Decision → Patch] Use Lucide `Shield` instead of inline SVG for ShieldIcon [ArgumentBubble.tsx:13-30] — User chose option 1: replaced inline SVG with Lucide `Shield` import, consistent with `RiskCheckNode.tsx` pattern. Added `aria-hidden="true"`.
+- [x] [Review][Patch] WebSocket `payload.isRedacted` not coerced to boolean [DebateStream.tsx:99] — If the server sends a truthy non-boolean (e.g., `"true"`, `1`), the strict equality `=== true` in `showBadge` silently fails. Should coerce: `isRedacted: payload.isRedacted === true`.
+- [x] [Review][Defer] `isRedacted=true` with no `[REDACTED]` in content — deferred, pre-existing backend inconsistency (both signals can disagree; spec explicitly states: "Do NOT attempt to fix this in the UI")
+- [x] [Review][Defer] `isRedacted=false/undefined` with `[REDACTED]` in content — deferred, pre-existing backend inconsistency (dual-signal architecture is by design per spec separation-of-concerns section)
+- [x] [Review][Defer] `TooltipProvider` wraps all dashboard children — deferred, pre-existing architectural decision (spec explicitly required layout-level placement, not DebateStream)
+- [x] [Review][Defer] `formatTime` invalid date handling — deferred, pre-existing (formatTime existed before this change)
+- [x] [Review][Defer] Mobile text uses `text-violet-400/80` instead of `text-violet-400` — deferred, intentional subordination on mobile (mobile text is longer, lower contrast reduces visual weight)
+- [x] [Review][Defer] Mobile indicator lacks `bg-violet-600/20` background — deferred, intentional design (mobile renders as inline text, not a pill/badge; background would look heavy)
+- [x] [Review][Defer] Mobile text may wrap on narrow viewports — deferred, pre-existing responsive behavior (mobile text legibility > single-line constraint)
+
 ### Change Log
 
 - 2026-04-11: Implemented Story 2.5 — Moderation Transparency (The Badge). Connected `isRedacted` data flow from WebSocket through to UI. Added Safety Filtered badge with desktop tooltip and mobile inline text. Full test coverage with 20 new tests.
+- 2026-04-11: Code review — replaced inline ShieldIcon SVG with Lucide `Shield` + `aria-hidden`, added `aria-label` to mobile indicator, removed redundant `delayDuration` from Tooltip, coerced `payload.isRedacted` to boolean. 26/26 tests pass.
 
 ### File List
 
 **MODIFIED:**
-- `trade-app/nextjs-frontend/features/debate/components/ArgumentBubble.tsx` — added `isRedacted` prop, ShieldIcon component, Safety Filtered badge with tooltip (desktop) + inline text (mobile), renamed `isRedacted` var to `hasRedactedContent`
-- `trade-app/nextjs-frontend/features/debate/components/DebateStream.tsx` — added `isRedacted` to `ArgumentMessage`, mapped in `handleArgumentComplete`, passed prop to `ArgumentBubble`
+- `trade-app/nextjs-frontend/features/debate/components/ArgumentBubble.tsx` — added `isRedacted` prop, Lucide Shield icon with `aria-hidden`, Safety Filtered badge with tooltip (desktop) + inline text (mobile) with `aria-label`, renamed `isRedacted` var to `hasRedactedContent`
+- `trade-app/nextjs-frontend/features/debate/components/DebateStream.tsx` — added `isRedacted` to `ArgumentMessage`, mapped in `handleArgumentComplete` with boolean coercion, passed prop to `ArgumentBubble`
 - `trade-app/nextjs-frontend/app/dashboard/layout.tsx` — added `TooltipProvider` import and wrapper around section content
 
 **NEW (via CLI):**

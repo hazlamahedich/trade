@@ -55,7 +55,7 @@ development_status:
   2-2-debate-engine-integration-the-pause: review
   2-3-guardian-ui-overlay-the-freeze: done
   2-4-forbidden-phrase-filter-regex: done
-  2-5-moderation-transparency-the-badge: review
+  2-5-moderation-transparency-the-badge: done
   epic-2-retrospective: optional
 
   epic-3: backlog
