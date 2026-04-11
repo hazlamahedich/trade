@@ -121,4 +121,32 @@ describe('[2-5] DebateStream — isRedacted Integration', () => {
 
     expect(msg.isRedacted).toBeUndefined();
   });
+
+  test('[2-5-INT-006] ArgumentMessage with isRedacted: false is explicit', () => {
+    const msg: ArgumentMessage = {
+      id: 'msg-int-006',
+      type: 'argument',
+      agent: 'bull',
+      content: 'Clean content, no redaction needed.',
+      timestamp: '2024-01-01T12:00:00Z',
+      isRedacted: false,
+    };
+
+    expect(msg.isRedacted).toBe(false);
+  });
+
+  test('[2-5-INT-007] ArgumentMessage with bear agent and isRedacted: true', () => {
+    const msg: ArgumentMessage = {
+      id: 'msg-int-007',
+      type: 'argument',
+      agent: 'bear',
+      content: 'Bearish [REDACTED] warning about market risks.',
+      timestamp: '2024-01-01T12:00:00Z',
+      isRedacted: true,
+    };
+
+    expect(msg.agent).toBe('bear');
+    expect(msg.isRedacted).toBe(true);
+    expect(msg.content).toContain('[REDACTED]');
+  });
 });

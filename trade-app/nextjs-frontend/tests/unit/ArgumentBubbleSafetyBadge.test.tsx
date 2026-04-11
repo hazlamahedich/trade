@@ -171,4 +171,63 @@ describe('[2-5] ArgumentBubble — Safety Filtered Badge', () => {
       }
     });
   });
+
+  describe('[P1] Additional Coverage', () => {
+    test('[2-5-COMP-012] Mobile indicator has aria-label for screen reader accessibility', () => {
+      renderWithProvider(
+        <ArgumentBubble {...defaultProps} isRedacted={true} />
+      );
+
+      const mobileEl = screen.getByTestId('safety-filtered-mobile');
+      expect(mobileEl).toHaveAttribute('aria-label', 'This message was filtered by the safety system');
+    });
+
+    test('[2-5-COMP-013] Shield icon has aria-hidden="true" — decorative, not announced', () => {
+      renderWithProvider(
+        <ArgumentBubble {...defaultProps} isRedacted={true} />
+      );
+
+      const badge = screen.getByTestId('safety-filtered-badge');
+      const svg = badge.querySelector('svg');
+      expect(svg).toHaveAttribute('aria-hidden', 'true');
+    });
+
+    test('[2-5-COMP-014] Badge renders correctly with bear agent', () => {
+      renderWithProvider(
+        <ArgumentBubble {...defaultProps} agent="bear" isRedacted={true} />
+      );
+
+      const badge = screen.getByTestId('safety-filtered-badge');
+      expect(badge).toBeInTheDocument();
+      expect(badge.textContent).toContain('Safety Filtered');
+
+      const mobileEl = screen.getByTestId('safety-filtered-mobile');
+      expect(mobileEl).toBeInTheDocument();
+    });
+
+    test('[2-5-COMP-015] Badge renders with multiple [REDACTED] tokens in content', () => {
+      renderWithProvider(
+        <ArgumentBubble
+          {...defaultProps}
+          isRedacted={true}
+          content="This is [REDACTED] and [REDACTED] with multiple redactions."
+        />
+      );
+
+      const badge = screen.getByTestId('safety-filtered-badge');
+      expect(badge).toBeInTheDocument();
+
+      const redactedSpans = screen.getAllByLabelText('filtered phrase removed for safety compliance');
+      expect(redactedSpans.length).toBe(2);
+    });
+
+    test('[2-5-COMP-016] Badge renders for streaming=false and isRedacted=true without streaming cursor', () => {
+      renderWithProvider(
+        <ArgumentBubble {...defaultProps} isRedacted={true} isStreaming={false} />
+      );
+
+      expect(screen.getByTestId('safety-filtered-badge')).toBeInTheDocument();
+      expect(screen.queryByTestId('streaming-cursor')).not.toBeInTheDocument();
+    });
+  });
 });

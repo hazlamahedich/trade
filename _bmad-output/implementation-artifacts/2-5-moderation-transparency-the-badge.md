@@ -516,11 +516,12 @@ No blocking issues encountered during implementation.
 - ✅ Mobile: always-visible inline explanation text (no tooltip interaction required)
 - ✅ Accessibility: `aria-label` on badge, keyboard focusable with visible focus ring, no `role="status"`
 - ✅ Separation of concerns: `hasRedactedContent` (string detection) for `renderContent` + content aria, `showBadge` (prop) for badge visibility
-- ✅ 11 component tests in `ArgumentBubbleSafetyBadge.test.tsx` — all pass
-- ✅ 5 integration tests in `DebateStreamSafetyBadge.test.tsx` — all pass
+- ✅ 16 component tests in `ArgumentBubbleSafetyBadge.test.tsx` — all pass
+- ✅ 7 integration tests in `DebateStreamSafetyBadge.test.tsx` — all pass
 - ✅ 4 E2E tests in `debate-safety-badge.spec.ts` — written for Playwright
-- ✅ Full regression suite: 208 tests pass, 0 failures
+- ✅ Full regression suite: 215 tests pass, 0 failures
 - ✅ Lint clean on all changed files
+- ✅ Test automation expansion: +7 P1 gap-filling tests (mobile aria-label, shield aria-hidden, bear agent, multiple [REDACTED], streaming=false combo, explicit false/true in ArgumentMessage)
 
 ### Review Findings
 
@@ -541,6 +542,7 @@ No blocking issues encountered during implementation.
 
 - 2026-04-11: Implemented Story 2.5 — Moderation Transparency (The Badge). Connected `isRedacted` data flow from WebSocket through to UI. Added Safety Filtered badge with desktop tooltip and mobile inline text. Full test coverage with 20 new tests.
 - 2026-04-11: Code review — replaced inline ShieldIcon SVG with Lucide `Shield` + `aria-hidden`, added `aria-label` to mobile indicator, removed redundant `delayDuration` from Tooltip, coerced `payload.isRedacted` to boolean. 26/26 tests pass.
+- 2026-04-11: Test automation expansion — added 7 P1 gap-filling tests (COMP-012 through COMP-016, INT-006, INT-007). Coverage: mobile aria-label, shield aria-hidden, bear agent badge, multiple [REDACTED] tokens, streaming=false combo, explicit isRedacted values. 27 total Story 2.5 tests, 215 suite-wide.
 
 ### File List
 
@@ -553,6 +555,9 @@ No blocking issues encountered during implementation.
 - `trade-app/nextjs-frontend/components/ui/tooltip.tsx` — Shadcn Tooltip component
 
 **NEW (tests):**
-- `trade-app/nextjs-frontend/tests/unit/ArgumentBubbleSafetyBadge.test.tsx` — 11 component tests for badge rendering, tooltip, accessibility, mobile pattern
-- `trade-app/nextjs-frontend/tests/unit/DebateStreamSafetyBadge.test.tsx` — 5 integration tests for isRedacted data flow
+- `trade-app/nextjs-frontend/tests/unit/ArgumentBubbleSafetyBadge.test.tsx` — 16 component tests for badge rendering, tooltip, accessibility, mobile pattern
+- `trade-app/nextjs-frontend/tests/unit/DebateStreamSafetyBadge.test.tsx` — 7 integration tests for isRedacted data flow
 - `trade-app/nextjs-frontend/tests/e2e/debate-safety-badge.spec.ts` — 4 E2E tests for badge visibility and viewport behavior
+
+**NEW (test artifacts):**
+- `_bmad-output/test-artifacts/automation-summary-2-5.md` — test automation summary with AC coverage map
