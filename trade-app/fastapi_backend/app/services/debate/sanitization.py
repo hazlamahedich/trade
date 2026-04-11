@@ -33,8 +33,10 @@ def _load_forbidden_phrases() -> list[str]:
 
         if settings.FORBIDDEN_PHRASES:
             return settings.FORBIDDEN_PHRASES
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning(
+            f"Failed to load FORBIDDEN_PHRASES from settings, using defaults: {exc}"
+        )
     return _DEFAULT_PHRASES
 
 
@@ -61,12 +63,11 @@ def sanitize_content(
     content: str, context: SanitizationContext | None = None
 ) -> SanitizationResult:
     if not isinstance(content, str):
+        logger.warning(f"Non-string content received: {type(content)}")
         return SanitizationResult(content="", is_redacted=False, redacted_phrases=[])
 
     if not content.strip():
-        return SanitizationResult(
-            content=content, is_redacted=False, redacted_phrases=[]
-        )
+        return SanitizationResult(content="", is_redacted=False, redacted_phrases=[])
 
     matched_phrases: list[str] = []
     for phrase, pattern in zip(FORBIDDEN_PHRASES, _COMPILED_PATTERNS):

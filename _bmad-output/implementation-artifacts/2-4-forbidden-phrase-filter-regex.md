@@ -1,6 +1,6 @@
 # Story 2.4: Forbidden Phrase Filter (Regex)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -534,3 +534,28 @@ No debug issues encountered during implementation.
 ### Change Log
 
 - 2026-04-11: Story 2.4 implementation complete — forbidden phrase filter with two-layer defense, structured audit logging, configurable phrase list, `isRedacted` WebSocket field, 42 new tests
+
+### Review Findings
+
+#### Decision Needed
+
+- [x] [Review][Patch] ~~[Decision]~~ Double sanitization per turn creates duplicate audit logs — **Resolved: Option A — agent nodes pass `SanitizationResult` through `result["_sanitization_result"]` for `stream_debate` to reuse. Single sanitization, single audit trail, guaranteed consistency.** [`engine.py`]
+
+#### Patch
+
+- [x] [Review][Patch] Bear agent lost "Focus on risks, uncertainties, and potential downsides" instruction — restored as rule #2, forbidden phrase rule moved to rule #3 [`bear.py:18-19`]
+- [x] [Review][Patch] `except Exception: pass` silently swallows config errors — now logs warning with exception detail [`sanitization.py:36-38`]
+- [x] [Review][Patch] Phrase list duplicated — `_DEFAULT_PHRASES` kept as fallback but `_load_forbidden_phrases()` now logs when falling back [`sanitization.py:30-38`]
+- [x] [Review][Patch] `redacted_ratio` calculation fixed — now removes matched phrases from original text and computes ratio from removed character count, immune to pre-existing `[REDACTED]` literals [`engine.py:104-122`, `engine.py:161-179`]
+- [x] [Review][Patch] `sanitize_content()` now logs warning for non-string input — restored backward-compat diagnostic [`sanitization.py:63-64`]
+- [x] [Review][Patch] Whitespace-only input now returns `""` consistent with non-string path [`sanitization.py:67-69`]
+
+#### Deferred
+
+- [x] [Review][Defer] Duplicate `DataRefreshedPayload` import in `streaming.py` — pre-existing, not introduced by this change [`streaming.py:10-11`] — deferred, pre-existing
+- [x] [Review][Defer] `_COMPILED_PATTERNS` compiled once at module load, runtime config changes ignored — architectural limitation, same pattern as before [`sanitization.py:45-47`] — deferred, pre-existing
+- [x] [Review][Defer] Guardian agent receives unsanitized content in its LLM prompt via `current_state["messages"]` — pre-existing design decision, out of scope [`engine.py:351`] — deferred, pre-existing
+- [x] [Review][Defer] `result["messages"][-1]` has no bounds check — pre-existing, not introduced by this change [`engine.py:94`] — deferred, pre-existing
+- [x] [Review][Defer] Double iteration over patterns in `sanitize_content` — performance micro-optimization, not a bug [`sanitization.py:80-87`] — deferred, pre-existing
+- [x] [Review][Defer] `zip` truncation on length mismatch between `FORBIDDEN_PHRASES` and `_COMPILED_PATTERNS` — theoretical risk, always generated from same list [`sanitization.py:80`] — deferred, pre-existing
+- [x] [Review][Defer] Test `test_empty_phrase_list` validates unreachable state — `FORBIDDEN_PHRASES=[]` treated as falsy by `_load_forbidden_phrases()` [`test_sanitization.py:194-201`] — deferred, test design
