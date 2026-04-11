@@ -14,6 +14,7 @@ export interface ArgumentPayload {
   agent: "bull" | "bear";
   content: string;
   turn?: number;
+  isRedacted?: boolean;
 }
 
 export interface ErrorPayload {

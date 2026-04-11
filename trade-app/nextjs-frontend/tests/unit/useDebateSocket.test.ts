@@ -248,6 +248,7 @@ describe("[1-4] useDebateSocket Hook Unit Tests", () => {
             agent: "bull",
             content: "Full argument text",
             turn: 1,
+            isRedacted: false,
           },
           timestamp: "2024-01-01T00:00:00Z",
         });
@@ -258,6 +259,7 @@ describe("[1-4] useDebateSocket Hook Unit Tests", () => {
         agent: "bull",
         content: "Full argument text",
         turn: 1,
+        isRedacted: false,
       });
     });
   });

@@ -68,7 +68,7 @@ export function debateResumedPayload() {
   };
 }
 
-export function argumentCompletePayload(agent: 'bull' | 'bear', turn: number) {
+export function argumentCompletePayload(agent: 'bull' | 'bear', turn: number, overrides: Record<string, unknown> = {}) {
   return {
     type: 'DEBATE/ARGUMENT_COMPLETE',
     payload: {
@@ -76,7 +76,17 @@ export function argumentCompletePayload(agent: 'bull' | 'bear', turn: number) {
       agent,
       content: `${agent === 'bull' ? 'Bullish' : 'Bearish'} argument for turn ${turn}.`,
       turn,
+      isRedacted: false,
+      ...overrides,
     },
     timestamp: new Date().toISOString(),
   };
+}
+
+export function redactedArgumentCompletePayload(agent: 'bull' | 'bear', turn: number, originalPhrase = 'guaranteed') {
+  return argumentCompletePayload(agent, turn, {
+    content: `This is a [REDACTED] profit opportunity with strong fundamentals.`,
+    isRedacted: true,
+    _originalPhrase: originalPhrase,
+  });
 }

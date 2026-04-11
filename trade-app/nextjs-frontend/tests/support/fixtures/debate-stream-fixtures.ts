@@ -95,6 +95,7 @@ export const test = base.extend<{ mobileViewport: Page; debateWithMessages: Page
                     agent: 'bull',
                     content: tokens.join(''),
                     turn: 1,
+                    isRedacted: false,
                   },
                   timestamp: new Date().toISOString(),
                 };

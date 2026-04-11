@@ -530,10 +530,21 @@ No debug issues encountered during implementation.
 **NEW:**
 - `trade-app/fastapi_backend/tests/services/debate/test_sanitization.py`
 - `trade-app/fastapi_backend/tests/services/debate/test_sanitization_integration.py`
+- `trade-app/nextjs-frontend/tests/unit/useDebateSocketRedacted.test.ts`
+- `trade-app/nextjs-frontend/tests/unit/ArgumentBubbleRedacted.test.tsx`
+- `trade-app/nextjs-frontend/tests/e2e/debate-stream-redacted.spec.ts`
+- `_bmad-output/test-artifacts/automation-summary-2-4.md`
+
+**MODIFIED (test automation):**
+- `trade-app/nextjs-frontend/features/debate/hooks/useDebateSocket.ts` — added `isRedacted?: boolean` to `ArgumentPayload` interface
+- `trade-app/nextjs-frontend/tests/support/helpers/debate-payloads.ts` — added `isRedacted` to `argumentCompletePayload()`, new `redactedArgumentCompletePayload()` helper
+- `trade-app/nextjs-frontend/tests/support/fixtures/debate-stream-fixtures.ts` — added `isRedacted: false` to `mockWebSocketStream`
+- `trade-app/nextjs-frontend/tests/unit/useDebateSocket.test.ts` — updated existing `[1-4-UNIT-004]` to include `isRedacted: false`
 
 ### Change Log
 
 - 2026-04-11: Story 2.4 implementation complete — forbidden phrase filter with two-layer defense, structured audit logging, configurable phrase list, `isRedacted` WebSocket field, 42 new tests
+- 2026-04-11: Test automation expansion — added `isRedacted` to `ArgumentPayload` type, 15 new frontend tests (5 unit, 6 component, 4 E2E), updated test helpers/fixtures, automation summary at `_bmad-output/test-artifacts/automation-summary-2-4.md`
 
 ### Review Findings
 
