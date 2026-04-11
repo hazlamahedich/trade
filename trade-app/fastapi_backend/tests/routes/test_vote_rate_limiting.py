@@ -35,11 +35,11 @@ class TestRateLimitedVote:
     @pytest.mark.p0
     @pytest.mark.asyncio
     async def test_vote_429_at_exact_boundary(self):
-        """[3-1-API-016] Given current=31 limit=30, When POST /vote, Then 429 (boundary test)"""
+        """[3-1-API-016] Given current=11 limit=10, When POST /vote, Then 429 (boundary test)"""
         boundary = RateLimitResult(
             allowed=False,
-            current=31,
-            limit=30,
+            current=11,
+            limit=10,
             remaining=0,
             reset_at=time.time() + 30,
         )
@@ -53,7 +53,7 @@ class TestRateLimitedVote:
     async def test_vote_succeeds_with_allowed_rate_limiter_result(self):
         """[3-1-API-017] Given rate limiter returns allowed=True (e.g. Redis fail-open), When POST /vote, Then 200"""
         fail_open = RateLimitResult(
-            allowed=True, current=0, limit=30, remaining=30, reset_at=time.time() + 60
+            allowed=True, current=0, limit=10, remaining=10, reset_at=time.time() + 60
         )
         with mock_vote_deps(rate_result=fail_open):
             async with await make_client() as client:
@@ -91,7 +91,7 @@ class TestRateLimitedVote:
         """[3-1-API-019] Given rate-limited response, When meta.retryAfterMs present, Then value accurate within 500ms"""
         reset_at = time.time() + 25.5
         blocked = RateLimitResult(
-            allowed=False, current=31, limit=30, remaining=0, reset_at=reset_at
+            allowed=False, current=11, limit=10, remaining=0, reset_at=reset_at
         )
         with mock_vote_deps(rate_result=blocked):
             async with await make_client() as client:

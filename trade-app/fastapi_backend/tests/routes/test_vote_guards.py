@@ -163,3 +163,60 @@ class TestGuardOrderingIntegration:
                     response = await post_vote(client)
                     assert response.status_code == 429
                     capacity_check.assert_not_called()
+
+    @pytest.mark.p0
+    @pytest.mark.asyncio
+    async def test_capacity_decremented_on_db_write_failure(self):
+        """[3-1-API-037] Given DB write failure after capacity check, When POST /vote, Then capacity limiter release() called (no leak)"""
+        mock_repo = mock_repo_with_running_debate()
+        mock_repo.create_vote = AsyncMock(side_effect=Exception("DB error"))
+        mock_repo.has_existing_vote = AsyncMock(return_value=False)
+
+        capacity_limiter = MagicMock()
+        capacity_limiter.check = AsyncMock(return_value=allowed_result(10000))
+        capacity_limiter.release = AsyncMock()
+
+        with (
+            patch("app.routes.debate.DebateRepository") as MockRepo,
+            patch("app.routes.debate._get_vote_limiter") as mock_rl,
+            patch("app.routes.debate._get_capacity_limiter") as mock_cl,
+        ):
+            MockRepo.return_value = mock_repo
+            mock_rl.return_value.check = AsyncMock(return_value=allowed_result())
+            mock_cl.return_value = capacity_limiter
+
+            async with await make_client() as client:
+                response = await post_vote(client)
+                assert response.status_code == 503
+                capacity_limiter.release.assert_called_once_with("global")
+
+    @pytest.mark.p0
+    @pytest.mark.asyncio
+    async def test_capacity_decremented_on_integrity_error(self):
+        """[3-1-API-038] Given IntegrityError (TOCTOU duplicate) after capacity check, When POST /vote, Then capacity limiter release() called"""
+        from sqlalchemy.exc import IntegrityError
+
+        mock_repo = mock_repo_with_running_debate()
+        mock_repo.create_vote = AsyncMock(
+            side_effect=IntegrityError("", "", Exception("unique constraint"))
+        )
+        mock_repo.has_existing_vote = AsyncMock(return_value=False)
+
+        capacity_limiter = MagicMock()
+        capacity_limiter.check = AsyncMock(return_value=allowed_result(10000))
+        capacity_limiter.release = AsyncMock()
+
+        with (
+            patch("app.routes.debate.DebateRepository") as MockRepo,
+            patch("app.routes.debate._get_vote_limiter") as mock_rl,
+            patch("app.routes.debate._get_capacity_limiter") as mock_cl,
+        ):
+            MockRepo.return_value = mock_repo
+            mock_rl.return_value.check = AsyncMock(return_value=allowed_result())
+            mock_cl.return_value = capacity_limiter
+
+            async with await make_client() as client:
+                response = await post_vote(client)
+                assert response.status_code == 409
+                assert response.json()["error"]["code"] == "DUPLICATE_VOTE"
+                capacity_limiter.release.assert_called_once_with("global")

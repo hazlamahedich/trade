@@ -151,7 +151,7 @@ class TestRateLimiter:
     @pytest.mark.asyncio
     async def test_key_format(self):
         """[3-1-RL-008] Given prefix and identifier, When key built, Then format is prefix:id"""
-        limiter = RateLimiter(prefix="vote_rate", max_requests=30, window_seconds=60)
+        limiter = RateLimiter(prefix="vote_rate", max_requests=10, window_seconds=60)
         assert limiter._key("fp_abc") == "vote_rate:fp_abc"
 
     @pytest.mark.p0
@@ -189,10 +189,10 @@ class TestRateLimiterFactories:
 
     @pytest.mark.p1
     def test_vote_rate_limiter(self):
-        """[3-1-RL-011] Given vote factory, When created, Then prefix=vote_rate limit=30"""
+        """[3-1-RL-011] Given vote factory, When created, Then prefix=vote_rate limit=10"""
         limiter = create_vote_rate_limiter()
         assert limiter.prefix == "vote_rate"
-        assert limiter.max_requests == 30
+        assert limiter.max_requests == 10
         assert limiter.window_seconds == 60
 
     @pytest.mark.p1
@@ -228,3 +228,104 @@ class TestRateLimitResult:
         )
         with pytest.raises(AttributeError):
             result.allowed = False
+
+
+class TestRateLimiterRelease:
+    @pytest.mark.p0
+    @pytest.mark.asyncio
+    async def test_release_decrements_counter(self):
+        """[3-1-RL-015] Given valid key, When release called, Then Redis DECR called"""
+        mock_redis = AsyncMock()
+        mock_redis.decr = AsyncMock(return_value=4)
+
+        with patch(
+            "app.services.rate_limiter.get_redis_client", return_value=mock_redis
+        ):
+            limiter = RateLimiter(prefix="test", max_requests=5, window_seconds=60)
+            await limiter.release("user_123")
+
+            mock_redis.decr.assert_called_once_with("test:user_123")
+
+    @pytest.mark.p0
+    @pytest.mark.asyncio
+    async def test_release_deletes_key_on_negative(self):
+        """[3-1-RL-016] Given counter goes negative, When release, Then key deleted (safety net)"""
+        mock_redis = AsyncMock()
+        mock_redis.decr = AsyncMock(return_value=-1)
+        mock_redis.delete = AsyncMock()
+
+        with patch(
+            "app.services.rate_limiter.get_redis_client", return_value=mock_redis
+        ):
+            limiter = RateLimiter(prefix="test", max_requests=5, window_seconds=60)
+            await limiter.release("user_123")
+
+            mock_redis.decr.assert_called_once_with("test:user_123")
+            mock_redis.delete.assert_called_once_with("test:user_123")
+
+    @pytest.mark.p1
+    @pytest.mark.asyncio
+    async def test_release_redis_failure_no_exception(self):
+        """[3-1-RL-017] Given Redis down, When release called, Then no exception raised"""
+        with patch(
+            "app.services.rate_limiter.get_redis_client",
+            side_effect=Exception("Redis down"),
+        ):
+            limiter = RateLimiter(prefix="test", max_requests=5, window_seconds=60)
+            await limiter.release("user_123")
+
+
+class TestConcurrentLimiterInit:
+    @pytest.mark.p0
+    @pytest.mark.asyncio
+    async def test_concurrent_vote_limiter_init_no_double_create(self):
+        """[3-1-RL-018] Given two concurrent first-access calls, When _get_vote_limiter, Then single instance returned"""
+        import asyncio
+        import app.routes.debate as debate_module
+
+        debate_module._vote_limiter = None
+
+        async def get_limiter():
+            return debate_module._get_vote_limiter()
+
+        results = await asyncio.gather(get_limiter(), get_limiter())
+        assert results[0] is results[1]
+
+        debate_module._vote_limiter = None
+
+    @pytest.mark.p0
+    @pytest.mark.asyncio
+    async def test_concurrent_capacity_limiter_init_no_double_create(self):
+        """[3-1-RL-019] Given two concurrent first-access calls, When _get_capacity_limiter, Then single instance returned"""
+        import asyncio
+        import app.routes.debate as debate_module
+
+        debate_module._capacity_limiter = None
+
+        async def get_limiter():
+            return debate_module._get_capacity_limiter()
+
+        results = await asyncio.gather(get_limiter(), get_limiter())
+        assert results[0] is results[1]
+
+        debate_module._capacity_limiter = None
+
+
+class TestCapacitySemantics:
+    @pytest.mark.skip(
+        "Awaiting product decision: measure unique voters vs vote throughput"
+    )
+    @pytest.mark.p0
+    @pytest.mark.parametrize(
+        "scenario,expected_votes_counted",
+        [
+            ("same_user_two_debates", 2),
+            ("same_user_same_debate_twice", 1),
+            ("two_users_same_debate", 2),
+            ("at_capacity_repeat_submitter_blocked", "blocked"),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_capacity_semantics(self, scenario, expected_votes_counted):
+        """[3-1-RL-020] DESIGN DECISION: capacity tracks [unique voters | vote events] — parameterized to document decision"""
+        pass

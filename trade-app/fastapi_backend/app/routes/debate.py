@@ -246,6 +246,8 @@ async def cast_vote(
         )
 
     # Guard 6: Cast vote (Postgres write)
+    # Capacity slot was reserved by Guard 5's INCR — must DECR on any write failure
+    # to prevent capacity leak under DB outages (see party-mode review 2026-04-11).
     try:
         result = await repo.create_vote(
             debate_id=debate.id,
@@ -254,6 +256,7 @@ async def cast_vote(
             voter_fingerprint=request.voter_fingerprint,
         )
     except IntegrityError:
+        await _get_capacity_limiter().release("global")
         raise HTTPException(
             status_code=409,
             detail={
@@ -266,6 +269,7 @@ async def cast_vote(
             },
         )
     except Exception as e:
+        await _get_capacity_limiter().release("global")
         logger.error(f"Vote write failed for debate {request.debate_id}: {e}")
         raise HTTPException(
             status_code=503,

@@ -379,9 +379,9 @@ glm-5.1 (zai-coding-plan/glm-5.1)
 - [x] [Review][Patch] Rate-limit counter consumed on DB write failure — **Fixed:** Added `test_db_failure_consumes_rate_budget_accepted_tradeoff` test; documented as accepted trade-off.
 - [x] [Review][Patch] Missing tests: capacity config override and window reset — **Fixed:** Added `test_capacity_uses_config_threshold` verifying non-default config is respected.
 - [x] [Review][Patch] Duplicate test across classes — **Fixed:** Removed duplicate `test_rate_limited_does_not_reach_capacity` from `TestRateLimitedVote`.
-- [x] [Review][Defer] Lazy limiter init not thread-safe — `_get_vote_limiter()` / `_get_capacity_limiter()` use check-then-set on globals with no lock. Low risk in practice (CPython GIL, single-event-loop uvicorn). Pre-existing pattern from `get_debate_service()`. Deferred. `[app/routes/debate.py:46-57]`
-- [x] [Review][Defer] Capacity limiter semantics — 60s sliding window means "10K votes per minute" not "10K total active voters". If the intent was a hard cap, the limiter design is wrong. Requires product clarification. Deferred. `[app/services/rate_limiter.py:100-107]`
-- [x] [Review][Defer] DB write consumes capacity counter on failure — `check("global")` increments counter before DB write at Guard 6. If write fails, capacity slot is wasted. Pre-existing architectural limitation of the `RateLimiter` design (INCR-before-check). Deferred.
+- [x] [Review][Defer] Lazy limiter init not thread-safe — `_get_vote_limiter()` / `_get_capacity_limiter()` use check-then-set on globals with no lock. Low risk in practice (CPython GIL, single-event-loop uvicorn). Pre-existing pattern from `get_debate_service()`. Confirmed safe by concurrent init test (`test_concurrent_vote_limiter_init_no_double_create`). `[app/routes/debate.py:46-57]`
+- [x] [Review][Defer→Fixed] Capacity limiter semantics — 60s sliding window means "10K votes per minute" not "10K total active voters". Product decision (party-mode review): confirmed multi-debate model. Capacity should measure unique voters, not votes. Rename to `VOTE_THROUGHPUT_LIMIT` + Redis SET/SCARD model backloged for sprint 3.2. Parameterized skip test added to document decision. `[app/services/rate_limiter.py:100-107]`
+- [x] [Review][Defer→Fixed] DB write consumes capacity counter on failure — Fixed: added `RateLimiter.release()` method (DECR with negative-key cleanup) and called in both `IntegrityError` and generic `Exception` handlers in `cast_vote`. Capacity slot now released on any DB write failure. Tests: `test_capacity_decremented_on_db_write_failure`, `test_capacity_decremented_on_integrity_error`. `[app/routes/debate.py:248-279]`
 
 ### Change Log
 
@@ -389,3 +389,14 @@ glm-5.1 (zai-coding-plan/glm-5.1)
 - 2026-04-11 — Code review: 2 decision-needed → resolved, 9 patch → all fixed, 3 deferred, 2 dismissed. 41 tests pass. Status → done.
 - 2026-04-11 — Test automation (testarch-automate): 32 new tests across 3 files. Repository integration (17), route edge cases (11), rate limiter edge cases (4). Total voting-related: 101/101 pass. Lint clean.
 - 2026-04-11 — Test quality review (testarch-test-review): Score 86/100 → 96/100 after remediation. All 6 concerns addressed: split test_vote_routes.py (1223 lines) into 5 focused files (103-171 lines), removed duplicate test, renamed misleading fail-open tests, created shared vote_test_helpers.py with mock_vote_deps() context manager, added [3-1-{LEVEL}-{SEQ}] test IDs + @pytest.mark.p0/p1/p2 markers + G-W-T docstrings to all ~97 tests. 79 route/unit tests pass, lint clean.
+- 2026-04-11 — Party mode implementation review (8 agents: Winston, Amelia, Murat, John, Sally, Mary, Bob, Victor). Key outcomes: (1) Fixed capacity leak — added `RateLimiter.release()` method, DECR-on-error in both IntegrityError and generic Exception handlers. (2) Lowered per-voter rate limit 30→10 votes/min per UX analysis. (3) Resolved all 3 deferred items: capacity leak fixed, concurrent init confirmed safe, capacity semantics documented with product decision. (4) New tests: capacity rollback on DB failure (2), concurrent limiter init (2), capacity semantics boundary (1 skip, parameterized). (5) Product decisions: multi-debate model confirmed, capacity should measure unique voters (backlogged for 3.2), vote mutability during active debates recommended (backlogged for 3.2). 68 passed, 4 skipped, lint clean. Status → done.
+
+## Backlog Stories (Sprint 3.2)
+
+- B1: Capacity model redesign — replace INCR counter with Redis SET (SADD/SCARD) to track unique voters. Feature flag `capacity_model`.
+- B2: Rename `VOTE_CAPACITY_LIMIT` → appropriate name after B1 decision.
+- B3: Vote mutability — allow changes during active debates, lock on completion. Track revision history.
+- B4: Vote instrumentation — `duplicate_rejection_rate`, `vote_latency_p99`, `vote_change_rate` metrics.
+- B5: Rate-limit tuning spike — validate 10/min against production data after 1 week.
+- B6: Vote-change audit trail UI — users see their own revision history.
+- B7: Guardian hooks for vote events — debate state reacts to sentiment shifts.

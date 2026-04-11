@@ -29,7 +29,7 @@ def make_debate(
     return d
 
 
-def allowed_result(limit: int = 30) -> RateLimitResult:
+def allowed_result(limit: int = 10) -> RateLimitResult:
     return RateLimitResult(
         allowed=True,
         current=1,
@@ -39,7 +39,7 @@ def allowed_result(limit: int = 30) -> RateLimitResult:
     )
 
 
-def blocked_result(limit: int = 30) -> RateLimitResult:
+def blocked_result(limit: int = 10) -> RateLimitResult:
     return RateLimitResult(
         allowed=False,
         current=limit + 1,
@@ -103,6 +103,7 @@ def mock_vote_deps(
         )
         mock_rl.return_value.check = AsyncMock(return_value=_rate_result)
         mock_cl.return_value.check = AsyncMock(return_value=_capacity_result)
+        mock_cl.return_value.release = AsyncMock()
         yield {
             "repo": MockRepo,
             "rate_limiter": mock_rl,

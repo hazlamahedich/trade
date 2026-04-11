@@ -131,8 +131,8 @@ class TestVoteChoiceNormalization:
                 return_value=RateLimitResult(
                     allowed=True,
                     current=1,
-                    limit=30,
-                    remaining=29,
+                    limit=10,
+                    remaining=9,
                     reset_at=time.time() + 60,
                 )
             )
@@ -196,8 +196,8 @@ class TestVoteChoiceNormalization:
                 return_value=RateLimitResult(
                     allowed=True,
                     current=1,
-                    limit=30,
-                    remaining=29,
+                    limit=10,
+                    remaining=9,
                     reset_at=time.time() + 60,
                 )
             )

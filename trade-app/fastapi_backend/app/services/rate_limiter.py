@@ -73,6 +73,16 @@ class RateLimiter:
                 reset_at=time.time() + self.window_seconds,
             )
 
+    async def release(self, identifier: str) -> None:
+        try:
+            redis = await get_redis_client()
+            key = self._key(identifier)
+            current = await redis.decr(key)
+            if current < 0:
+                await redis.delete(key)
+        except Exception as e:
+            logger.warning(f"Redis rate limit release failed: {e}")
+
     async def reset(self, identifier: str) -> None:
         try:
             redis = await get_redis_client()
@@ -92,7 +102,7 @@ def create_debate_rate_limiter() -> RateLimiter:
 def create_vote_rate_limiter() -> RateLimiter:
     return RateLimiter(
         prefix="vote_rate",
-        max_requests=30,
+        max_requests=10,
         window_seconds=60,
     )
 
