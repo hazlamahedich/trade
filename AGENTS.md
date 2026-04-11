@@ -10,7 +10,7 @@ Decision-support platform using adversarial AI agents (Bull, Bear, Risk Guardian
 | Backend | Python 3.11+, FastAPI 0.100+, Pydantic 2.0+ |
 | Database | PostgreSQL 16+, SQLAlchemy |
 | State | React Query (server), Zustand (client) |
-| Testing | Pytest, Vitest + RTL, Playwright |
+| Testing | Pytest, Jest 29 + RTL, Playwright |
 | Styling | Tailwind CSS 3.4 + Shadcn/UI |
 
 ---
@@ -20,22 +20,22 @@ Decision-support platform using adversarial AI agents (Bull, Bear, Risk Guardian
 ### Backend (Python/FastAPI)
 
 ```bash
-# Setup
-python -m venv venv && source venv/bin/activate
+# Setup (venv is at .venv/, NOT venv/)
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
 # Development
 uvicorn app.main:app --reload --port 8000
 
-# Testing
-pytest                                    # All tests
-pytest tests/test_module.py::test_name    # Single test
-pytest -k "pattern"                       # Pattern match
-pytest --cov=app --cov-report=term-missing  # With coverage
+# Testing (use .venv/bin/python -m pytest, NOT source venv/bin/activate)
+.venv/bin/python -m pytest                          # All tests
+.venv/bin/python -m pytest tests/test_module.py::test_name  # Single test
+.venv/bin/python -m pytest -k "pattern"             # Pattern match
+.venv/bin/python -m pytest --cov=app --cov-report=term-missing
 
-# Linting
-ruff check . && ruff format .
-mypy app
+# Linting (ruff is system-level, NOT in .venv)
+ruff check .
+ruff format .
 ```
 
 ### Frontend (Next.js/TypeScript)
@@ -43,7 +43,7 @@ mypy app
 ```bash
 npm install && npm run dev
 
-# Testing
+# Testing (Jest 29, NOT Vitest)
 npm run test                              # All tests
 npm run test -- path/to/test.test.ts      # Single file
 npm run test -- -t "test name"            # Pattern match
@@ -116,7 +116,16 @@ src/features/debate/
 | API JSON keys | camelCase | `createdAt` |
 | WebSocket actions | SCREAMING_SNAKE | `DEBATE/ARGUMENT_RECEIVED` |
 
+**WebSocket Action Types (CRITICAL — verify before use):** All actions use `DEBATE/` prefix, NOT `GUARDIAN/`. Examples: `DEBATE/GUARDIAN_INTERRUPT`, `DEBATE/GUARDIAN_VERDICT`, `DEBATE/STATUS_UPDATE`, `DEBATE/DEBATE_PAUSED`, `DEBATE/DEBATE_RESUMED`, `DEBATE/ARGUMENT_COMPLETE`, `DEBATE/REASONING_NODE`, `DEBATE/TURN_CHANGE`, `DEBATE/COMPLETED`. Follow same `{ type, payload, timestamp }` envelope.
+
+**Sanitization Architecture:** Two-layer defense — prompt prohibition (LLM system message) + regex safety-net (`sanitization.py`). Output uses `SanitizationResult` / `SanitizationContext` Pydantic models with structured audit logging (NFR-09).
+
 **Pydantic Bridge:** Use `alias_generator=camelize` for camelCase API output.
+
+**UI Component Patterns:**
+- Shadcn `Dialog` for Guardian freeze overlays — explicit dismissal required (`onInteractOutside` prevented)
+- Radix `Tooltip` for moderation badges — `delayDuration={200}`, mobile inline text fallback
+- Discriminated union hooks for complex state (e.g., `useGuardianFreeze`: `idle | active | acknowledged`)
 
 ---
 
@@ -179,6 +188,91 @@ create-story → validate → dev-story → code-review → testarch-automate �
 ./.beads-hooks/bmad-integration.sh status
 ./.beads-hooks/bmad-integration.sh dev-start "story-key"
 ```
+
+---
+
+## Lessons Learned (Prep Sprint — Epic 2→3)
+
+These issues caused real bugs or wasted significant debugging time. **Read before writing any test or touching the engine.**
+
+### 1. State Rebuild Drops Fields
+
+**Bug (Task 1):** `stream_debate()` rebuilt `current_state` each turn but dropped `guardian_interrupts` and `pause_history` fields, causing silent data loss across turns.
+
+**Rule:** When rebuilding a dict from a subset of fields, ALWAYS include ALL fields from the original — especially list/dict accumulators (`guardian_interrupts`, `pause_history`, `messages`). Use `current_state.get("field", default)` for optional fields.
+
+### 2. Multi-Turn Mock Infinite Loop
+
+**Pattern:** `patched_debate_engine()` returns static `current_turn` values (1 for bull, 2 for bear). Any test with `max_turns > 2` that doesn't override `mocks["bull"].generate` and `mocks["bear"].generate` with dynamic `side_effect` functions **will loop forever**.
+
+**Rule:** For tests with `max_turns > 2`, ALWAYS override both agent generates with dynamic functions that increment `current_turn`:
+
+```python
+mocks["bull"].generate = AsyncMock(
+    side_effect=lambda state, **kw: {
+        "messages": state.get("messages", []) + [{"role": "bull", "content": "..."}],
+        "current_turn": state.get("current_turn", 0) + 1,
+        "current_agent": "bear",
+    }
+)
+```
+
+### 3. WebSocket Action Prefix
+
+**Bug (recurring):** Code and tests used `GUARDIAN_INTERRUPT` or `GUARDIAN/INTERRUPT`. The correct prefix is `DEBATE/` for ALL actions. Full list in `ws_schemas.py`.
+
+**Rule:** ALL WebSocket action types use `DEBATE/` prefix. There are NO `GUARDIAN/` prefixed actions. Verify against `ws_schemas.py` before writing assertions.
+
+### 4. GuardianAnalysisResult Field Names
+
+**Bug:** Tests used `intervention_needed`, `reasoning`, or other non-existent fields.
+
+**Rule:** `GuardianAnalysisResult` required fields: `should_interrupt`, `risk_level`, `reason`, `safe`, `summary_verdict`. Optional: `fallacy_type`, `detailed_reasoning`. There is NO `intervention_needed` or `reasoning` field.
+
+### 5. Patching Config Requires All Fields
+
+**Bug:** Patching `app.config.settings` with a partial mock caused Pydantic validation errors because `Settings` validates all required fields on access.
+
+**Rule:** When patching `app.config.settings`, you MUST provide ALL required fields:
+
+```python
+with patch("app.config.settings") as mock_settings:
+    mock_settings.guardian_enabled = False
+    mock_settings.DATABASE_URL = "postgresql://test"
+    mock_settings.EXPIRE_ON_COMMIT = False
+    mock_settings.OPENAPI_URL = "/openapi.json"
+    mock_settings.REDIS_URL = "redis://localhost:6379/0"
+    mock_settings.ACCESS_SECRET_KEY = "test"
+    mock_settings.RESET_PASSWORD_SECRET_KEY = "test"
+    mock_settings.VERIFICATION_SECRET_KEY = "test"
+    mock_settings.CORS_ORIGINS = set()
+    mock_settings.openai_api_key = "test"
+    mock_settings.ENVIRONMENT = "test"
+```
+
+### 6. Token Streaming — Sanitize Whole, Emit Delta
+
+**Bug:** Splitting tokens then sanitizing each chunk independently misses forbidden phrases that straddle chunk boundaries.
+
+**Rule:** Accumulate ALL tokens in a buffer. On each flush, sanitize the ENTIRE accumulated text, then emit only the new portion (track `_sanitized_sent` offset). Use `_TAIL_OVERLAP = 20` chars to handle length changes from redaction.
+
+### 7. Database Tests — PostgreSQL Only
+
+**Bug:** Writing model tests with in-memory SQLite fails because SQLAlchemy models use PostgreSQL-specific features.
+
+**Rule:** ALL database tests use the `engine`/`db_session` fixtures from `tests/conftest.py` which create/drop tables against real Postgres per function. Set `TEST_DATABASE_URL` env var. NEVER use in-memory SQLite.
+
+### 8. stream_debate Signature
+
+**Bug:** Tests called with wrong argument names.
+
+**Rule:** `stream_debate(debate_id, asset, market_context, manager, max_turns=6, stale_guardian=None)`. The `manager` is a `DebateConnectionManager` (use `mock_manager` fixture). The `stale_guardian` is a stale data guardian (use `mock_stale_guardian` fixture).
+
+### 9. Lint: Remove Unused Before Committing
+
+**Pattern:** Several files had unused imports (`typing.Any`, `typing.Literal`) and unused variables (`window_key`, `latency_ms`, `start_time`) that ruff caught.
+
+**Rule:** Run `ruff check .` before committing. Fix ALL errors — unused imports, unused variables, unreachable code.
 
 ---
 

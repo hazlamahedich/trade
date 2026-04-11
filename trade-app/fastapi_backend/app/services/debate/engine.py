@@ -331,6 +331,8 @@ async def stream_debate(
                 "max_turns": current_state["max_turns"],
                 "current_agent": result["current_agent"],
                 "status": "running",
+                "guardian_interrupts": current_state.get("guardian_interrupts", []),
+                "pause_history": current_state.get("pause_history", []),
             }
 
             node_type = "bull_analysis" if current_agent == "bull" else "bear_counter"

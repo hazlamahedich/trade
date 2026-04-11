@@ -1,10 +1,10 @@
 ---
 project_name: 'trade'
 user_name: 'team mantis a'
-date: '2026-03-30'
+date: '2026-04-11'
 sections_completed: ['technology_stack', 'implementation_rules', 'testing_rules', 'workflow_rules', 'usage_guidelines']
 status: 'complete'
-rule_count: 34
+rule_count: 42
 optimized_for_llm: true
 ---
 
@@ -21,6 +21,8 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Database:** PostgreSQL 16+
 - **Visualization:** React Flow, Chart.js
 - **Testing:** Pytest, Jest 29, Playwright (E2E)
+- **UI Components:** Shadcn/UI + Radix UI (Dialog, Tooltip)
+- **Backend Sanitization:** Two-layer defense (prompt prohibition + regex safety-net)
 
 ## Critical Implementation Rules
 
@@ -31,6 +33,8 @@ _This file contains critical rules and patterns that AI agents must follow when 
   - **Async/Await:** Mandatory for all I/O operations (DB, API calls).
   - **No Blocking Code:** Never use blocking functions in async routes.
   - **No deprecated datetime:** Use `datetime.now(timezone.utc)` — NEVER `datetime.utcnow()`.
+  - **Venv Location:** Virtual environment is at `.venv/`, NOT `venv/`. Use `.venv/bin/python -m pytest` for tests. Ruff is system-level, not in `.venv`.
+  - **Database:** PostgreSQL ONLY for tests. Use `engine`/`db_session` fixtures from `tests/conftest.py`. NEVER use in-memory SQLite.
 
 - **TypeScript:**
   - **Strict Mode:** `strict: true` must be enabled.
@@ -62,6 +66,23 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Secrets:** Never commit `.env` files; use environment variables.
 - **Barrel Exports:** All new components **MUST** be exported from `index.ts`. All new hooks **MUST** be exported from `hooks/index.ts`. Include this in code review checklist.
 
+### Architecture Patterns (Proven in Epic 2)
+
+- **Discriminated Union State Hooks:** For complex UI state (e.g., `idle | active | acknowledged`), use TypeScript discriminated unions — NOT boolean flags. Eliminates impossible states at the type level.
+- **Defense-in-Depth Sanitization:** Two layers required: (1) prompt-level prohibition in LLM system messages, (2) regex safety-net in `sanitization.py`. Use `SanitizationResult` and `SanitizationContext` Pydantic models for structured audit trail.
+- **Token Streaming Sanitization:** Buffer ALL tokens, sanitize the ENTIRE accumulated text on each flush, then emit only the new delta. NEVER sanitize individual chunks — forbidden phrases can straddle chunk boundaries.
+- **`asyncio.Event` Coordination:** For backend pause/resume flows, use `asyncio.Event` pattern (established in Story 1-6, reused in Story 2-2). Do NOT use polling or sleep-based approaches.
+- **`ArgumentEntry` NamedTuple:** Standardized structure for debate arguments. All new argument types must conform to this interface.
+- **WebSocket Action Prefix:** ALL WebSocket actions use `DEBATE/` prefix — there are NO `GUARDIAN/` prefixed actions. Full list: `DEBATE/GUARDIAN_INTERRUPT`, `DEBATE/GUARDIAN_VERDICT`, `DEBATE/STATUS_UPDATE`, `DEBATE/DEBATE_PAUSED`, `DEBATE/DEBATE_RESUMED`, `DEBATE/ARGUMENT_COMPLETE`, `DEBATE/REASONING_NODE`, `DEBATE/TURN_CHANGE`, `DEBATE/COMPLETED`. Verify against `ws_schemas.py`.
+- **State Rebuild Discipline:** When rebuilding a dict from a subset of fields, ALWAYS include ALL fields from the original — especially list/dict accumulators (`guardian_interrupts`, `pause_history`, `messages`). Use `current_state.get("field", default)` for optional fields.
+- **Config Patching:** When patching `app.config.settings`, provide ALL required fields (it's a Pydantic model that validates on access). See AGENTS.md for the full list.
+- **Multi-Turn Test Mocks:** `patched_debate_engine()` returns static turn counts. For `max_turns > 2`, ALWAYS override `mocks["bull"].generate` and `mocks["bear"].generate` with dynamic `side_effect` functions that increment `current_turn`.
+
+### Radix UI / Shadcn Component Patterns
+
+- **Dialog (Modal Overlays):** Use Shadcn `Dialog` for Guardian freeze overlays. Must require explicit dismissal — no clicking outside to close. Use `onInteractOutside={(e) => e.preventDefault()}`.
+- **Tooltip (Contextual Info):** Use Radix `Tooltip` for moderation badges and contextual info. Set `delayDuration={200}` for responsive feel. Include mobile fallback (inline text for small screens).
+
 ### Testing Rules
 
 - **Backend:** Pytest with `pytest-asyncio`. Mock all external services.
@@ -90,6 +111,8 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **NEVER** use `waitForTimeout()` — wait for actual conditions instead
 - Use `page.route()` to mock API responses for isolated testing
 - Max 300 lines per test file — split into focused files if exceeding
+- Use shared WS helper pattern for Guardian/moderation WebSocket testing
+- Use `data-testid` attributes for stable E2E selectors
 
 ---
 
@@ -109,4 +132,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review quarterly for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-03-30
+Last Updated: 2026-04-11 (Prep Sprint — added streaming sanitization, WS prefix correction, state rebuild discipline, config patching, mock patterns)

@@ -107,7 +107,16 @@ async def check_connection_rate_limit(ip: str) -> bool:
 
 
 class TokenStreamingHandler(AsyncCallbackHandler):
-    """Streams LLM tokens directly to WebSocket via connection manager."""
+    """Streams LLM tokens to WebSocket via connection manager with sanitization.
+
+    Tokens are accumulated. On flush (threshold or LLM end), the ENTIRE
+    accumulated text is sanitized at once so forbidden phrases that span
+    token boundaries are always caught. The handler tracks how much
+    sanitized text has already been sent and only emits the new portion.
+    """
+
+    _TAIL_OVERLAP = 20
+    _BUFFER_FLUSH_THRESHOLD = 80
 
     def __init__(
         self,
@@ -118,15 +127,58 @@ class TokenStreamingHandler(AsyncCallbackHandler):
         self.manager = manager
         self.debate_id = debate_id
         self.agent = agent
+        self._accumulated: str = ""
+        self._sanitized_sent: int = 0
 
-    async def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
+    def _sanitize_text(self, text: str) -> str:
+        from app.services.debate.sanitization import sanitize_response
+
+        return sanitize_response(text)
+
+    async def _try_flush(self) -> None:
+        if len(self._accumulated) < self._BUFFER_FLUSH_THRESHOLD:
+            return
+        full_sanitized = self._sanitize_text(self._accumulated)
+        new_part = full_sanitized[self._sanitized_sent :]
+        if not new_part:
+            return
+        self._sanitized_sent = max(0, len(full_sanitized) - self._TAIL_OVERLAP)
         try:
             action = WebSocketAction(
                 type="DEBATE/TOKEN_RECEIVED",
                 payload={
                     "debateId": self.debate_id,
                     "agent": self.agent,
-                    "token": token,
+                    "token": new_part,
+                },
+            )
+            await self.manager.broadcast_to_debate(
+                self.debate_id, action.model_dump(by_alias=True)
+            )
+        except Exception as e:
+            logger.warning(f"Failed to broadcast token: {e}")
+
+    async def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
+        self._accumulated += token
+        if len(self._accumulated) >= self._BUFFER_FLUSH_THRESHOLD:
+            await self._try_flush()
+
+    async def on_llm_end(self, response: Any, **kwargs: Any) -> None:
+        if not self._accumulated:
+            return
+        full_sanitized = self._sanitize_text(self._accumulated)
+        new_part = full_sanitized[self._sanitized_sent :]
+        self._accumulated = ""
+        self._sanitized_sent = 0
+        if not new_part:
+            return
+        try:
+            action = WebSocketAction(
+                type="DEBATE/TOKEN_RECEIVED",
+                payload={
+                    "debateId": self.debate_id,
+                    "agent": self.agent,
+                    "token": new_part,
                 },
             )
             await self.manager.broadcast_to_debate(
