@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     guardian_llm_temperature: float = 0.3
     guardian_enabled: bool = True
 
+    # Voting Capacity
+    VOTE_CAPACITY_LIMIT: int = 10_000
+
     # Forbidden Phrases (configurable compliance list)
     FORBIDDEN_PHRASES: list[str] = [
         "guaranteed",

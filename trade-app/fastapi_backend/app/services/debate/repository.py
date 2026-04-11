@@ -102,6 +102,38 @@ class DebateRepository:
             vote_breakdown=vote_breakdown,
         )
 
+    async def has_existing_vote(self, debate_id, voter_fingerprint: str) -> bool:
+        existing_stmt = select(Vote).where(
+            Vote.debate_id == debate_id,
+            Vote.voter_fingerprint == voter_fingerprint,
+        )
+        existing = await self.session.execute(existing_stmt)
+        return existing.scalar_one_or_none() is not None
+
+    async def create_vote(
+        self,
+        debate_id,
+        debate_external_id: str,
+        choice: str,
+        voter_fingerprint: str,
+    ) -> VoteResponse:
+        vote = Vote(
+            debate_id=debate_id,
+            choice=choice,
+            voter_fingerprint=voter_fingerprint,
+        )
+        self.session.add(vote)
+        await self.session.commit()
+        await self.session.refresh(vote)
+
+        return VoteResponse(
+            vote_id=str(vote.id),
+            debate_id=debate_external_id,
+            choice=vote.choice,
+            voter_fingerprint=vote.voter_fingerprint,
+            created_at=vote.created_at,
+        )
+
     async def cast_vote(
         self, debate_external_id: str, choice: str, voter_fingerprint: str
     ) -> VoteResponse | None:

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 VALID_VOTE_CHOICES = {"bull", "bear", "undecided"}
@@ -65,12 +65,31 @@ class DebateResultMeta(BaseModel):
     latency_ms: int = Field(serialization_alias="latencyMs")
 
 
+class VoteSuccessMeta(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    latency_ms: int = Field(serialization_alias="latencyMs")
+    is_final: Literal[True] = Field(serialization_alias="isFinal")
+
+
+class VoteErrorMeta(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    retry_after_ms: int | None = Field(None, serialization_alias="retryAfterMs")
+    estimated_wait_ms: int | None = Field(None, serialization_alias="estimatedWaitMs")
+    supported_choices: list[str] | None = Field(
+        None, serialization_alias="supportedChoices"
+    )
+    debate_status: str | None = Field(None, serialization_alias="debateStatus")
+    is_final: bool | None = Field(None, serialization_alias="isFinal")
+
+
 class StandardVoteResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     data: VoteResponse | None = None
     error: dict[str, str] | None = None
-    meta: dict[str, Any] = {}
+    meta: VoteSuccessMeta | dict[str, Any] = {}
 
 
 class StandardDebateResultResponse(BaseModel):

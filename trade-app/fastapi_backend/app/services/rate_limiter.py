@@ -97,6 +97,16 @@ def create_vote_rate_limiter() -> RateLimiter:
     )
 
 
+def create_vote_capacity_limiter() -> RateLimiter:
+    from app.config import settings
+
+    return RateLimiter(
+        prefix="capacity:active_voters",
+        max_requests=settings.VOTE_CAPACITY_LIMIT,
+        window_seconds=60,
+    )
+
+
 def create_ws_connection_rate_limiter() -> RateLimiter:
     return RateLimiter(
         prefix="ws_rate",
