@@ -511,6 +511,9 @@ N/A
 - 49/49 unit tests passing
 - Zero new lint/typecheck errors
 - 7 deferred items documented in deferred-work.md (all pre-existing or Story 3.4 scope)
+- Test automation expansion: 27 new tests (20 unit + 7 E2E) covering api.ts, storedVote.ts, and all 5 ACs at E2E level
+- 69/69 total unit tests passing (49 existing + 20 new)
+- Identified pre-existing bug: `tests/e2e/voting.spec.ts` uses stale data-testids and `status: 'active'` instead of `'running'`
 
 ### File List
 
@@ -531,3 +534,7 @@ N/A
 - `tests/unit/VoteControls.test.tsx` — NEW 12 tests
 - `tests/unit/SentimentReveal.test.tsx` — NEW 10 tests
 - `tests/unit/queryKeys.test.ts` — NEW 3 tests
+- `tests/unit/voteApi.test.ts` — NEW 12 tests (submitVote, fetchDebateResult, fingerprint, error handling, non-JSON)
+- `tests/unit/storedVote.test.ts` — NEW 8 tests (get/set/corrupted JSON/isolation/overwrite)
+- `tests/e2e/voting-ui.spec.ts` — NEW 7 E2E tests (mock-based, all 5 ACs: optimistic update, sentiment reveal, rollback, already-voted, Guardian freeze)
+- `_bmad-output/test-artifacts/automation-summary-story-3-2.md` — NEW test automation summary
