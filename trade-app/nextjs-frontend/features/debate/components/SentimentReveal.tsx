@@ -36,9 +36,9 @@ export function SentimentReveal({ voteBreakdown, totalVotes }: SentimentRevealPr
     );
   }
 
-  const knownTotal = bullVotes + bearVotes || totalVotes;
-  const bullPct = Math.round((bullVotes / knownTotal) * 100);
-  const bearPct = 100 - bullPct;
+  const bullPct = totalVotes > 0 ? Math.round((bullVotes / totalVotes) * 100) : 0;
+  const bearPct = totalVotes > 0 ? Math.round((bearVotes / totalVotes) * 100) : 0;
+  const otherPct = 100 - bullPct - bearPct;
 
   return (
     <div
@@ -62,7 +62,7 @@ export function SentimentReveal({ voteBreakdown, totalVotes }: SentimentRevealPr
       <div
         className="h-2 rounded-full overflow-hidden bg-slate-700 flex"
         role="img"
-        aria-label={`Bull: ${bullPct}%, Bear: ${bearPct}%`}
+        aria-label={`Bull: ${bullPct}%, Bear: ${bearPct}%${otherPct > 0 ? `, Other: ${otherPct}%` : ""}`}
       >
         <div
           className={cn(
@@ -71,6 +71,12 @@ export function SentimentReveal({ voteBreakdown, totalVotes }: SentimentRevealPr
           )}
           style={{ width: `${bullPct}%` }}
         />
+        {otherPct > 0 && (
+          <div
+            className="bg-slate-500"
+            style={{ width: `${otherPct}%` }}
+          />
+        )}
         <div
           className={cn(
             "bg-rose-500",

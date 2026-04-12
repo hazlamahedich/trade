@@ -493,6 +493,38 @@ Key learnings from Story 3.1 implementation:
 - [x] [Review][Defer] useVotingStatus never refetches on live debate [`useVotingStatus.ts:28-32`] — deferred, explicitly Story 3.4 scope. Spec: "Full real-time polling/WebSocket updates are Story 3.4."
 - [x] [Review][Defer] useMutation object in useCallback dependency — memoization ineffective [`useVote.ts:111`] — deferred, cosmetic. Race guard via ref is the real protection; callback recreation is harmless.
 
+## Party Mode Review Findings (2026-04-12)
+
+**Participants:** Winston (Architect), Amelia (Developer), Sally (UX Designer), Murat (Test Architect)
+
+### Patch (All Applied)
+
+- [x] [Party Review][Patch] SentimentReveal renders undecided votes as 100% Bear — `knownTotal = bullVotes + bearVotes || totalVotes` fallback assigned all non-bull/bear votes to Bear. Fixed: use `totalVotes` as denominator, render gray `bg-slate-500` segment for other votes. [`SentimentReveal.tsx`]
+- [x] [Party Review][Patch] `animate-pulse` on VoteControls ignores `prefers-reduced-motion` — WCAG motion safety violation. Fixed: gate on `!shouldReduceMotion`. [`VoteControls.tsx:64,84`]
+- [x] [Party Review][Patch] Vote buttons undersized for WCAG 2.5.5 touch targets — Added `min-h-[44px]` to both buttons. [`VoteControls.tsx`]
+- [x] [Party Review][Patch] Guardian freeze micro-label low contrast — `text-slate-400` on dark backdrop below AA for small text. Changed to `text-slate-300`. [`VoteControls.tsx:45`]
+- [x] [Party Review][Patch] No network timeout handling for submitVote — requests could hang forever with optimistic update stuck. Added `AbortController` with 10s timeout, throws `{ code: "TIMEOUT" }`. [`api.ts`]
+- [x] [Party Review][Patch] TIMEOUT error code missing from useVote ERROR_MESSAGES — Added `"TIMEOUT": "Vote request timed out. Please try again."`. [`useVote.ts:18-24`]
+
+### Acknowledged (No Action Needed)
+
+- **DebateStream becoming god component (414 lines)** — Winston flagged. Accepted for now; decompose into `DebateStateProvider` before next feature lands.
+- **useVotingStatus never refetches** — Deferred to Story 3.4 scope. Architecture supports fix.
+- **sessionStorage silently fails when full/disabled** — Low probability, high confusion. 409 Path B relies on it. Acceptable for anonymous-first MVP.
+
+### Tests Added
+
+- SR03b: aria-label includes "Other" for undecided votes
+- SR04b: gray segment renders for other votes in bar
+- SR07c: all-undecided votes (0 bull, 0 bear) — no false 100% Bear
+- VC04c: reduced motion suppresses animate-pulse on voting button
+- VC09b: buttons meet 44px minimum touch target
+- API06b: network timeout (AbortError) throws TIMEOUT error
+
+### Suite Result
+
+290/290 tests passing (was 284). Zero new lint/typecheck errors.
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -521,29 +553,37 @@ N/A
   - P3: E2E-04 auth mock deduplicated via setupRunningDebate() override
 - Stale voting.spec.ts fixed: status 'active'→'running', non-existent testids replaced, vote-history test removed (feature doesn't exist), getByTestId() throughout
 - 284/284 total tests passing (suite-wide)
+- Party mode review (Winston/Amelia/Sally/Murat): 6 additional patches applied
+  - SentimentReveal: fixed undecided → 100% Bear false positive, gray "Other" segment
+  - VoteControls: animate-pulse respects reduced-motion, min-h-[44px] touch targets, micro-label contrast fix
+  - api.ts: AbortController 10s timeout with TIMEOUT error code
+  - useVote.ts: TIMEOUT added to ERROR_MESSAGES
+  - 6 new tests: SR03b, SR04b, SR07c, VC04c, VC09b, API06b
+- 290/290 total tests passing (suite-wide, +6 from party review)
 
 ### File List
 
 - `app/providers.tsx` — NEW QueryClientProvider wrapper
 - `app/layout.tsx` — Updated with Providers wrapper
 - `features/debate/hooks/storedVote.ts` — NEW shared vote storage utility
-- `features/debate/api.ts` — NEW with parseJsonSafely()
-- `features/debate/hooks/useVote.ts` — NEW with useEffect hydration, voted guard, optimistic cache, toast.info
+- `features/debate/api.ts` — NEW with parseJsonSafely(), AbortController timeout
+- `features/debate/hooks/useVote.ts` — NEW with useEffect hydration, voted guard, optimistic cache, toast.info, TIMEOUT message
 - `features/debate/hooks/useVotingStatus.ts` — NEW with useEffect hydration, serverStatus export
 - `features/debate/hooks/queryKeys.ts` — NEW centralized query key factory
-- `features/debate/components/VoteControls.tsx` — NEW with dynamic labels, Voting… + pulse
-- `features/debate/components/SentimentReveal.tsx` — NEW with bearVotes fix, focus management
+- `features/debate/components/VoteControls.tsx` — NEW with dynamic labels, Voting… + pulse (reduced-motion safe), min-h-[44px] touch targets, AA contrast micro-label
+- `features/debate/components/SentimentReveal.tsx` — NEW with gray "Other" segment for undecided votes, focus management
 - `features/debate/components/DebateStream.tsx` — Updated typed debateStatus, serverStatus wiring, vote controls integration
 - `features/debate/hooks/index.ts` — Updated re-exports
 - `features/debate/components/index.ts` — Updated re-exports
 - `tests/unit/useVote.test.ts` — NEW 18 tests
 - `tests/unit/useVotingStatus.test.ts` — NEW 7 tests
-- `tests/unit/VoteControls.test.tsx` — NEW 12 tests
-- `tests/unit/SentimentReveal.test.tsx` — NEW 10 tests
+- `tests/unit/VoteControls.test.tsx` — NEW 14 tests (12 + VC04c reduced-motion pulse + VC09b touch targets)
+- `tests/unit/SentimentReveal.test.tsx` — NEW 14 tests (10 + SR03b Other aria-label + SR04b gray segment + SR07c all-undecided)
 - `tests/unit/queryKeys.test.ts` — NEW 3 tests
-- `tests/unit/voteApi.test.ts` — NEW 12 tests (submitVote, fetchDebateResult, fingerprint, error handling, non-JSON)
+- `tests/unit/voteApi.test.ts` — NEW 13 tests (12 + API06b timeout)
 - `tests/unit/storedVote.test.ts` — NEW 8 tests (get/set/corrupted JSON/isolation/overwrite)
 - `tests/e2e/voting-ui.spec.ts` — NEW 7 E2E tests (mock-based, all 5 ACs: optimistic update, sentiment reveal, rollback, already-voted, Guardian freeze)
 - `_bmad-output/test-artifacts/automation-summary-story-3-2.md` — NEW test automation summary
 - `_bmad-output/test-artifacts/test-reviews/test-review-story-3-2.md` — NEW test quality review (88/100)
 - `tests/e2e/voting.spec.ts` — FIXED stale testids, status 'active'→'running', getByTestId()
+- `_bmad-output/implementation-artifacts/3-2-voting-ui-components.md` — Updated with party mode review findings

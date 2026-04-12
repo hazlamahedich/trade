@@ -1,3 +1,5 @@
+const VOTE_TIMEOUT_MS = 10_000;
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export interface VoteRequest {
@@ -79,28 +81,45 @@ function parseJsonSafely(response: Response): Promise<VoteEnvelope> {
 }
 
 export async function submitVote(request: VoteRequest): Promise<VoteSuccessEnvelope> {
-  const response = await fetch(`${API_BASE_URL}/api/debate/vote`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), VOTE_TIMEOUT_MS);
 
-  const body = await parseJsonSafely(response);
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/debate/vote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+      signal: controller.signal,
+    });
 
-  if (!response.ok || isVoteErrorEnvelope(body)) {
-    const error: VoteError = body.error ?? {
-      code: "UNKNOWN_ERROR",
-      message: `Vote failed with status ${response.status}`,
-    };
-    const errorWithStatus = Object.assign(new Error(error.message), {
-      code: error.code,
-      status: response.status,
-      meta: body.meta ?? {},
-    }) as VoteApiError;
-    throw errorWithStatus;
+    const body = await parseJsonSafely(response);
+
+    if (!response.ok || isVoteErrorEnvelope(body)) {
+      const error: VoteError = body.error ?? {
+        code: "UNKNOWN_ERROR",
+        message: `Vote failed with status ${response.status}`,
+      };
+      const errorWithStatus = Object.assign(new Error(error.message), {
+        code: error.code,
+        status: response.status,
+        meta: body.meta ?? {},
+      }) as VoteApiError;
+      throw errorWithStatus;
+    }
+
+    return body;
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw Object.assign(new Error("Vote request timed out. Please try again."), {
+        code: "TIMEOUT",
+        status: 0,
+        meta: {},
+      }) as VoteApiError;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return body;
 }
 
 export async function fetchDebateResult(debateId: string): Promise<DebateResultEnvelope> {

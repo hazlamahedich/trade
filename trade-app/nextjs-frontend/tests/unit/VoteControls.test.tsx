@@ -83,6 +83,19 @@ describe("[3-2-UNIT] VoteControls Component", () => {
     expect(bullBtn.className).toContain("animate-pulse");
   });
 
+  test("[3-2-UNIT-VC04c] voting button respects reduced motion — no animate-pulse @p0", () => {
+    // Given: user prefers reduced motion and voteStatus='voting'
+    mockUseReducedMotion.mockReturnValue(true);
+    render(<VoteControls {...defaultProps} voteStatus="voting" userVote="bull" />);
+
+    // When: querying the voting bull button
+    const bullBtn = screen.getByTestId("vote-bull-btn");
+
+    // Then: shows "Voting…" text but NO pulse animation
+    expect(bullBtn).toHaveTextContent("Voting…");
+    expect(bullBtn.className).not.toContain("animate-pulse");
+  });
+
   test("[3-2-UNIT-VC05] rapid double-click — second click ignored when voting @p0", () => {
     // Given: VoteControls in idle state
     const vote = jest.fn();
@@ -163,15 +176,30 @@ describe("[3-2-UNIT] VoteControls Component", () => {
     expect(region).toBeInTheDocument();
   });
 
+  test("[3-2-UNIT-VC09b] buttons meet 44px minimum touch target @p1", () => {
+    // Given: VoteControls rendered
+    render(<VoteControls {...defaultProps} />);
+
+    // When: querying both buttons
+    const bullBtn = screen.getByTestId("vote-bull-btn");
+    const bearBtn = screen.getByTestId("vote-bear-btn");
+
+    // Then: both have min-h-[44px] class for WCAG 2.5.5 touch target
+    expect(bullBtn.className).toContain("min-h-[44px]");
+    expect(bearBtn.className).toContain("min-h-[44px]");
+  });
+
   test("[3-2-UNIT-VC10] Guardian freeze — buttons disabled with micro-label @p0", () => {
     // Given: VoteControls with isFrozen=true (Guardian freeze active)
     render(<VoteControls {...defaultProps} isFrozen={true} />);
 
     // When: querying buttons and freeze label
-    // Then: buttons disabled and freeze message shown
+    // Then: buttons disabled and freeze message shown with AA-passing contrast
     expect(screen.getByTestId("vote-bull-btn")).toBeDisabled();
     expect(screen.getByTestId("vote-bear-btn")).toBeDisabled();
-    expect(screen.getByText("Voting paused during risk review")).toBeInTheDocument();
+    const freezeLabel = screen.getByText("Voting paused during risk review");
+    expect(freezeLabel).toBeInTheDocument();
+    expect(freezeLabel.className).toContain("text-slate-300");
   });
 
   test("[3-2-UNIT-VC11] keyboard navigation — Tab reaches buttons @p1", () => {

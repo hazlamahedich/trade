@@ -42,7 +42,7 @@ export function VoteControls({
       className="sticky bottom-0 bg-slate-900/80 backdrop-blur-md border-t border-white/10 p-4"
     >
       {isFrozen && (
-        <p className="text-center text-xs text-slate-400 mb-2" role="status">
+        <p className="text-center text-xs text-slate-300 mb-2" role="status">
           Voting paused during risk review
         </p>
       )}
@@ -54,14 +54,14 @@ export function VoteControls({
           disabled={bothDisabled || userVote === "bear"}
           onClick={() => vote("bull")}
           className={cn(
-            "flex-1 text-white",
+            "flex-1 min-h-[44px] text-white",
             shouldReduceMotion ? "" : "transition-colors",
             userVote === "bull"
               ? "bg-emerald-500 text-white ring-2 ring-emerald-400 ring-offset-2 ring-offset-slate-900"
               : bothDisabled
                 ? "bg-slate-700 text-slate-400 cursor-not-allowed opacity-50"
                 : "bg-emerald-500 hover:bg-emerald-600",
-            isVoting && userVote === "bull" && "animate-pulse",
+            !shouldReduceMotion && isVoting && userVote === "bull" && "animate-pulse",
           )}
         >
           <TrendingUp className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -74,14 +74,14 @@ export function VoteControls({
           disabled={bothDisabled || userVote === "bull"}
           onClick={() => vote("bear")}
           className={cn(
-            "flex-1 text-white",
+            "flex-1 min-h-[44px] text-white",
             shouldReduceMotion ? "" : "transition-colors",
             userVote === "bear"
               ? "bg-rose-500 text-white ring-2 ring-rose-400 ring-offset-2 ring-offset-slate-900"
               : bothDisabled
                 ? "bg-slate-700 text-slate-400 cursor-not-allowed opacity-50"
                 : "bg-rose-500 hover:bg-rose-600",
-            isVoting && userVote === "bear" && "animate-pulse",
+            !shouldReduceMotion && isVoting && userVote === "bear" && "animate-pulse",
           )}
         >
           <TrendingDown className="mr-2 h-4 w-4" aria-hidden="true" />

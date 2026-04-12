@@ -57,6 +57,21 @@ describe("[3-2-UNIT] SentimentReveal Component", () => {
     expect(region).toHaveAttribute("aria-label", "Bull: 70%, Bear: 30%");
   });
 
+  test("[3-2-UNIT-SR03b] aria-label includes Other when undecided votes present @p0", () => {
+    // Given: a 30/30/40 bull/bear/undecided split
+    render(
+      <SentimentReveal
+        voteBreakdown={{ bull: 30, bear: 30, undecided: 40 }}
+        totalVotes={100}
+      />,
+    );
+
+    // When: querying the bar's aria-label
+    // Then: label includes Other percentage
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("aria-label", "Bull: 30%, Bear: 30%, Other: 40%");
+  });
+
   test("[3-2-UNIT-SR04] bar widths match percentages @p0", () => {
     // Given: a 60/40 split
     render(
@@ -70,9 +85,31 @@ describe("[3-2-UNIT] SentimentReveal Component", () => {
     const img = screen.getByRole("img");
     const bars = img.children;
 
-    // Then: first bar is 60% width, second is 40%
+    // Then: first bar is 60% width, last is 40% (no other segment)
     expect((bars[0] as HTMLElement).style.width).toBe("60%");
+    expect((bars[bars.length - 1] as HTMLElement).style.width).toBe("40%");
+    expect(bars.length).toBe(2);
+  });
+
+  test("[3-2-UNIT-SR04b] bar includes gray segment for other votes @p0", () => {
+    // Given: a 30/30/40 split with undecided votes
+    render(
+      <SentimentReveal
+        voteBreakdown={{ bull: 30, bear: 30, undecided: 40 }}
+        totalVotes={100}
+      />,
+    );
+
+    // When: querying bar elements
+    const img = screen.getByRole("img");
+    const bars = img.children;
+
+    // Then: three segments — bull 30%, other 40%, bear 30%
+    expect(bars.length).toBe(3);
+    expect((bars[0] as HTMLElement).style.width).toBe("30%");
+    expect((bars[1] as HTMLElement).className).toContain("bg-slate-500");
     expect((bars[1] as HTMLElement).style.width).toBe("40%");
+    expect((bars[2] as HTMLElement).style.width).toBe("30%");
   });
 
   test("[3-2-UNIT-SR05] zero-votes state — shows placeholder @p0", () => {
@@ -100,7 +137,7 @@ describe("[3-2-UNIT] SentimentReveal Component", () => {
 
     // Then: both bars are 50% width
     expect((bars[0] as HTMLElement).style.width).toBe("50%");
-    expect((bars[1] as HTMLElement).style.width).toBe("50%");
+    expect((bars[bars.length - 1] as HTMLElement).style.width).toBe("50%");
   });
 
   test("[3-2-UNIT-SR07] extreme ratio — both sides have text labels @p0", () => {
@@ -128,9 +165,35 @@ describe("[3-2-UNIT] SentimentReveal Component", () => {
     );
 
     // When: querying percentage labels
-    // Then: only bull and bear are shown, each at 50%
-    expect(screen.getByText("Bull 50%")).toBeInTheDocument();
-    expect(screen.getByText("Bear 50%")).toBeInTheDocument();
+    // Then: bull and bear each at 30%, other segment at 40%
+    expect(screen.getByText("Bull 30%")).toBeInTheDocument();
+    expect(screen.getByText("Bear 30%")).toBeInTheDocument();
+    const img = screen.getByRole("img");
+    const bars = img.children;
+    expect(bars.length).toBe(3);
+    expect((bars[1] as HTMLElement).style.width).toBe("40%");
+  });
+
+  test("[3-2-UNIT-SR07c] all-undecided votes — no 100% Bear false positive @p0", () => {
+    // Given: 0 bull, 0 bear, 5 undecided votes
+    render(
+      <SentimentReveal
+        voteBreakdown={{ undecided: 5 }}
+        totalVotes={5}
+      />,
+    );
+
+    // When: querying percentage labels
+    // Then: bull and bear both 0%, gray segment is 100%
+    expect(screen.getByText("Bull 0%")).toBeInTheDocument();
+    expect(screen.getByText("Bear 0%")).toBeInTheDocument();
+    const img = screen.getByRole("img");
+    const bars = img.children;
+    expect(bars.length).toBe(3);
+    expect((bars[0] as HTMLElement).style.width).toBe("0%");
+    expect((bars[1] as HTMLElement).className).toContain("bg-slate-500");
+    expect((bars[1] as HTMLElement).style.width).toBe("100%");
+    expect((bars[2] as HTMLElement).style.width).toBe("0%");
   });
 
   test("[3-2-UNIT-SR08] reduced motion — bar uses instant transition @p1", () => {

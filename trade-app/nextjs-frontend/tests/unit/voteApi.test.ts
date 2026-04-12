@@ -130,15 +130,28 @@ describe("[3-2-UNIT] Vote API Client", () => {
       // When: calling submitVote
       await submitVote(validRequest);
 
-      // Then: fetch called with correct URL, method, headers, and body
+      // Then: fetch called with correct URL, method, headers, body, and signal
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/debate/vote"),
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(validRequest),
+          signal: expect.any(AbortSignal),
         }),
       );
+    });
+
+    test("[3-2-UNIT-API06b] network timeout throws TIMEOUT error @p0", async () => {
+      // Given: fetch is aborted (simulating a timeout via AbortController)
+      const abortErr = new DOMException("The operation was aborted.", "AbortError");
+      mockFetch.mockRejectedValue(abortErr);
+
+      // When/Then: submitVote rejects with TIMEOUT code
+      await expect(submitVote(validRequest)).rejects.toMatchObject({
+        code: "TIMEOUT",
+        status: 0,
+      });
     });
   });
 

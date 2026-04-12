@@ -21,6 +21,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   VOTING_DISABLED: "Voting is temporarily unavailable. Please try again shortly.",
   DEBATE_NOT_ACTIVE: "This debate is no longer accepting votes.",
   DEBATE_NOT_FOUND: "This debate could not be found.",
+  TIMEOUT: "Vote request timed out. Please try again.",
 };
 
 export function useVote(debateId: string) {
