@@ -41,3 +41,8 @@
 - Vote in-flight during Guardian freeze — error toast may be obscured by overlay [VoteControls.tsx:26, useVote.ts:98-100] — low priority; guardian overlay is blocking, toast visible after dismissal
 - useVotingStatus never refetches on live debate [useVotingStatus.ts:28-32] — explicitly Story 3.4 scope; spec says "Full real-time polling/WebSocket updates are Story 3.4"
 - useMutation object in useCallback dependency — memoization ineffective [useVote.ts:111] — cosmetic; race guard via ref is the real protection
+
+## Deferred from: code review of 3-3-sentiment-aggregation-service (2026-04-12)
+
+- Benchmark tests repo layer not HTTP endpoint — AC2 specifies `GET /api/debate/{id}/result` but test calls repo directly [`test_sentiment_benchmark.py:72`] — test architecture decision; repo-only benchmark isolates query performance from HTTP overhead
+- String-based query detection in `test_no_redundant_count_query` fragile across SQLAlchemy versions [`test_vote_repository.py:353`] — pre-existing test pattern, functional with current asyncpg dialect

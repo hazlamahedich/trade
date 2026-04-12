@@ -82,12 +82,7 @@ class DebateRepository:
         )
         vote_result = await self.session.execute(vote_count_stmt)
         vote_breakdown = {row[0]: row[1] for row in vote_result}
-
-        total_votes_stmt = select(func.count(Vote.id)).where(
-            Vote.debate_id == debate.id
-        )
-        total_result = await self.session.execute(total_votes_stmt)
-        total_votes = total_result.scalar() or 0
+        total_votes = sum(vote_breakdown.values())
 
         return DebateResultResponse(
             debate_id=debate.external_id,

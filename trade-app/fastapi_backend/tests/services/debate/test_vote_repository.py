@@ -298,3 +298,93 @@ class TestRepositoryVoteConcurrency:
         db_session.add(vote2)
         with pytest.raises(IntegrityError):
             await db_session.commit()
+
+
+class TestGetResultOptimized:
+    @pytest.mark.asyncio
+    async def test_total_votes_derived_from_breakdown(self, repo, debate_with_session):
+        """[3-3-REPO-001] totalVotes equals sum(breakdown.values()), not a separate COUNT query"""
+        for i in range(5):
+            await repo.create_vote(
+                debate_id=debate_with_session.id,
+                debate_external_id=debate_with_session.external_id,
+                choice="bull",
+                voter_fingerprint=f"fp_opt_derived_{i}",
+            )
+        for i in range(3):
+            await repo.create_vote(
+                debate_id=debate_with_session.id,
+                debate_external_id=debate_with_session.external_id,
+                choice="bear",
+                voter_fingerprint=f"fp_opt_derived_b_{i}",
+            )
+
+        result = await repo.get_result(debate_with_session.external_id)
+        assert result is not None
+        assert result.total_votes == sum(result.vote_breakdown.values())
+        assert result.total_votes == 8
+        assert result.vote_breakdown == {"bull": 5, "bear": 3}
+
+    @pytest.mark.asyncio
+    async def test_no_redundant_count_query(self, repo, debate_with_session):
+        """[3-3-REPO-002] get_result() does NOT execute a separate COUNT query"""
+        await repo.create_vote(
+            debate_id=debate_with_session.id,
+            debate_external_id=debate_with_session.external_id,
+            choice="bull",
+            voter_fingerprint="fp_no_count",
+        )
+
+        original_execute = repo.session.execute
+        execute_calls = []
+
+        async def tracking_execute(stmt, *args, **kwargs):
+            stmt_str = str(stmt)
+            execute_calls.append(stmt_str)
+            return await original_execute(stmt, *args, **kwargs)
+
+        repo.session.execute = tracking_execute
+
+        result = await repo.get_result(debate_with_session.external_id)
+        assert result is not None
+
+        count_queries = [
+            c
+            for c in execute_calls
+            if "count(votes.id" in c.lower() and "group by" not in c.lower()
+        ]
+        assert len(count_queries) == 0, (
+            f"Found {len(count_queries)} redundant COUNT queries: {count_queries}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_single_vote_breakdown(self, repo, debate_with_session):
+        """[3-3-REPO-003] Single vote returns breakdown with one entry and totalVotes=1"""
+        await repo.create_vote(
+            debate_id=debate_with_session.id,
+            debate_external_id=debate_with_session.external_id,
+            choice="bear",
+            voter_fingerprint="fp_single_vote",
+        )
+
+        result = await repo.get_result(debate_with_session.external_id)
+        assert result is not None
+        assert result.total_votes == 1
+        assert len(result.vote_breakdown) == 1
+        assert result.vote_breakdown["bear"] == 1
+
+    @pytest.mark.asyncio
+    async def test_undecided_only_breakdown(self, repo, debate_with_session):
+        """[3-3-REPO-004] Only undecided votes returns correct breakdown"""
+        for i in range(4):
+            await repo.create_vote(
+                debate_id=debate_with_session.id,
+                debate_external_id=debate_with_session.external_id,
+                choice="undecided",
+                voter_fingerprint=f"fp_undecided_{i}",
+            )
+
+        result = await repo.get_result(debate_with_session.external_id)
+        assert result is not None
+        assert result.total_votes == 4
+        assert result.vote_breakdown == {"undecided": 4}
