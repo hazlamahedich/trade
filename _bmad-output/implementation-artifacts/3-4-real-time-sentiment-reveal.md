@@ -426,6 +426,10 @@ GLM 5.1
 - `trade-app/nextjs-frontend/tests/unit/SentimentReveal.test.tsx` — Modified: updated 14 tests for Framer Motion, added 1 rerender test (15 total)
 - `trade-app/nextjs-frontend/tests/unit/useDebateSocketVoteUpdate.test.ts` — New: 3 WebSocket vote update handler tests
 - `trade-app/nextjs-frontend/tests/unit/useVotingStatusPolling.test.ts` — New: 3 polling configuration tests
+- `trade-app/fastapi_backend/tests/schemas/test_vote_update_payload.py` — New: 8 VoteUpdatePayload schema validation tests (TEA automation)
+- `trade-app/nextjs-frontend/tests/unit/handleVoteUpdate.test.ts` — New: 3 cache update callback tests (TEA automation)
+- `trade-app/nextjs-frontend/tests/unit/SentimentRevealTransition.test.tsx` — New: 6 Framer Motion transition prop tests (TEA automation)
+- `_bmad-output/test-artifacts/automation-summary-story-3-4.md` — New: TEA automation coverage summary
 
 ### Change Log
 
@@ -450,7 +454,12 @@ GLM 5.1
      - **O1:** Added Task/Dev Notes redundancy note to Backend Broadcast Pattern section.
      - **O2:** Deduplicated "Must NOT Create" / "Anti-Pattern Prevention" overlap.
   - 2026-04-12: Story implementation complete. All 8 tasks done. 9 backend tests pass, 21 frontend tests pass (15 SentimentReveal + 3 WS + 3 polling). No regressions.
-  - 2026-04-12: Code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). 5 dismissed (4 false positives, 1 intentional). 4 patches applied, 2 deferred.
+   - 2026-04-12: Code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). 5 dismissed (4 false positives, 1 intentional). 4 patches applied, 2 deferred.
+   - 2026-04-12: TEA test automation expansion — 17 new tests (+50% coverage, 34→51 total). New files:
+     - `tests/schemas/test_vote_update_payload.py` — 8 Pydantic schema validation tests (camelCase aliases, type enforcement, missing fields, zero-votes edge case)
+     - `tests/unit/handleVoteUpdate.test.ts` — 3 cache update callback tests (setQueryData updater function, null guard, rapid sequential updates)
+     - `tests/unit/SentimentRevealTransition.test.tsx` — 6 Framer Motion transition prop tests (stagger delay 0.15→0, reduced-motion duration=0, other-bar stagger)
+     - `_bmad-output/test-artifacts/automation-summary-story-3-4.md` — coverage gap analysis and summary
 
 ### Review Findings
 
