@@ -3,12 +3,77 @@
 import { useEffect, useRef } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
+export type OptimisticSegment = "bull" | "bear" | null;
+export type OptimisticStatus = "pending" | "confirmed" | "failed" | "timeout";
+
 interface SentimentRevealProps {
   voteBreakdown: Record<string, number> | null;
   totalVotes: number;
+  optimisticSegment?: OptimisticSegment;
+  optimisticStatus?: OptimisticStatus;
 }
 
-export function SentimentReveal({ voteBreakdown, totalVotes }: SentimentRevealProps) {
+function BarSegment({
+  testId,
+  pct,
+  colorClass,
+  delay,
+  shouldReduceMotion,
+  isOptimistic,
+  optimisticStatus,
+}: {
+  testId: string;
+  pct: number;
+  colorClass: string;
+  delay: number;
+  shouldReduceMotion: boolean;
+  isOptimistic: boolean;
+  optimisticStatus?: OptimisticStatus;
+}) {
+  const showShimmer = isOptimistic && optimisticStatus === "pending" && !shouldReduceMotion;
+  const opacity = isOptimistic
+    ? optimisticStatus === "timeout"
+      ? 0.6
+      : optimisticStatus === "pending"
+        ? 0.85
+        : 1
+    : 1;
+
+  return (
+    <motion.div
+      data-testid={testId}
+      className={`h-2 ${colorClass} relative overflow-hidden`}
+      style={{ opacity }}
+      initial={{ width: "0%" }}
+      animate={{ width: `${pct}%` }}
+      transition={{
+        duration: shouldReduceMotion ? 0 : 0.3,
+        ease: "easeOut",
+        delay,
+      }}
+    >
+      {showShimmer && (
+        <div
+          data-testid={`${testId}-shimmer`}
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%)",
+            backgroundSize: "200% 100%",
+            animation: "optimism-shimmer 2s ease-in-out infinite",
+          }}
+        />
+      )}
+    </motion.div>
+  );
+}
+
+export function SentimentReveal({
+  voteBreakdown,
+  totalVotes,
+  optimisticSegment = null,
+  optimisticStatus,
+}: SentimentRevealProps) {
   const shouldReduceMotion = useReducedMotion() ?? false;
   const containerRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
@@ -35,6 +100,7 @@ export function SentimentReveal({ voteBreakdown, totalVotes }: SentimentRevealPr
         aria-label="Debate sentiment results"
         className="bg-slate-900/80 backdrop-blur-md border-t border-white/10 p-4"
       >
+        <style>{`@keyframes optimism-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }`}</style>
         <p data-testid="sentiment-empty-state" className="text-center text-sm text-slate-400">
           Be the first to vote
         </p>
@@ -43,8 +109,20 @@ export function SentimentReveal({ voteBreakdown, totalVotes }: SentimentRevealPr
   }
 
   const bullPct = totalVotes > 0 ? Math.round((bullVotes / totalVotes) * 100) : 0;
-  const bearPct = totalVotes > 0 ? Math.round((bearVotes / totalVotes) * 100) : 0;
-  const otherPct = 100 - bullPct - bearPct;
+  const otherVotes = totalVotes - bullVotes - bearVotes;
+  const otherPct = otherVotes > 0 ? Math.round((otherVotes / totalVotes) * 100) : 0;
+  const bearPct = 100 - bullPct - otherPct;
+
+  const staggerDelay = (shouldReduceMotion || !isFirstRender.current) ? 0 : 0.15;
+
+  const ariaLabel =
+    optimisticStatus === "pending"
+      ? "Your vote is being recorded"
+      : optimisticStatus === "failed"
+        ? "Your vote was updated"
+        : optimisticStatus === "timeout"
+          ? "Your vote is still being processed"
+          : `Bull: ${bullPct}%, Bear: ${bearPct}%`;
 
   return (
     <div
@@ -53,9 +131,10 @@ export function SentimentReveal({ voteBreakdown, totalVotes }: SentimentRevealPr
       aria-live="polite"
       role="region"
       tabIndex={-1}
-      aria-label={`Bull: ${bullPct}%, Bear: ${bearPct}%`}
+      aria-label={ariaLabel}
       className="bg-slate-900/80 backdrop-blur-md border-t border-white/10 p-4 outline-none"
     >
+      <style>{`@keyframes optimism-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }`}</style>
       <div className="flex justify-between text-xs mb-1">
         <span className="text-emerald-400 font-semibold">
           Bull {bullPct}%
@@ -82,39 +161,34 @@ export function SentimentReveal({ voteBreakdown, totalVotes }: SentimentRevealPr
         role="img"
         aria-label={`Bull: ${bullPct}%, Bear: ${bearPct}%${otherPct > 0 ? `, Other: ${otherPct}%` : ""}`}
       >
-        <motion.div
-          data-testid="bull-bar"
-          className="h-2 bg-emerald-500"
-          initial={{ width: "0%" }}
-          animate={{ width: `${bullPct}%` }}
-          transition={{
-            duration: shouldReduceMotion ? 0 : 0.3,
-            ease: "easeOut",
-          }}
+        <BarSegment
+          testId="bull-bar"
+          pct={bullPct}
+          colorClass="bg-emerald-500"
+          delay={0}
+          shouldReduceMotion={shouldReduceMotion}
+          isOptimistic={optimisticSegment === "bull"}
+          optimisticStatus={optimisticStatus}
         />
         {otherPct > 0 && (
-          <motion.div
-            data-testid="other-bar"
-            className="h-2 bg-slate-500"
-            initial={{ width: "0%" }}
-            animate={{ width: `${otherPct}%` }}
-            transition={{
-              duration: shouldReduceMotion ? 0 : 0.3,
-              ease: "easeOut",
-              delay: (shouldReduceMotion || !isFirstRender.current) ? 0 : 0.15,
-            }}
+          <BarSegment
+            testId="other-bar"
+            pct={otherPct}
+            colorClass="bg-slate-500"
+            delay={staggerDelay}
+            shouldReduceMotion={shouldReduceMotion}
+            isOptimistic={false}
+            optimisticStatus={optimisticStatus}
           />
         )}
-        <motion.div
-          data-testid="bear-bar"
-          className="h-2 bg-rose-500"
-          initial={{ width: "0%" }}
-          animate={{ width: `${bearPct}%` }}
-          transition={{
-            duration: shouldReduceMotion ? 0 : 0.3,
-            ease: "easeOut",
-            delay: (shouldReduceMotion || !isFirstRender.current) ? 0 : 0.15,
-          }}
+        <BarSegment
+          testId="bear-bar"
+          pct={bearPct}
+          colorClass="bg-rose-500"
+          delay={staggerDelay}
+          shouldReduceMotion={shouldReduceMotion}
+          isOptimistic={optimisticSegment === "bear"}
+          optimisticStatus={optimisticStatus}
         />
       </div>
     </div>

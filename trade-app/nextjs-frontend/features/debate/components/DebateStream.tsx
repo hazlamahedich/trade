@@ -25,11 +25,17 @@ import { TypingIndicator } from "./TypingIndicator";
 import { StaleDataWarning } from "./StaleDataWarning";
 import { GuardianOverlay } from "./GuardianOverlay";
 import { VoteControls } from "./VoteControls";
-import { SentimentReveal } from "./SentimentReveal";
+import type { OptimisticSegment, OptimisticStatus } from "./SentimentReveal";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const ReasoningGraph = dynamic(
   () => import("./graph/ReasoningGraphWrapper").then((mod) => mod.ReasoningGraph),
+  { ssr: false }
+);
+
+const LazySentimentReveal = dynamic(
+  () => import("./SentimentReveal").then((mod) => mod.SentimentReveal),
   { ssr: false }
 );
 
@@ -251,8 +257,31 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
   const { nodes: graphNodes, edges: graphEdges, onNodesChange, onEdgesChange } = useReasoningGraph(reasoningNodes);
 
   const { vote, userVote, voteStatus } = useVote(debateId);
-  const { hasVoted, voteCounts, totalVotes, serverStatus } = useVotingStatus(debateId);
+  const wsConnected = status === "connected";
+  const { hasVoted, voteCounts, totalVotes, serverStatus } = useVotingStatus(debateId, { wsConnected });
   const showSentiment = hasVoted || voteStatus === "voted";
+
+  const optimisticSegment: OptimisticSegment = userVote ?? null;
+  const optimisticStatus: OptimisticStatus | undefined =
+    voteStatus === "voting" ? "pending"
+    : voteStatus === "voted" ? "confirmed"
+    : voteStatus === "error" ? "failed"
+    : undefined;
+
+  const optimisticTimerRef = useRef(voteStatus);
+  optimisticTimerRef.current = voteStatus;
+
+  useEffect(() => {
+    if (!userVote) return;
+    const timer = setTimeout(() => {
+      if (optimisticTimerRef.current === "voting") {
+        toast.info("Still Counting — Your vote is being processed. We'll update shortly.", {
+          duration: 6000,
+        });
+      }
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [userVote]);
 
   useEffect(() => {
     if (serverStatus && ["running", "completed", "paused", "cancelled"].includes(serverStatus)) {
@@ -420,9 +449,11 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
       </div>
 
       {showSentiment ? (
-        <SentimentReveal
+        <LazySentimentReveal
           voteBreakdown={voteCounts}
           totalVotes={totalVotes}
+          optimisticSegment={optimisticSegment}
+          optimisticStatus={optimisticStatus}
         />
       ) : (
         <VoteControls

@@ -52,7 +52,7 @@ describe("[3-4-UNIT] SentimentReveal Framer Motion transition props", () => {
     expect(t).toBeDefined();
     expect(t.duration).toBe(0.3);
     expect(t.ease).toBe("easeOut");
-    expect(t.delay).toBeUndefined();
+    expect(t.delay).toBe(0);
   });
 
   test("[3-4-UNIT-FM02] bear bar has stagger delay 0.15 on first render @p0", () => {

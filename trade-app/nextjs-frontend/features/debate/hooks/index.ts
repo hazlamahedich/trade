@@ -3,6 +3,7 @@ export { useReasoningGraph } from "./useReasoningGraph";
 export { useGuardianFreeze } from "./useGuardianFreeze";
 export { useVote } from "./useVote";
 export { useVotingStatus } from "./useVotingStatus";
+export type { UseVotingStatusOptions } from "./useVotingStatus";
 export { queryKeys } from "./queryKeys";
 export type { GuardianFreezeState } from "./useGuardianFreeze";
 export type { VoteStatus } from "./useVote";

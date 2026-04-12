@@ -8,7 +8,11 @@ import { getStoredChoice, type VoteChoice } from "./storedVote";
 
 export const VOTE_POLL_INTERVAL_MS = 5000;
 
-export function useVotingStatus(debateId: string) {
+export interface UseVotingStatusOptions {
+  wsConnected?: boolean;
+}
+
+export function useVotingStatus(debateId: string, options?: UseVotingStatusOptions) {
   const [localChoice, setLocalChoice] = useState<VoteChoice | null>(null);
 
   useEffect(() => {
@@ -16,12 +20,14 @@ export function useVotingStatus(debateId: string) {
   }, [debateId]);
 
   const hasVoted = localChoice !== null;
+  const wsConnected = options?.wsConnected ?? false;
+  const shouldPoll = hasVoted && !wsConnected;
 
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.debateResult(debateId),
     queryFn: () => fetchDebateResult(debateId),
     enabled: !!debateId,
-    refetchInterval: hasVoted ? VOTE_POLL_INTERVAL_MS : false,
+    refetchInterval: shouldPoll ? VOTE_POLL_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
   });
 
