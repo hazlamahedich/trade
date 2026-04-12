@@ -59,6 +59,7 @@ async def debate_with_1000_votes(db_session: AsyncSession):
 
 
 class TestSentimentBenchmark:
+    @pytest.mark.p2
     @pytest.mark.asyncio
     async def test_concurrent_reads_200(self, engine, debate_with_1000_votes):
         """[3-3-BENCH-001] 200 concurrent get_result() reads on 1000-vote debate"""

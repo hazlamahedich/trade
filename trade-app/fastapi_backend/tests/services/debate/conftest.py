@@ -1,3 +1,4 @@
+from uuid import UUID, uuid4
 from unittest.mock import MagicMock, AsyncMock
 from datetime import datetime, timezone
 
@@ -5,6 +6,23 @@ import pytest
 
 from app.services.market.schemas import MarketContext, FreshnessStatus
 from app.services.debate.agents.guardian import GuardianAnalysisResult
+from app.services.debate.repository import DebateRepository
+
+
+async def create_votes(
+    repo: DebateRepository,
+    debate_id: UUID,
+    debate_external_id: str,
+    choices: list[str],
+    prefix: str = "fp",
+) -> None:
+    for i, choice in enumerate(choices):
+        await repo.create_vote(
+            debate_id=debate_id,
+            debate_external_id=debate_external_id,
+            choice=choice,
+            voter_fingerprint=f"{prefix}_{uuid4().hex[:8]}_{i}",
+        )
 
 
 def make_guardian_result(**overrides):
