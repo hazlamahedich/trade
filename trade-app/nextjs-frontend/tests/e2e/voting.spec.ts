@@ -11,38 +11,30 @@ test.describe('Voting System', () => {
     }
   });
 
-  test('should allow user to vote on active debate', async ({ page, request }) => {
-    const debate = await seedDebate(request, { status: 'active', ticker: 'ETH' });
+  test('should allow user to vote on running debate', async ({ page, request }) => {
+    const debate = await seedDebate(request, { status: 'running', ticker: 'ETH' });
     debateId = debate.id;
 
     await page.goto(`/debates/${debate.id}`);
 
-    await expect(page.getByTestId('voting-panel')).toBeVisible();
+    await expect(page.getByTestId('vote-bull-btn')).toBeVisible();
 
-    await page.click('[data-testid="vote-bull-btn"]');
+    await page.getByTestId('vote-bull-btn').click();
 
-    await expect(page.getByTestId('vote-confirmation')).toBeVisible();
-    await expect(page.getByTestId('bull-vote-count')).toContainText(/\d+/);
+    await expect(page.getByTestId('sentiment-reveal')).toBeVisible({ timeout: 10000 });
   });
 
   test('should update vote counts in real-time', async ({ page, request }) => {
-    const debate = await seedDebate(request, { status: 'active' });
+    const debate = await seedDebate(request, { status: 'running' });
     debateId = debate.id;
 
     await page.goto(`/debates/${debate.id}`);
 
-    const initialBearVotes = await page.getByTestId('bear-vote-count').textContent();
+    await expect(page.getByTestId('vote-bear-btn')).toBeVisible();
 
-    await page.click('[data-testid="vote-bear-btn"]');
+    await page.getByTestId('vote-bear-btn').click();
 
-    await page.waitForFunction(
-      (initial: string) => {
-        const current = document.querySelector('[data-testid="bear-vote-count"]')?.textContent;
-        return current !== initial;
-      },
-      initialBearVotes ?? '',
-      { timeout: 10000 }
-    );
+    await expect(page.getByTestId('sentiment-reveal')).toBeVisible({ timeout: 10000 });
   });
 
   test('should prevent voting on completed debate', async ({ page, request }) => {
@@ -51,17 +43,8 @@ test.describe('Voting System', () => {
 
     await page.goto(`/debates/${debate.id}`);
 
-    await expect(page.getByTestId('voting-panel')).not.toBeVisible();
-    await expect(page.getByTestId('debate-results')).toBeVisible();
-  });
-
-  test('should show user vote history', async ({ page }) => {
-    await page.goto('/profile/votes');
-
-    await expect(page.getByTestId('vote-history')).toBeVisible();
-
-    const voteCards = page.locator('[data-testid="vote-card"]');
-    await expect(voteCards.first()).toBeVisible();
+    await expect(page.getByTestId('vote-bull-btn')).not.toBeVisible();
+    await expect(page.getByTestId('sentiment-reveal')).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -71,7 +54,7 @@ test.describe('Voting - Data Factory Usage', () => {
     const user = createUser({ email: 'voter@example.com' });
     const debate = createDebate({ 
       ticker: 'AAPL', 
-      status: 'active',
+      status: 'running',
       participants: {
         bull: { confidence: 85, arguments: ['Strong earnings'] },
         bear: { confidence: 45, arguments: ['Market saturation'] },

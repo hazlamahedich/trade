@@ -42,12 +42,18 @@ const MOCK_DEBATE_RESULT_AFTER_VOTE = {
   meta: {},
 };
 
-async function setupRunningDebate(page: import('@playwright/test').Page) {
+const MOCK_AUTH = {
+  data: { id: 'user-1', email: 'test@test.com', name: 'Test', role: 'user', createdAt: new Date().toISOString(), isActive: true },
+  error: null,
+  meta: {},
+};
+
+async function setupRunningDebate(page: import('@playwright/test').Page, resultOverride?: typeof MOCK_DEBATE_RUNNING) {
   await page.route('**/api/debate/*/result', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(MOCK_DEBATE_RUNNING),
+      body: JSON.stringify(resultOverride ?? MOCK_DEBATE_RUNNING),
     });
   });
 
@@ -55,11 +61,7 @@ async function setupRunningDebate(page: import('@playwright/test').Page) {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({
-        data: { id: 'user-1', email: 'test@test.com', name: 'Test', role: 'user', createdAt: new Date().toISOString(), isActive: true },
-        error: null,
-        meta: {},
-      }),
+      body: JSON.stringify(MOCK_AUTH),
     });
   });
 }
@@ -81,11 +83,11 @@ test.describe('[3-2-E2E] Voting UI Components', () => {
     await page.goto(`/debates/${DEBATE_ID}`);
     await expect(page.getByTestId('vote-bull-btn')).toBeVisible();
 
-    await page.click('[data-testid="vote-bull-btn"]');
+    await page.getByTestId('vote-bull-btn').click();
 
     await expect(page.getByTestId('vote-bull-btn')).toBeDisabled();
 
-    expect(voteCalled).toBe(true);
+    await expect.poll(() => voteCalled).toBe(true);
   });
 
   test('[3-2-E2E-02] AC2: Sentiment reveal appears after vote confirmed @p0', async ({ page }) => {
@@ -110,7 +112,7 @@ test.describe('[3-2-E2E] Voting UI Components', () => {
     await page.goto(`/debates/${DEBATE_ID}`);
     await expect(page.getByTestId('vote-bull-btn')).toBeVisible();
 
-    await page.click('[data-testid="vote-bull-btn"]');
+    await page.getByTestId('vote-bull-btn').click();
 
     await expect(page.getByTestId('sentiment-reveal')).toBeVisible({ timeout: 10000 });
   });
@@ -133,7 +135,7 @@ test.describe('[3-2-E2E] Voting UI Components', () => {
     await page.goto(`/debates/${DEBATE_ID}`);
     await expect(page.getByTestId('vote-bull-btn')).toBeVisible();
 
-    await page.click('[data-testid="vote-bull-btn"]');
+    await page.getByTestId('vote-bull-btn').click();
 
     await expect(page.getByTestId('vote-bull-btn')).toBeEnabled({ timeout: 10000 });
     await expect(page.getByTestId('vote-bear-btn')).toBeEnabled({ timeout: 10000 });
@@ -148,25 +150,7 @@ test.describe('[3-2-E2E] Voting UI Components', () => {
       sessionStorage.setItem('voter_fingerprint', 'e2e-fingerprint');
     });
 
-    await page.route('**/api/debate/*/result', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(MOCK_DEBATE_RESULT_AFTER_VOTE),
-      });
-    });
-
-    await page.route('**/api/auth/me', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          data: { id: 'user-1', email: 'test@test.com', name: 'Test', role: 'user', createdAt: new Date().toISOString(), isActive: true },
-          error: null,
-          meta: {},
-        }),
-      });
-    });
+    await setupRunningDebate(page, MOCK_DEBATE_RESULT_AFTER_VOTE);
 
     await page.goto(`/debates/${DEBATE_ID}`);
 
@@ -232,7 +216,7 @@ test.describe('[3-2-E2E] Voting UI Components', () => {
     await page.goto(`/debates/${DEBATE_ID}`);
     await expect(page.getByTestId('vote-bear-btn')).toBeVisible();
 
-    await page.click('[data-testid="vote-bear-btn"]');
+    await page.getByTestId('vote-bear-btn').click();
     await expect(page.getByTestId('sentiment-reveal')).toBeVisible({ timeout: 10000 });
   });
 
@@ -254,7 +238,7 @@ test.describe('[3-2-E2E] Voting UI Components', () => {
     await page.goto(`/debates/${DEBATE_ID}`);
     await expect(page.getByTestId('vote-bull-btn')).toBeVisible();
 
-    await page.click('[data-testid="vote-bull-btn"]');
+    await page.getByTestId('vote-bull-btn').click();
 
     await expect(page.getByText(/temporarily unavailable/i)).toBeVisible({ timeout: 10000 });
     await expect(page.getByTestId('vote-bull-btn')).toBeEnabled({ timeout: 10000 });
