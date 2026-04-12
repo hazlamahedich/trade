@@ -207,15 +207,26 @@ No debug issues encountered. Clean implementation.
 - ✅ Task 4: `ruff check` clean, `ruff format` clean, no unused imports, no `any` types.
 - All 71 vote-related tests pass (21 repository + 1 benchmark + 49 route).
 
+### Test Automation (TEA Expand)
+
+- ✅ Added 9 expanded tests to Story 3.3 via `bmad-testarch-automate` workflow:
+  - `test_vote_repository.py`: +9 tests in `TestGetResultOptimized` (REPO-005 through REPO-011) + `TestSentimentResultSerialization` — covers all-three-choices breakdown, metadata accuracy, exact query count, idempotency, completed-debate result, full camelCase/snake_case serialization
+  - `test_sentiment_integration.py` (new): +2 integration tests (INTG-001, INTG-002) — concurrent voting+reading, final count after concurrent writes
+- All 31 sentiment tests + 36 route tests pass. Ruff clean. Zero regression.
+- Summary: `_bmad-output/test-artifacts/automation-summary-story-3-3.md`
+
 ### File List
 
 - `trade-app/fastapi_backend/app/services/debate/repository.py` — Modified: removed redundant COUNT query, derive total_votes from breakdown sum
-- `trade-app/fastapi_backend/tests/services/debate/test_vote_repository.py` — Modified: added TestGetResultOptimized class with 4 new tests
+- `trade-app/fastapi_backend/tests/services/debate/test_vote_repository.py` — Modified: added TestGetResultOptimized class with 4 new tests, expanded with 5 more tests + TestSentimentResultSerialization class (9 total new)
 - `trade-app/fastapi_backend/tests/services/debate/test_sentiment_benchmark.py` — Created: concurrent read benchmark test (200 readers, 1000 votes)
+- `trade-app/fastapi_backend/tests/services/debate/test_sentiment_integration.py` — Created: concurrent voting+reading integration tests (2 tests)
+- `_bmad-output/test-artifacts/automation-summary-story-3-3.md` — Created: test automation summary
 
 ### Change Log
 
  - 2026-04-12: Optimized `get_result()` to use single GROUP BY query. Added 4 optimization-specific tests + 1 concurrent benchmark test. Zero regressions across 71 tests.
+ - 2026-04-12: TEA test automation expansion — added 9 tests (7 unit + 2 integration). All 80 tests pass (31 sentiment + 36 route + 13 other).
 
 ### Review Findings
 
