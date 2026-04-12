@@ -514,6 +514,13 @@ N/A
 - Test automation expansion: 27 new tests (20 unit + 7 E2E) covering api.ts, storedVote.ts, and all 5 ACs at E2E level
 - 69/69 total unit tests passing (49 existing + 20 new)
 - Identified pre-existing bug: `tests/e2e/voting.spec.ts` uses stale data-testids and `status: 'active'` instead of `'running'`
+- Test quality review: 88/100 (A - Good), 6 recommendations (2 P1, 3 P2, 1 P3), all non-blocking
+- Test review remediation: all 6 recommendations applied (8327fc4)
+  - P1: E2E-01 voteCalled assertion → expect.poll(), all page.click CSS selectors → getByTestId()
+  - P2: API12 global.window try/finally, mockResult() helper extracted, G/W/T comments added to all 7 unit files
+  - P3: E2E-04 auth mock deduplicated via setupRunningDebate() override
+- Stale voting.spec.ts fixed: status 'active'→'running', non-existent testids replaced, vote-history test removed (feature doesn't exist), getByTestId() throughout
+- 284/284 total tests passing (suite-wide)
 
 ### File List
 
@@ -538,3 +545,5 @@ N/A
 - `tests/unit/storedVote.test.ts` — NEW 8 tests (get/set/corrupted JSON/isolation/overwrite)
 - `tests/e2e/voting-ui.spec.ts` — NEW 7 E2E tests (mock-based, all 5 ACs: optimistic update, sentiment reveal, rollback, already-voted, Guardian freeze)
 - `_bmad-output/test-artifacts/automation-summary-story-3-2.md` — NEW test automation summary
+- `_bmad-output/test-artifacts/test-reviews/test-review-story-3-2.md` — NEW test quality review (88/100)
+- `tests/e2e/voting.spec.ts` — FIXED stale testids, status 'active'→'running', getByTestId()
