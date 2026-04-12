@@ -14,10 +14,14 @@ import {
 } from "../hooks/useDebateSocket";
 import { useReasoningGraph } from "../hooks/useReasoningGraph";
 import { useGuardianFreeze } from "../hooks/useGuardianFreeze";
+import { useVote } from "../hooks/useVote";
+import { useVotingStatus } from "../hooks/useVotingStatus";
 import { ArgumentBubble, type AgentType } from "./ArgumentBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { StaleDataWarning } from "./StaleDataWarning";
 import { GuardianOverlay } from "./GuardianOverlay";
+import { VoteControls } from "./VoteControls";
+import { SentimentReveal } from "./SentimentReveal";
 import { cn } from "@/lib/utils";
 
 const ReasoningGraph = dynamic(
@@ -66,6 +70,7 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
     ageSeconds: number;
   } | null>(null);
   const [reasoningNodes, setReasoningNodes] = useState<ReasoningNodePayload[]>([]);
+  const [debateStatus, setDebateStatus] = useState<"running" | "completed" | "paused" | "cancelled">("running");
 
   const parentRef = useRef<HTMLDivElement>(null);
   const lastArgumentRef = useRef<ArgumentMessage | null>(null);
@@ -125,6 +130,13 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
 
   const handleAcknowledge = useCallback(() => {
     setIsDataStale(false);
+  }, []);
+
+  const handleStatusUpdate = useCallback((payload: { status: string }) => {
+    const valid: string[] = ["running", "completed", "paused", "cancelled"];
+    if (valid.includes(payload.status)) {
+      setDebateStatus(payload.status as "running" | "completed" | "paused" | "cancelled");
+    }
   }, []);
 
   const triggerHaptic = useCallback(
@@ -190,6 +202,7 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
     onReasoningNode: handleReasoningNode,
     onGuardianInterrupt: handleGuardianInterrupt,
     onDebateResumed: handleDebateResumed,
+    onStatusUpdate: handleStatusUpdate,
   });
 
   const {
@@ -212,6 +225,16 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
   }, [freezeHandleResumed]);
 
   const { nodes: graphNodes, edges: graphEdges, onNodesChange, onEdgesChange } = useReasoningGraph(reasoningNodes);
+
+  const { vote, userVote, voteStatus } = useVote(debateId);
+  const { hasVoted, voteCounts, totalVotes, serverStatus } = useVotingStatus(debateId);
+  const showSentiment = hasVoted || voteStatus === "voted";
+
+  useEffect(() => {
+    if (serverStatus && ["running", "completed", "paused", "cancelled"].includes(serverStatus)) {
+      setDebateStatus(serverStatus as "running" | "completed" | "paused" | "cancelled");
+    }
+  }, [serverStatus]);
 
   useEffect(() => {
     if (parentRef.current && !userScrolled && messages.length > 0) {
@@ -371,6 +394,21 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
           )}
         </div>
       </div>
+
+      {showSentiment ? (
+        <SentimentReveal
+          voteBreakdown={voteCounts}
+          totalVotes={totalVotes}
+        />
+      ) : (
+        <VoteControls
+          vote={vote}
+          userVote={userVote}
+          voteStatus={voteStatus}
+          disabled={status !== "connected" || debateStatus !== "running"}
+          isFrozen={isFrozen}
+        />
+      )}
     </>
   );
 }

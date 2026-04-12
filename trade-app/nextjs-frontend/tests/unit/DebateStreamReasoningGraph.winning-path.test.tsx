@@ -1,4 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createElement, type ReactNode } from "react";
 
 jest.mock("@xyflow/react", () => {
   const react = jest.requireActual("react");
@@ -116,7 +118,22 @@ function createMockWS(url: string) {
   return inst;
 }
 
+jest.mock("../../features/debate/api", () => ({
+  submitVote: jest.fn(),
+  fetchDebateResult: jest.fn(() => Promise.reject(new Error("Not mocked"))),
+  getOrCreateVoterFingerprint: jest.fn(() => "test-fp"),
+}));
+
 import { DebateStream } from "../../features/debate/components/DebateStream";
+
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return createElement(QueryClientProvider, { client: queryClient }, children);
+  };
+}
 
 describe("[1-7-INT] DebateStream + ReasoningGraph Integration — Winning Path", () => {
   beforeEach(() => {
@@ -179,7 +196,7 @@ describe("[1-7-INT] DebateStream + ReasoningGraph Integration — Winning Path",
   }
 
   test("[1-7-INT-003] @p0 winning path highlights nodes when isWinning received", async () => {
-    render(<DebateStream debateId="debate-int-3" />);
+    render(<DebateStream debateId="debate-int-3" />, { wrapper: createWrapper() });
 
     await connectWS();
 

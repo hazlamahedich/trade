@@ -1,8 +1,25 @@
 import { render, screen, act } from '@testing-library/react';
 import React from 'react';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createElement, type ReactNode } from "react";
+jest.mock("../../features/debate/api", () => ({
+  submitVote: jest.fn(),
+  fetchDebateResult: jest.fn(() => Promise.reject(new Error("Not mocked"))),
+  getOrCreateVoterFingerprint: jest.fn(() => "test-fp"),
+}));
+
 import { DebateStream } from '../../features/debate/components/DebateStream';
 import { TooltipProvider } from '../../components/ui/tooltip';
 import { createRedactedArgumentPayload, createArgumentPayload } from '../support/factories';
+
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return createElement(QueryClientProvider, { client: queryClient }, children);
+  };
+}
 
 let capturedSocketOptions: Record<string, unknown> = {};
 
@@ -69,7 +86,8 @@ function renderDebateStream(debateId = 'test-debate-1') {
   return render(
     <TooltipProvider delayDuration={0}>
       <DebateStream debateId={debateId} />
-    </TooltipProvider>
+    </TooltipProvider>,
+    { wrapper: createWrapper() }
   );
 }
 

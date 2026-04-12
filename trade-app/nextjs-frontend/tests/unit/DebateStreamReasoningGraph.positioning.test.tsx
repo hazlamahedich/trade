@@ -1,4 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createElement, type ReactNode } from "react";
 
 jest.mock("@xyflow/react", () => {
   const react = jest.requireActual("react");
@@ -116,7 +118,22 @@ function createMockWS(url: string) {
   return inst;
 }
 
+jest.mock("../../features/debate/api", () => ({
+  submitVote: jest.fn(),
+  fetchDebateResult: jest.fn(() => Promise.reject(new Error("Not mocked"))),
+  getOrCreateVoterFingerprint: jest.fn(() => "test-fp"),
+}));
+
 import { DebateStream } from "../../features/debate/components/DebateStream";
+
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return createElement(QueryClientProvider, { client: queryClient }, children);
+  };
+}
 
 describe("[1-7-INT] DebateStream + ReasoningGraph Integration — Positioning", () => {
   beforeEach(() => {
@@ -179,7 +196,7 @@ describe("[1-7-INT] DebateStream + ReasoningGraph Integration — Positioning", 
   }
 
   test("[1-7-INT-005] @p1 graph renders below argument messages", async () => {
-    const { container } = render(<DebateStream debateId="debate-int-5" />);
+    const { container } = render(<DebateStream debateId="debate-int-5" />, { wrapper: createWrapper() });
 
     await connectWS();
 
@@ -227,7 +244,7 @@ describe("[1-7-INT] DebateStream + ReasoningGraph Integration — Positioning", 
   });
 
   test("[1-7-INT-006] @p1 graph updates with multiple REASONING_NODE messages", async () => {
-    render(<DebateStream debateId="debate-int-6" />);
+    render(<DebateStream debateId="debate-int-6" />, { wrapper: createWrapper() });
 
     await connectWS();
 

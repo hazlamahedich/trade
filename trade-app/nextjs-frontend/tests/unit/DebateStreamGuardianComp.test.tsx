@@ -1,7 +1,24 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 import { render, screen, act, fireEvent, within, renderHook } from '@testing-library/react';
 import React from 'react';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createElement, type ReactNode } from "react";
+jest.mock("../../features/debate/api", () => ({
+  submitVote: jest.fn(),
+  fetchDebateResult: jest.fn(() => Promise.reject(new Error("Not mocked"))),
+  getOrCreateVoterFingerprint: jest.fn(() => "test-fp"),
+}));
+
 import { DebateStream } from '../../features/debate/components/DebateStream';
+
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return createElement(QueryClientProvider, { client: queryClient }, children);
+  };
+}
 
 let capturedSocketOptions: Record<string, unknown> = {};
 
@@ -69,7 +86,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
 
   test('[2-3-COMP-001] GuardianOverlay appears on interrupt and has correct content', () => {
     // Given: DebateStream is mounted
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     // When: guardian interrupt is delivered
@@ -86,7 +103,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
 
   test('[2-3-UNIT-001] GuardianOverlay renders with correct content from stream', () => {
     // Given: DebateStream is mounted
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     // When: guardian interrupt with anchoring_bias is delivered
@@ -104,7 +121,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
 
   test('[2-3-UNIT-003] Critical shows "I Understand" only with "debate ended" text', () => {
     // Given: DebateStream receives a critical interrupt
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     // When: critical guardian interrupt is delivered
@@ -121,7 +138,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
 
   test('[2-3-UNIT-023] useGuardianFreeze: state transitions active→frozen→active', () => {
     // Given: DebateStream is mounted with no overlay
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
     const stream = screen.getByTestId('debate-stream');
 
@@ -147,7 +164,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
 
   test('[2-3-COMP-002] @p0 Full flow — interrupt → freeze → overlay → ignore → unfreeze', () => {
     // Given: DebateStream is mounted
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
     const stream = screen.getByTestId('debate-stream');
 
@@ -170,7 +187,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
 
   test('[2-3-COMP-003] @p0 Critical interrupt — overlay stays, no "Ignore" button', () => {
     // Given: DebateStream receives a critical interrupt
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     // When: critical guardian interrupt is delivered
@@ -186,7 +203,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
 
   test('[2-3-COMP-004] @p0 Non-critical: Escape key is not blocked by overlay configuration', () => {
     // Given: DebateStream has a non-critical overlay
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     act(() => {
@@ -201,7 +218,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
 
   test('[2-3-COMP-005] @p0 Critical: overlay renders with critical-only behavior', () => {
     // Given: DebateStream receives a critical interrupt
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     // When: critical guardian interrupt is delivered
@@ -254,7 +271,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
 
   test('[2-3-COMP-009] Accessibility: role="alertdialog" and aria attributes present', () => {
     // Given: overlay is shown after guardian interrupt
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     act(() => {
@@ -271,7 +288,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
 
   test('[2-3-COMP-011] @p1 Overlay renders above grayscale — overlay content NOT affected by parent filter', () => {
     // Given: overlay is shown while stream has grayscale
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     act(() => {
@@ -303,7 +320,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
 
   test('[2-3-COMP-013] @p1 Screen reader: role="alertdialog" announces freeze event via dialog ARIA', () => {
     // Given: overlay is shown after guardian interrupt
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     act(() => {
@@ -319,7 +336,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
   test('[2-3-UNIT-021] Multiple interrupts — new data replaces current overlay content', () => {
     // Given: overlay is shown with first interrupt
     jest.useFakeTimers();
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     act(() => {
@@ -346,7 +363,7 @@ describe('[2-3] DebateStream Guardian — Component Integration Tests', () => {
 
   test('[2-3-UNIT-022] @p1 Unmount during active animation — no state updates after unmount', () => {
     // Given: overlay is shown
-    const { unmount } = render(<DebateStream debateId="test-debate-unit" />);
+    const { unmount } = render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     act(() => {

@@ -1,6 +1,23 @@
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import React from 'react';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createElement, type ReactNode } from "react";
+jest.mock("../../features/debate/api", () => ({
+  submitVote: jest.fn(),
+  fetchDebateResult: jest.fn(() => Promise.reject(new Error("Not mocked"))),
+  getOrCreateVoterFingerprint: jest.fn(() => "test-fp"),
+}));
+
 import { DebateStream } from '../../features/debate/components/DebateStream';
+
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return createElement(QueryClientProvider, { client: queryClient }, children);
+  };
+}
 
 let capturedSocketOptions: Record<string, unknown> = {};
 
@@ -70,7 +87,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
 
   test('[2-2-COMP-001] Renders guardian message in stream history', () => {
     // Given: DebateStream is mounted and receives a guardian interrupt
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     // When: guardian interrupt payload is delivered
@@ -88,7 +105,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
 
   test('[2-3-UNIT-025] No inline "Acknowledge & Resume" button in guardian bubble', () => {
     // Given: DebateStream receives a guardian interrupt
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     // When: interrupt is delivered
@@ -102,7 +119,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
 
   test('[2-3-UNIT-025b] No "awaiting your acknowledgment" paused indicator', () => {
     // Given: DebateStream receives a guardian interrupt
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     act(() => {
@@ -115,7 +132,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
 
   test('[2-3-UNIT-025c] No inline "Critical risk detected" text in guardian bubble', () => {
     // Given: DebateStream receives a critical guardian interrupt
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     act(() => {
@@ -128,7 +145,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
 
   test('[2-3-UNIT-009] Grayscale style applied when frozen', () => {
     // Given: DebateStream is mounted with default filter
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
     const stream = screen.getByTestId('debate-stream');
     expect(stream.style.filter).toBe('none');
@@ -144,7 +161,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
 
   test('[2-3-UNIT-010] Grayscale removed after acknowledgment', () => {
     // Given: DebateStream is in frozen state with grayscale
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
     const stream = screen.getByTestId('debate-stream');
 
@@ -162,7 +179,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
 
   test('[2-3-UNIT-010b] Stale data grayscale preserved when not frozen', () => {
     // Given: DebateStream receives a data stale event
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onDataStale = capturedSocketOptions.onDataStale as (p: Record<string, unknown>) => void;
     const stream = screen.getByTestId('debate-stream');
 
@@ -179,7 +196,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
     // Given: user prefers reduced motion
     mockReducedMotion = true;
     try {
-      render(<DebateStream debateId="test-debate-unit" />);
+      render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
       const stream = screen.getByTestId('debate-stream');
 
       // Then: CSS transition is set to none
@@ -191,7 +208,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
 
   test('[2-3-UNIT-007] "I Understand" calls sendGuardianAck via acknowledgeFreeze', () => {
     // Given: overlay is shown after guardian interrupt
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     act(() => {
@@ -207,7 +224,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
 
   test('[2-3-UNIT-008] "Proceed Anyway" calls sendGuardianAck via ignoreFreeze', () => {
     // Given: overlay is shown with non-critical interrupt
-    render(<DebateStream debateId="test-debate-unit" />);
+    render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
     const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
     act(() => {
@@ -235,7 +252,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
 
     test('[2-3-UNIT-013] @p2 Haptic vibration called for critical interrupt only', () => {
       // Given: DebateStream is mounted
-      render(<DebateStream debateId="test-debate-unit" />);
+      render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
       const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
       // When: critical guardian interrupt arrives
@@ -249,7 +266,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
 
     test('[2-3-UNIT-014] @p2 Haptic vibration NOT called for non-critical interrupt', () => {
       // Given: DebateStream is mounted
-      render(<DebateStream debateId="test-debate-unit" />);
+      render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
       const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
       // When: non-critical (high) guardian interrupt arrives
@@ -265,7 +282,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
       // Given: user prefers reduced motion
       mockReducedMotion = true;
       try {
-        render(<DebateStream debateId="test-debate-unit" />);
+        render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
         const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
         // When: critical interrupt arrives during reduced motion
@@ -287,7 +304,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
 
       // When: rendering with critical interrupt
       expect(() => {
-        render(<DebateStream debateId="test-debate-unit" />);
+        render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
         const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
         act(() => {
           onGuardianInterrupt(guardianInterruptPayload({ riskLevel: 'critical' }));
@@ -300,7 +317,7 @@ describe('[2-3] DebateStream Guardian — Unit Tests', () => {
 
     test('[2-3-UNIT-017b] @p1 Vibration cancelled on component unmount — navigator.vibrate([]) called', () => {
       // Given: DebateStream triggers critical vibration
-      const { unmount } = render(<DebateStream debateId="test-debate-unit" />);
+      const { unmount } = render(<DebateStream debateId="test-debate-unit" />, { wrapper: createWrapper() });
       const onGuardianInterrupt = capturedSocketOptions.onGuardianInterrupt as (p: Record<string, unknown>) => void;
 
       act(() => {

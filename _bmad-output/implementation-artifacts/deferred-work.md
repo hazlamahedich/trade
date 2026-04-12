@@ -31,3 +31,13 @@
 - Lazy limiter init not thread-safe — `_get_vote_limiter()` / `_get_capacity_limiter()` use check-then-set on globals with no lock. Low risk in practice (CPython GIL, single-event-loop uvicorn). Pre-existing pattern from `get_debate_service()`. [app/routes/debate.py:46-57]
 - Capacity limiter semantics — 60s sliding window means "10K votes per minute" not "10K total active voters". If the intent was a hard cap, the limiter design is wrong. Requires product clarification. [app/services/rate_limiter.py:100-107]
 - DB write consumes capacity counter on failure — `check("global")` increments counter before DB write at Guard 6. If write fails, capacity slot is wasted. Pre-existing architectural limitation of the `RateLimiter` design (INCR-before-check).
+
+## Deferred from: code review of 3-2-voting-ui-components (2026-04-12)
+
+- Voter fingerprint trivially spoofable — no server-side identity verification [api.ts:104-114] — spec acknowledges as acceptable: anonymous-first design with server-side rate limiting
+- No CSRF protection on vote POST [api.ts:68-72] — anonymous-first design makes CSRF tokens impractical; server-side rate limiting is the guard
+- fetchDebateResult doesn't validate response shape [api.ts:92-102] — pattern consistent with rest of codebase (no runtime validation on API responses)
+- crypto.randomUUID fails in non-secure context (HTTP without localhost) [api.ts:111] — Next.js apps typically run on localhost or HTTPS
+- Vote in-flight during Guardian freeze — error toast may be obscured by overlay [VoteControls.tsx:26, useVote.ts:98-100] — low priority; guardian overlay is blocking, toast visible after dismissal
+- useVotingStatus never refetches on live debate [useVotingStatus.ts:28-32] — explicitly Story 3.4 scope; spec says "Full real-time polling/WebSocket updates are Story 3.4"
+- useMutation object in useCallback dependency — memoization ineffective [useVote.ts:111] — cosmetic; race guard via ref is the real protection

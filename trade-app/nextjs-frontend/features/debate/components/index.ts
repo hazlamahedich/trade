@@ -4,6 +4,8 @@ export { TypingIndicator } from "./TypingIndicator";
 export { AgentAvatar, type AgentType } from "./AgentAvatar";
 export { StaleDataWarning } from "./StaleDataWarning";
 export { GuardianOverlay } from "./GuardianOverlay";
+export { VoteControls } from "./VoteControls";
+export { SentimentReveal } from "./SentimentReveal";
 export { DataInputNode } from "./graph/DataInputNode";
 export { AgentAnalysisNode } from "./graph/AgentAnalysisNode";
 export { RiskCheckNode } from "./graph/RiskCheckNode";
