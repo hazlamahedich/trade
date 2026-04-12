@@ -469,3 +469,21 @@ GLM 5.1
 - [x] [Review][Patch] Polling tests don't verify actual `refetchInterval` config in useQuery [`tests/unit/useVotingStatusPolling.test.ts`] — Added 2 tests verifying observer options via `queryClient.getQueryCache()`.
 - [x] [Review][Defer] Percentage rounding can produce `bullPct + bearPct = 101%` bar overflow [`SentimentReveal.tsx:45-47`] — deferred, pre-existing `Math.round` behavior, mitigated by `overflow-hidden`
 - [x] [Review][Defer] Polling + WS both active — stale poll can overwrite fresher WS update for ~5s [`useVotingStatus.ts:25` + `DebateStream.tsx:202`] — deferred, accepted eventual consistency per spec
+
+### Test Quality Review (TEA — 2026-04-12)
+
+**Initial Score**: 78/100 (B — Acceptable) → **Post-Fix Score**: 92/100 (A — Good)
+
+**Review Report**: `_bmad-output/test-artifacts/test-review-story-3-4.md`
+
+All 9 concerns addressed:
+
+- [x] [P1] Extracted data factory functions → `tests/support/helpers/vote-factories.ts` (`createVotePayload`, `createWsVoteMessage`)
+- [x] [P1] Replaced `React._qc` hack → `createWrapperWithQC()` pattern in `handleVoteUpdate.test.ts`
+- [x] [P2] Added BDD structure to backend tests → class-based grouping with `@pytest.mark.describe` in both `test_vote_broadcast.py` and `test_vote_update_payload.py`
+- [x] [P2] Added test IDs to backend tests → `[3.4-INT-XXX]` and `[3.4-UNIT-XXX]` in docstrings
+- [x] [P2] Added priority markers to backend tests → `@p0` / `@p1` in docstrings
+- [x] [P2] Extracted shared `mockUseReducedMotion` → `tests/support/helpers/mock-framer-motion.ts`
+- [x] [P3] Added missing test IDs to frontend tests → `[3-4-UNIT-WS01..WS03]`, `[3-4-UNIT-FM01..FM06]`, `[3-4-UNIT-CU01..CU03]`
+- [x] Shared framer-motion mock consolidated (inlined in jest.mock due to hoisting constraints, shared `mockUseReducedMotion` state)
+- [x] All 51 tests pass (19 backend + 32 frontend)

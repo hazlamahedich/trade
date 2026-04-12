@@ -1,6 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
-import { useDebateSocket, type VoteUpdatePayload } from "../../features/debate/hooks/useDebateSocket";
+import { useDebateSocket } from "../../features/debate/hooks/useDebateSocket";
 import { createMockWebSocketSetup } from "../support/helpers/mock-websocket";
+import { createWsVoteMessage } from "../support/helpers/vote-factories";
 
 const { install, cleanup, waitForInstance } = createMockWebSocketSetup();
 
@@ -15,7 +16,7 @@ afterEach(() => {
 describe("[3-4-UNIT] useDebateSocket VOTE_UPDATE handler", () => {
   const debateId = "deb_test_ws";
 
-  test("DEBATE/VOTE_UPDATE triggers onVoteUpdate callback with correct payload", async () => {
+  test("[3-4-UNIT-WS01] DEBATE/VOTE_UPDATE triggers onVoteUpdate callback with correct payload @p0", async () => {
     const onVoteUpdate = jest.fn();
 
     renderHook(() =>
@@ -30,18 +31,14 @@ describe("[3-4-UNIT] useDebateSocket VOTE_UPDATE handler", () => {
       ws.simulateOpen();
     });
 
-    const payload: VoteUpdatePayload = {
+    const message = createWsVoteMessage({
       debateId: "deb_test_ws",
       totalVotes: 42,
       voteBreakdown: { bull: 28, bear: 14 },
-    };
+    });
 
     act(() => {
-      ws.simulateMessage({
-        type: "DEBATE/VOTE_UPDATE",
-        payload,
-        timestamp: new Date().toISOString(),
-      });
+      ws.simulateMessage(message);
     });
 
     expect(onVoteUpdate).toHaveBeenCalledTimes(1);
@@ -54,7 +51,7 @@ describe("[3-4-UNIT] useDebateSocket VOTE_UPDATE handler", () => {
     );
   });
 
-  test("malformed payload does not crash the hook", async () => {
+  test("[3-4-UNIT-WS02] malformed payload does not crash the hook @p0", async () => {
     const onVoteUpdate = jest.fn();
 
     renderHook(() =>
@@ -90,7 +87,7 @@ describe("[3-4-UNIT] useDebateSocket VOTE_UPDATE handler", () => {
     expect(onVoteUpdate).not.toHaveBeenCalled();
   });
 
-  test("rapid sequential VOTE_UPDATE events all fire callback", async () => {
+  test("[3-4-UNIT-WS03] rapid sequential VOTE_UPDATE events all fire callback @p0", async () => {
     const onVoteUpdate = jest.fn();
 
     renderHook(() =>
@@ -107,15 +104,13 @@ describe("[3-4-UNIT] useDebateSocket VOTE_UPDATE handler", () => {
 
     for (let i = 1; i <= 5; i++) {
       act(() => {
-        ws.simulateMessage({
-          type: "DEBATE/VOTE_UPDATE",
-          payload: {
+        ws.simulateMessage(
+          createWsVoteMessage({
             debateId: "deb_test_ws",
             totalVotes: i * 10,
             voteBreakdown: { bull: i * 6, bear: i * 4 },
-          },
-          timestamp: new Date().toISOString(),
-        });
+          }),
+        );
       });
     }
 

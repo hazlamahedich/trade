@@ -1,50 +1,26 @@
 import { render, screen } from "@testing-library/react";
 import { SentimentReveal } from "../../features/debate/components/SentimentReveal";
+import { mockUseReducedMotion } from "../support/helpers/mock-framer-motion";
 
-const mockUseReducedMotion = jest.fn(() => false);
 jest.mock("framer-motion", () => {
   const React = require("react");
+  function createMotionComponent(domTag: string) {
+    return React.forwardRef(
+      (props: Record<string, unknown>, ref: React.Ref<HTMLElement>) => {
+        const { initial: _i, animate, exit: _e, transition: _t, layout: _l, layoutId: _lid, onAnimationComplete: _oac, ...rest } = props;
+        const style = {
+          ...(rest.style as Record<string, string> | undefined),
+          ...(typeof animate === "object" && animate !== null ? animate : {}),
+        };
+        return React.createElement(domTag, { ...rest, style, ref });
+      },
+    );
+  }
   return {
     ...jest.requireActual("framer-motion"),
     useReducedMotion: () => mockUseReducedMotion(),
     AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
-    motion: {
-      div: React.forwardRef(
-        (props: Record<string, unknown>, ref: React.Ref<HTMLDivElement>) => {
-          const {
-            initial: _i,
-            animate,
-            exit: _e,
-            transition: _t,
-            layout: _l,
-            layoutId: _lid,
-            onAnimationComplete: _oac,
-            ...rest
-          } = props;
-          const style = {
-            ...(rest.style as Record<string, string> | undefined),
-            ...(typeof animate === "object" && animate !== null ? animate : {}),
-          };
-          return React.createElement("div", { ...rest, style, ref });
-        },
-      ),
-      span: React.forwardRef(
-        (props: Record<string, unknown>, ref: React.Ref<HTMLSpanElement>) => {
-          const {
-            initial: _i,
-            animate,
-            exit: _e,
-            transition: _t,
-            ...rest
-          } = props;
-          const style = {
-            ...(rest.style as Record<string, string> | undefined),
-            ...(typeof animate === "object" && animate !== null ? animate : {}),
-          };
-          return React.createElement("span", { ...rest, style, ref });
-        },
-      ),
-    },
+    motion: { div: createMotionComponent("div"), span: createMotionComponent("span") },
   };
 });
 

@@ -4,6 +4,7 @@ import React from "react";
 import { queryKeys } from "../../features/debate/hooks/queryKeys";
 import type { DebateResultEnvelope } from "../../features/debate/api";
 import type { VoteUpdatePayload } from "../../features/debate/hooks/useDebateSocket";
+import { createVotePayload } from "../support/helpers/vote-factories";
 
 jest.mock("../../features/debate/hooks/storedVote", () => ({
   getStoredChoice: jest.fn().mockReturnValue("bull"),
@@ -31,9 +32,20 @@ jest.mock("../../features/debate/api", () => ({
 
 const mockCacheUpdate = jest.fn();
 
-function useTestHandleVoteUpdate(debateId: string) {
-  const queryClient = (React as unknown as { _qc?: QueryClient })._qc!;
+function createWrapperWithQC() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  const wrapper = function Wrapper({ children }: { children: React.ReactNode }) {
+    return React.createElement(QueryClientProvider, { client: queryClient }, children);
+  };
+  return { wrapper, queryClient };
+}
 
+function useTestHandleVoteUpdate(debateId: string, queryClient: QueryClient) {
   const handleVoteUpdate = React.useCallback(
     (payload: VoteUpdatePayload) => {
       queryClient.setQueryData<DebateResultEnvelope>(
@@ -58,35 +70,23 @@ function useTestHandleVoteUpdate(debateId: string) {
   return { handleVoteUpdate };
 }
 
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-  (React as unknown as { _qc?: QueryClient })._qc = queryClient;
-  return function Wrapper({ children }: { children: React.ReactNode }) {
-    return React.createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 describe("[3-4-UNIT] handleVoteUpdate cache callback", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  test("updates totalVotes and voteBreakdown in cache @p0", () => {
+  test("[3-4-UNIT-CU01] updates totalVotes and voteBreakdown in cache @p0", () => {
+    const { wrapper, queryClient } = createWrapperWithQC();
     const debateId = "deb_cache_test";
-    const { result } = renderHook(() => useTestHandleVoteUpdate(debateId), {
-      wrapper: createWrapper(),
+    const { result } = renderHook(() => useTestHandleVoteUpdate(debateId, queryClient), {
+      wrapper,
     });
 
-    const payload: VoteUpdatePayload = {
+    const payload = createVotePayload({
       debateId,
       totalVotes: 20,
       voteBreakdown: { bull: 14, bear: 6 },
-    };
+    });
 
     act(() => {
       result.current.handleVoteUpdate(payload);
@@ -98,23 +98,16 @@ describe("[3-4-UNIT] handleVoteUpdate cache callback", () => {
     expect(updater).toBeDefined();
   });
 
-  test("returns old cache unchanged when old data is null @p1", () => {
+  test("[3-4-UNIT-CU02] returns old cache unchanged when old data is null @p1", () => {
+    const { wrapper, queryClient } = createWrapperWithQC();
     const debateId = "deb_no_data";
-    const qc = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
-    (React as unknown as { _qc?: QueryClient })._qc = qc;
+    const { result } = renderHook(() => useTestHandleVoteUpdate(debateId, queryClient), { wrapper });
 
-    const wrapper = ({ children }: { children: React.ReactNode }) =>
-      React.createElement(QueryClientProvider, { client: qc }, children);
-
-    const { result } = renderHook(() => useTestHandleVoteUpdate(debateId), { wrapper });
-
-    const payload: VoteUpdatePayload = {
+    const payload = createVotePayload({
       debateId,
       totalVotes: 5,
       voteBreakdown: { bull: 3, bear: 2 },
-    };
+    });
 
     act(() => {
       result.current.handleVoteUpdate(payload);
@@ -125,34 +118,21 @@ describe("[3-4-UNIT] handleVoteUpdate cache callback", () => {
     expect(oldData).toBeUndefined();
   });
 
-  test("multiple rapid updates apply sequentially via updater function @p0", () => {
+  test("[3-4-UNIT-CU03] multiple rapid updates apply sequentially via updater function @p0", () => {
+    const { wrapper, queryClient } = createWrapperWithQC();
     const debateId = "deb_rapid";
-    const qc = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
-    (React as unknown as { _qc?: QueryClient })._qc = qc;
-
-    const wrapper = ({ children }: { children: React.ReactNode }) =>
-      React.createElement(QueryClientProvider, { client: qc }, children);
-
-    const { result } = renderHook(() => useTestHandleVoteUpdate(debateId), { wrapper });
+    const { result } = renderHook(() => useTestHandleVoteUpdate(debateId, queryClient), { wrapper });
 
     act(() => {
-      result.current.handleVoteUpdate({
-        debateId,
-        totalVotes: 11,
-        voteBreakdown: { bull: 7, bear: 4 },
-      });
-      result.current.handleVoteUpdate({
-        debateId,
-        totalVotes: 12,
-        voteBreakdown: { bull: 8, bear: 4 },
-      });
-      result.current.handleVoteUpdate({
-        debateId,
-        totalVotes: 13,
-        voteBreakdown: { bull: 9, bear: 4 },
-      });
+      result.current.handleVoteUpdate(
+        createVotePayload({ debateId, totalVotes: 11, voteBreakdown: { bull: 7, bear: 4 } }),
+      );
+      result.current.handleVoteUpdate(
+        createVotePayload({ debateId, totalVotes: 12, voteBreakdown: { bull: 8, bear: 4 } }),
+      );
+      result.current.handleVoteUpdate(
+        createVotePayload({ debateId, totalVotes: 13, voteBreakdown: { bull: 9, bear: 4 } }),
+      );
     });
 
     expect(mockCacheUpdate).toHaveBeenCalledTimes(3);
