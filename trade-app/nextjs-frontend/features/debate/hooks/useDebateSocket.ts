@@ -67,6 +67,12 @@ export interface DebateResumedPayload {
   turn: number | null;
 }
 
+export interface VoteUpdatePayload {
+  debateId: string;
+  totalVotes: number;
+  voteBreakdown: Record<string, number>;
+}
+
 export type ReasoningNodeType = "data_input" | "bull_analysis" | "bear_counter" | "risk_check";
 
 export interface ReasoningNodePayload {
@@ -95,6 +101,7 @@ export interface WebSocketAction {
     | GuardianInterruptPayload
     | DebatePausedPayload
     | DebateResumedPayload
+    | VoteUpdatePayload
     | Record<string, unknown>;
   timestamp: string;
 }
@@ -114,6 +121,7 @@ export interface UseDebateSocketOptions {
   onGuardianInterrupt?: (payload: GuardianInterruptPayload) => void;
   onDebatePaused?: (payload: DebatePausedPayload) => void;
   onDebateResumed?: (payload: DebateResumedPayload) => void;
+  onVoteUpdate?: (payload: VoteUpdatePayload) => void;
   maxRetries?: number;
   onConnected?: () => void;
   onDisconnected?: () => void;
@@ -170,6 +178,7 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
     onGuardianInterrupt,
     onDebatePaused,
     onDebateResumed,
+    onVoteUpdate,
     maxRetries = DEFAULT_MAX_RETRIES,
     onConnected,
     onDisconnected,
@@ -251,6 +260,19 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
             case "DEBATE/DEBATE_RESUMED":
               onDebateResumed?.(action.payload as DebateResumedPayload);
               break;
+            case "DEBATE/VOTE_UPDATE":
+              if (
+                action.payload &&
+                typeof action.payload === "object" &&
+                "debateId" in action.payload &&
+                "totalVotes" in action.payload &&
+                "voteBreakdown" in action.payload
+              ) {
+                onVoteUpdate?.(action.payload as VoteUpdatePayload);
+              } else {
+                console.warn("Malformed DEBATE/VOTE_UPDATE payload:", action.payload);
+              }
+              break;
             case "DEBATE/PING":
               ws.send(JSON.stringify({ type: "DEBATE/PONG" }));
               break;
@@ -288,7 +310,7 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
       console.error("Failed to create WebSocket:", e);
       setStatus("disconnected");
     }
-  }, [debateId, maxRetries, onTokenReceived, onArgumentComplete, onStatusUpdate, onTurnChange, onError, onDataStale, onDataRefreshed, onReasoningNode, onGuardianInterrupt, onDebatePaused, onDebateResumed, onConnected, onDisconnected]);
+  }, [debateId, maxRetries, onTokenReceived, onArgumentComplete, onStatusUpdate, onTurnChange, onError, onDataStale, onDataRefreshed, onReasoningNode, onGuardianInterrupt, onDebatePaused, onDebateResumed, onVoteUpdate, onConnected, onDisconnected]);
 
   const sendGuardianAck = useCallback((): boolean => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {

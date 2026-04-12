@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 import {
@@ -11,11 +12,14 @@ import {
   type DataStalePayload,
   type ReasoningNodePayload,
   type GuardianInterruptPayload,
+  type VoteUpdatePayload,
 } from "../hooks/useDebateSocket";
 import { useReasoningGraph } from "../hooks/useReasoningGraph";
 import { useGuardianFreeze } from "../hooks/useGuardianFreeze";
 import { useVote } from "../hooks/useVote";
 import { useVotingStatus } from "../hooks/useVotingStatus";
+import { queryKeys } from "../hooks/queryKeys";
+import type { DebateResultEnvelope } from "../api";
 import { ArgumentBubble, type AgentType } from "./ArgumentBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { StaleDataWarning } from "./StaleDataWarning";
@@ -193,6 +197,25 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
     freezeHandleResumedRef.current();
   }, []);
 
+  const queryClient = useQueryClient();
+
+  const handleVoteUpdate = useCallback((payload: VoteUpdatePayload) => {
+    queryClient.setQueryData<DebateResultEnvelope>(
+      queryKeys.debateResult(debateId),
+      (old) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            totalVotes: payload.totalVotes,
+            voteBreakdown: payload.voteBreakdown,
+          },
+        };
+      }
+    );
+  }, [queryClient, debateId]);
+
   const { status, sendGuardianAck } = useDebateSocket({
     debateId,
     onTokenReceived: handleTokenReceived,
@@ -203,6 +226,7 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
     onGuardianInterrupt: handleGuardianInterrupt,
     onDebateResumed: handleDebateResumed,
     onStatusUpdate: handleStatusUpdate,
+    onVoteUpdate: handleVoteUpdate,
   });
 
   const {

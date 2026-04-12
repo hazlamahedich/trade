@@ -62,7 +62,7 @@ development_status:
   3-1-voting-api-data-model: done
   3-2-voting-ui-components: done
   3-3-sentiment-aggregation-service: done
-  3-4-real-time-sentiment-reveal: backlog
+  3-4-real-time-sentiment-reveal: done
   epic-3-retrospective: optional
 
   epic-4: in-progress

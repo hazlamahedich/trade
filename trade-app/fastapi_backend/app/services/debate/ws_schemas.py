@@ -23,6 +23,7 @@ WebSocketActionType = Literal[
     "DEBATE/DEBATE_PAUSED",
     "DEBATE/DEBATE_RESUMED",
     "DEBATE/GUARDIAN_INTERRUPT_ACK",
+    "DEBATE/VOTE_UPDATE",
 ]
 
 
@@ -189,3 +190,11 @@ class DebateResumedPayload(BaseModel):
 
     debate_id: str = Field(serialization_alias="debateId")
     turn: int | None = None
+
+
+class VoteUpdatePayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    debate_id: str = Field(serialization_alias="debateId")
+    total_votes: int = Field(serialization_alias="totalVotes")
+    vote_breakdown: dict[str, int] = Field(serialization_alias="voteBreakdown")

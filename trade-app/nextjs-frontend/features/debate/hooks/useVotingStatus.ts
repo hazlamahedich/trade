@@ -6,6 +6,8 @@ import { fetchDebateResult } from "../api";
 import { queryKeys } from "./queryKeys";
 import { getStoredChoice, type VoteChoice } from "./storedVote";
 
+export const VOTE_POLL_INTERVAL_MS = 5000;
+
 export function useVotingStatus(debateId: string) {
   const [localChoice, setLocalChoice] = useState<VoteChoice | null>(null);
 
@@ -13,10 +15,14 @@ export function useVotingStatus(debateId: string) {
     setLocalChoice(getStoredChoice(debateId));
   }, [debateId]);
 
+  const hasVoted = localChoice !== null;
+
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.debateResult(debateId),
     queryFn: () => fetchDebateResult(debateId),
     enabled: !!debateId,
+    refetchInterval: hasVoted ? VOTE_POLL_INTERVAL_MS : false,
+    refetchIntervalInBackground: false,
   });
 
   const result = data?.data;
@@ -24,7 +30,6 @@ export function useVotingStatus(debateId: string) {
   const serverTotalVotes = result?.totalVotes ?? 0;
   const serverVoteCounts = result?.voteBreakdown ?? null;
 
-  const hasVoted = localChoice !== null;
   const userChoice = localChoice;
 
   return {

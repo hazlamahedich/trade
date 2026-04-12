@@ -46,3 +46,8 @@
 
 - Benchmark tests repo layer not HTTP endpoint — AC2 specifies `GET /api/debate/{id}/result` but test calls repo directly [`test_sentiment_benchmark.py:72`] — test architecture decision; repo-only benchmark isolates query performance from HTTP overhead
 - String-based query detection in `test_no_redundant_count_query` fragile across SQLAlchemy versions [`test_vote_repository.py:353`] — pre-existing test pattern, functional with current asyncpg dialect
+
+## Deferred from: code review of 3-4-real-time-sentiment-reveal (2026-04-12)
+
+- Percentage rounding can produce `bullPct + bearPct = 101%` bar overflow — pre-existing `Math.round` behavior in SentimentReveal, mitigated by `overflow-hidden` on flex container [SentimentReveal.tsx:45-47]
+- Polling + WS both active — stale poll can overwrite fresher WS update for ~5s window — accepted eventual consistency per spec; next poll corrects stale data [useVotingStatus.ts:25 + DebateStream.tsx:202]

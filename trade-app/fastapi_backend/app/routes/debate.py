@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import logging
 import time
@@ -27,6 +28,8 @@ from app.services.rate_limiter import (
     create_vote_rate_limiter,
     create_vote_capacity_limiter,
 )
+
+from app.services.debate.ws_schemas import WebSocketAction, VoteUpdatePayload
 
 router = APIRouter(prefix="/api/debate", tags=["debate"])
 
@@ -284,6 +287,33 @@ async def cast_vote(
         )
 
     latency_ms = int((time.time() - start_time) * 1000)
+
+    try:
+        from app.services.debate.streaming import connection_manager
+
+        if connection_manager.get_connection_count(request.debate_id) > 0:
+            updated_result = await repo.get_result(request.debate_id)
+            if updated_result:
+                action = WebSocketAction(
+                    type="DEBATE/VOTE_UPDATE",
+                    payload=VoteUpdatePayload(
+                        debate_id=request.debate_id,
+                        total_votes=updated_result.total_votes,
+                        vote_breakdown=updated_result.vote_breakdown,
+                    ).model_dump(by_alias=True),
+                )
+                await connection_manager.broadcast_to_debate(
+                    request.debate_id, action.model_dump(by_alias=True)
+                )
+    except Exception as e:
+        if isinstance(e, (ConnectionError, OSError, asyncio.TimeoutError)):
+            logger.warning(f"Vote broadcast failed for debate {request.debate_id}: {e}")
+        else:
+            logger.error(
+                f"Unexpected broadcast error for debate {request.debate_id}: {e}",
+                exc_info=True,
+            )
+
     return StandardVoteResponse(
         data=result,
         error=None,
