@@ -1,7 +1,9 @@
+import asyncio
+
 import pytest
 from uuid import uuid4
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.models import Debate
 from app.services.debate.repository import DebateRepository
@@ -72,6 +74,9 @@ class TestGetResultOptimized:
         result = await repo.get_result(debate_opt.external_id)
         assert result is not None
 
+        # NOTE: Detection uses "count(votes.id" substring match, specific to
+        # SQLAlchemy 2.x query generation. If ORM upgrade changes the generated
+        # SQL, update this string check accordingly. Test fails loudly if broken.
         count_queries = [
             c
             for c in execute_calls
@@ -269,3 +274,35 @@ class TestSentimentResultSerialization:
         assert "vote_breakdown" in dumped
         assert "guardian_verdict" in dumped
         assert "guardian_interrupts_count" in dumped
+
+
+class TestConcurrentWriteIdempotency:
+    @pytest.mark.p2
+    @pytest.mark.asyncio
+    async def test_count_deterministic_after_concurrent_votes(self, engine, debate_opt):
+        """[REPO-012] Given a debate with 0 votes, When 10 concurrent vote submissions fire, Then the resulting vote count is exactly 10"""
+        session_factory = async_sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
+        external_id = debate_opt.external_id
+        choices = ["bull", "bear", "undecided"]
+
+        async def cast_vote(idx: int):
+            async with session_factory() as session:
+                repo = DebateRepository(session)
+                await repo.create_vote(
+                    debate_id=debate_opt.id,
+                    debate_external_id=external_id,
+                    choice=choices[idx % 3],
+                    voter_fingerprint=f"fp_conc_write_{idx}",
+                )
+
+        await asyncio.gather(*[cast_vote(i) for i in range(10)])
+
+        async with session_factory() as session:
+            repo = DebateRepository(session)
+            result = await repo.get_result(external_id)
+
+        assert result is not None
+        assert result.total_votes == 10
+        assert sum(result.vote_breakdown.values()) == 10

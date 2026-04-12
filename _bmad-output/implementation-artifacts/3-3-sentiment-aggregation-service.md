@@ -231,14 +231,15 @@ No debug issues encountered. Clean implementation.
  - 2026-04-12: Optimized `get_result()` to use single GROUP BY query. Added 4 optimization-specific tests + 1 concurrent benchmark test. Zero regressions across 71 tests.
  - 2026-04-12: TEA test automation expansion — added 9 tests (7 unit + 2 integration). All 80 tests pass (31 sentiment + 36 route + 13 other).
  - 2026-04-12: TEA test quality review — 91/100 (A). Addressed all findings: added missing priority markers (REPO-001–004, BENCH-001), split `test_vote_repository.py` by story boundary (3.1 vs 3.3), extracted `create_votes` helper to `conftest.py`. All 31 sentiment + 49 route tests pass. Ruff clean.
+ - 2026-04-12: Party mode review follow-up — addressed deferred review findings: BENCH-002 (AC2 HTTP endpoint coverage via `test_client` fixture, 5 sequential requests), BENCH-003 (parametrized 0-vote and 1-vote sparse benchmark), REPO-012 (concurrent write idempotency — 10 concurrent votes, exact count=10), SQLAlchemy version comment on query detection test. All 18 sentiment tests + 49 route tests pass. Ruff clean. Zero regression.
 
 ### Review Findings
 
-- [x] [Review][Patch] Hardcoded `external_id="deb_bench_001"` in benchmark fixture — fails under parallel test execution (pytest-xdist). Use `uuid4().hex[:8]` like existing `debate_with_session` fixture. [`test_sentiment_benchmark.py:18`]
-- [x] [Review][Patch] Benchmark never validates breakdown composition — only checks total count. Add assertion for `vote_breakdown == {"bull": 450, "bear": 350, "undecided": 200}` on at least one result. [`test_sentiment_benchmark.py:88-92`]
-- [x] [Review][Patch] `test_total_votes_derived_from_breakdown` doesn't assert breakdown contents — a bug returning wrong distribution with same total would pass. Add `assert result.vote_breakdown == {"bull": 5, "bear": 3}`. [`test_vote_repository.py:324`]
-- [x] [Review][Defer] Benchmark tests repo layer not HTTP endpoint — AC2 specifies `GET /api/debate/{id}/result` but test calls repo directly [`test_sentiment_benchmark.py:72`] — deferred, pre-existing test architecture decision
-- [x] [Review][Defer] String-based query detection in `test_no_redundant_count_query` fragile across SQLAlchemy versions [`test_vote_repository.py:353`] — deferred, pre-existing test pattern
+ - [x] [Review][Patch] Hardcoded `external_id="deb_bench_001"` in benchmark fixture — fails under parallel test execution (pytest-xdist). Use `uuid4().hex[:8]` like existing `debate_with_session` fixture. [`test_sentiment_benchmark.py:18`]
+ - [x] [Review][Patch] Benchmark never validates breakdown composition — only checks total count. Add assertion for `vote_breakdown == {"bull": 450, "bear": 350, "undecided": 200}` on at least one result. [`test_sentiment_benchmark.py:88-92`]
+ - [x] [Review][Patch] `test_total_votes_derived_from_breakdown` doesn't assert breakdown contents — a bug returning wrong distribution with same total would pass. Add `assert result.vote_breakdown == {"bull": 5, "bear": 3}`. [`test_vote_repository.py:324`]
+ - [x] [Review][Fixed] Benchmark tests repo layer not HTTP endpoint — AC2 specifies `GET /api/debate/{id}/result` but test calls repo directly [`test_sentiment_benchmark.py:72`]. Fixed: added BENCH-002 — HTTP endpoint test via `test_client` fixture with full envelope validation and latency check. Sequential (not concurrent) due to shared asyncpg connection in DI override; repo-level BENCH-001 already proves PostgreSQL concurrency at 200 requests.
+ - [x] [Review][Fixed] String-based query detection in `test_no_redundant_count_query` fragile across SQLAlchemy versions [`test_vote_repository_optimized.py:75`]. Fixed: added SQLAlchemy 2.x version comment noting detection is version-specific.
 
 ### Test Quality Review
 

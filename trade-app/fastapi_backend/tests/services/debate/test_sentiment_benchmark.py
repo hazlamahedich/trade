@@ -117,3 +117,91 @@ class TestSentimentBenchmark:
             latencies[0],
             latencies[-1],
         )
+
+    @pytest.mark.p1
+    @pytest.mark.asyncio
+    async def test_http_result_endpoint_1000_votes(
+        self, engine, test_client, debate_with_1000_votes
+    ):
+        """[BENCH-002] Given 1000 votes, When GET /api/debate/{id}/result called, Then returns 200 with valid envelope and correct data"""
+        external_id = debate_with_1000_votes.external_id
+
+        latencies = []
+        for _ in range(5):
+            start = time.monotonic()
+            resp = await test_client.get(f"/api/debate/{external_id}/result")
+            elapsed_ms = (time.monotonic() - start) * 1000
+
+            assert resp.status_code == 200
+            body = resp.json()
+            assert body["data"]["totalVotes"] == 1000
+            assert body["data"]["voteBreakdown"] == {
+                "bull": 450,
+                "bear": 350,
+                "undecided": 200,
+            }
+            assert body["error"] is None
+            assert "latencyMs" in body["meta"]
+            latencies.append(elapsed_ms)
+
+        latencies.sort()
+        p99 = latencies[-1]
+
+        if p99 > 200:
+            logger.warning("BENCH-002: HTTP p99 %.1fms exceeds 200ms target", p99)
+        if p99 > 1000:
+            pytest.fail(f"HTTP p99 {p99:.1f}ms exceeds 1000ms hard limit")
+
+        logger.info(
+            "BENCH-002: HTTP p50=%.1fms p99=%.1fms",
+            latencies[len(latencies) // 2],
+            p99,
+        )
+
+    @pytest.mark.p3
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("vote_count", [0, 1])
+    async def test_sparse_votes_get_result(self, engine, db_session, vote_count):
+        """[BENCH-003] Given a debate with 0 or 1 votes, When get_result() called, Then returns valid result with correct count"""
+        from uuid import uuid4
+
+        debate = Debate(
+            external_id=f"deb_sparse_{uuid4().hex[:8]}",
+            asset="bitcoin",
+            status="running",
+            max_turns=6,
+            current_turn=0,
+        )
+        db_session.add(debate)
+        await db_session.commit()
+        await db_session.refresh(debate)
+
+        for i in range(vote_count):
+            vote = Vote(
+                debate_id=debate.id,
+                choice="bull",
+                voter_fingerprint=f"fp_sparse_{i}",
+            )
+            db_session.add(vote)
+        await db_session.commit()
+
+        session_factory = async_sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
+        async with session_factory() as session:
+            repo = DebateRepository(session)
+            start = time.monotonic()
+            result = await repo.get_result(debate.external_id)
+            elapsed_ms = (time.monotonic() - start) * 1000
+
+        assert result is not None
+        assert result.total_votes == vote_count
+        if vote_count == 0:
+            assert result.vote_breakdown == {}
+        else:
+            assert result.vote_breakdown == {"bull": 1}
+
+        if elapsed_ms > 200:
+            logger.warning(
+                "BENCH-003: %d-vote query took %.1fms", vote_count, elapsed_ms
+            )
