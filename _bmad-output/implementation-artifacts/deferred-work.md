@@ -65,3 +65,8 @@
 - Redis deletion failure leaves orphaned keys until TTL expiry (3600s) [archival.py:64-67] — by design per spec AC3, TTL handles cleanup
 - Transcript JSON serialization risk if message dict contains non-serializable types (e.g. datetime) [archival.py:47] — messages are string-only dicts in practice
 - No dedicated test for ack-timeout exit path calling archival [test_archival.py] — all three exit paths converge to same code, critical-interrupt test provides indirect coverage
+
+## Deferred from: code review of 4-2a-debate-history-backend-api (2026-04-13)
+
+- Duplicated heavy query for outcome-filtered count — count_cte and data_query both compute winner_expr independently. Spec-prescribed architecture. Optimization (e.g., COUNT(*) OVER() window function) is a follow-up concern.
+- Asset filter case-sensitivity in SQL — route normalizes query params to lowercase, but stored Debate.asset values with mixed case won't match. Should be addressed at write time (normalize on debate creation).

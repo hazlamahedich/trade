@@ -22,6 +22,7 @@ def upgrade() -> None:
         "idx_vote_debate_choice",
         "votes",
         ["debate_id", "choice"],
+        if_not_exists=True,
     )
 
 

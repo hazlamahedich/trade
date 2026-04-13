@@ -1,6 +1,6 @@
 # Story 4.2a: Debate History Backend API
 
-Status: review
+Status: done
 
 ## Story
 
@@ -224,3 +224,19 @@ No issues encountered during implementation.
 - `trade-app/fastapi_backend/app/routes/debate.py` (MODIFIED)
 - `trade-app/fastapi_backend/tests/conftest_history.py` (NEW)
 - `trade-app/fastapi_backend/tests/routes/test_debate_history.py` (NEW)
+
+### Review Findings
+
+- [x] [Review][Patch] Winner derivation — undecided plurality wins semantics [`app/services/debate/repository.py`:winner_expr] — Added `undecided_votes` column, winner now returns "undecided" when undecided > bull AND undecided > bear. Fixed via CASE logic with bitwise AND conditions.
+
+- [x] [Review][Patch] Migration idempotency [`alembic_migrations/versions/f1a2b3c4d5e6_add_vote_debate_choice_idx.py:21-25`] — Added `if_not_exists=True` to `op.create_index`.
+
+- [x] [Review][Patch] Test: undecided votes in vote_breakdown [`tests/routes/test_debate_history.py`] — Added `test_vote_breakdown_includes_undecided` + `test_winner_with_undecided_votes` parametrized (6 cases). `seed_votes` now supports `undecided` param.
+
+- [x] [Review][Patch] Test: outcome filter empty result [`tests/routes/test_debate_history.py`] — Added `test_outcome_filter_empty_result` verifying `total=0, pages=0, data=[]`.
+
+- [x] [Review][Patch] HTTPException detail envelope pattern [`app/routes/debate.py:~130-155`] — Kept as-is: this is the established codebase convention (all routes use same pattern). Changing one endpoint would create inconsistency.
+
+- [x] [Review][Defer] Duplicated heavy query for outcome-filtered count [`app/services/debate/repository.py:~220-232`] — deferred, spec-prescribed architecture. The count_cte and data_query both compute `winner_expr` independently. Optimization (e.g., `COUNT(*) OVER()` window function) is a follow-up concern.
+
+- [x] [Review][Defer] Asset filter case-sensitivity in SQL [`app/services/debate/repository.py:~189`] — deferred, write-side concern. The route normalizes query params to lowercase, but stored `Debate.asset` values with mixed case won't match. Should be addressed at write time (normalize on debate creation).

@@ -158,17 +158,24 @@ class DebateRepository:
         bear_votes = func.coalesce(
             func.count(Vote.id).filter(Vote.choice == "bear"), 0
         ).label("bear_votes")
+        undecided_votes = func.coalesce(
+            func.count(Vote.id).filter(Vote.choice == "undecided"), 0
+        ).label("undecided_votes")
 
         winner_expr = case(
             (
-                bull_votes == 0,
+                (bull_votes == 0) & (bear_votes == 0) & (undecided_votes == 0),
+                literal_column("'undecided'"),
+            ),
+            (
+                undecided_votes > bull_votes,
                 case(
-                    (bear_votes == 0, literal_column("'undecided'")),
+                    (undecided_votes > bear_votes, literal_column("'undecided'")),
                     else_=literal_column("'bear'"),
                 ),
             ),
             (
-                bear_votes == 0,
+                undecided_votes > bear_votes,
                 literal_column("'bull'"),
             ),
             (
@@ -198,6 +205,7 @@ class DebateRepository:
                 total_votes_expr,
                 bull_votes,
                 bear_votes,
+                undecided_votes,
                 winner_expr,
                 Debate.created_at,
                 Debate.completed_at,
@@ -249,9 +257,8 @@ class DebateRepository:
                 vote_breakdown["bull"] = row.bull_votes
             if row.bear_votes > 0:
                 vote_breakdown["bear"] = row.bear_votes
-            undecided_count = row.total_votes - row.bull_votes - row.bear_votes
-            if undecided_count > 0:
-                vote_breakdown["undecided"] = undecided_count
+            if row.undecided_votes > 0:
+                vote_breakdown["undecided"] = row.undecided_votes
 
             items.append(
                 DebateHistoryItem(

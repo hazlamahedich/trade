@@ -1,6 +1,13 @@
 # Story 4.2: Debate History Page (The Archive)
 
-Status: ready-for-dev
+> **SPLIT into two stories** following Party Mode adversarial review consensus (2026-04-13).
+>
+> - **Story 4.2a** — Backend API: `4-2a-debate-history-backend-api.md`
+> - **Story 4.2b** — Frontend Page: `4-2b-debate-history-frontend-the-archive.md`
+>
+> **4.2a ships first. 4.2b is blocked until 4.2a's API returns real data.**
+
+Status: superseded-by-split
 
 ## Story
 

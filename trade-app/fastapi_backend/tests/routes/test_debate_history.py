@@ -65,7 +65,9 @@ def make_running_debate():
     return _make
 
 
-async def seed_votes(db_session, debate_id, bull: int = 0, bear: int = 0):
+async def seed_votes(
+    db_session, debate_id, bull: int = 0, bear: int = 0, undecided: int = 0
+):
     for _ in range(bull):
         db_session.add(
             Vote(
@@ -79,6 +81,14 @@ async def seed_votes(db_session, debate_id, bull: int = 0, bear: int = 0):
             Vote(
                 debate_id=debate_id,
                 choice="bear",
+                voter_fingerprint=f"fp_{uuid4().hex[:8]}",
+            )
+        )
+    for _ in range(undecided):
+        db_session.add(
+            Vote(
+                debate_id=debate_id,
+                choice="undecided",
                 voter_fingerprint=f"fp_{uuid4().hex[:8]}",
             )
         )
@@ -111,6 +121,42 @@ class TestWinnerDerivation:
         await db_session.commit()
 
         await seed_votes(db_session, debate.id, bull=bull, bear=bear)
+
+        resp = await history_client.get(HISTORY_URL)
+        body = resp.json()
+        items = body["data"]
+        assert len(items) == 1
+        assert items[0]["winner"] == expected
+
+    @pytest.mark.parametrize(
+        "bull,bear,undecided,expected",
+        [
+            (2, 1, 5, "undecided"),
+            (1, 2, 5, "undecided"),
+            (3, 1, 2, "bull"),
+            (1, 3, 2, "bear"),
+            (0, 0, 3, "undecided"),
+            (1, 1, 1, "undecided"),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_winner_with_undecided_votes(
+        self,
+        db_session,
+        history_client,
+        make_completed_debate,
+        bull,
+        bear,
+        undecided,
+        expected,
+    ):
+        debate = make_completed_debate()
+        db_session.add(debate)
+        await db_session.commit()
+
+        await seed_votes(
+            db_session, debate.id, bull=bull, bear=bear, undecided=undecided
+        )
 
         resp = await history_client.get(HISTORY_URL)
         body = resp.json()
@@ -239,6 +285,24 @@ class TestNullVotes:
         assert item["winner"] == "undecided"
         assert item["totalVotes"] == 0
 
+    @pytest.mark.asyncio
+    async def test_vote_breakdown_includes_undecided(
+        self, db_session, history_client, make_completed_debate
+    ):
+        debate = make_completed_debate(ext_id="deb_breakdown_und")
+        db_session.add(debate)
+        await db_session.commit()
+
+        await seed_votes(db_session, debate.id, bull=2, bear=1, undecided=3)
+
+        resp = await history_client.get(HISTORY_URL)
+        body = resp.json()
+        item = body["data"][0]
+        assert item["voteBreakdown"]["bull"] == 2
+        assert item["voteBreakdown"]["bear"] == 1
+        assert item["voteBreakdown"]["undecided"] == 3
+        assert item["totalVotes"] == 6
+
 
 class TestPaginationOutcomeInteraction:
     @pytest.mark.asyncio
@@ -267,6 +331,21 @@ class TestPaginationOutcomeInteraction:
         assert len(body["data"]) == 2
         for item in body["data"]:
             assert item["winner"] == "bull"
+
+    @pytest.mark.asyncio
+    async def test_outcome_filter_empty_result(
+        self, db_session, history_client, make_completed_debate
+    ):
+        debate = make_completed_debate(ext_id="deb_only_bear")
+        db_session.add(debate)
+        await db_session.commit()
+        await seed_votes(db_session, debate.id, bull=1, bear=5)
+
+        resp = await history_client.get(HISTORY_URL, params={"outcome": "bull"})
+        body = resp.json()
+        assert body["meta"]["total"] == 0
+        assert body["meta"]["pages"] == 0
+        assert body["data"] == []
 
     @pytest.mark.asyncio
     async def test_pagination_across_pages(
