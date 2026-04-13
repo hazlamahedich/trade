@@ -219,17 +219,41 @@ No issues encountered during implementation.
 - TEA automation: 23 new tests (10 repo unit, 2 SQL verification, 1 ordering, 3 pagination boundaries, 3 case-insensitive filters, 3 schema serialization) — 57 total tests, 159 route tests passing
 - TEA automation pass 2: 43 new tests (19 schema unit, 24 route integration) — 100 total tests all passing. Coverage gaps closed: empty DB, size/page boundary validation, 422 error body shape, outcome=undecided with undecided-plurality, all 6 SUPPORTED_ASSETS, null completed_at, vote_breakdown zero-key omission, guardian verdict field coverage.
 
+### Test Quality Review (TEA)
+
+Score: **92/100 (A+ — Excellent)** | Recommendation: **Approve with Comments**
+
+Follow-up actions addressed:
+
+1. **Split route tests** — 881-line `test_debate_history.py` decomposed into 4 domain-focused files:
+   - `test_debate_history_winner.py` (winner derivation, count query separation)
+   - `test_debate_history_filters.py` (asset, outcome, case-insensitive, status gate)
+   - `test_debate_history_pagination.py` (boundaries, size validation, empty DB, ordering)
+   - `test_debate_history_contracts.py` (response contract, serialization, error shapes, null handling)
+
+2. **Added test IDs** — All 100 tests have `ID: 4.2a-{RT|RP|SC}-{NNN}` docstrings and class-level priority markers (`P0`, `P1`, `P2`)
+
+3. **Consolidated fixtures** — `seed_votes`, `make_completed_debate`, `make_running_debate`, `history_client` moved to `conftest_history.py`; registered via `pytest_plugins` in `conftest.py`. Removed 3 duplicate vote-seeding implementations.
+
+100 tests pass, ruff clean. No behavioral changes.
+
 ### File List
 
 - `trade-app/fastapi_backend/alembic_migrations/versions/f1a2b3c4d5e6_add_vote_debate_choice_idx.py` (NEW)
 - `trade-app/fastapi_backend/app/services/debate/schemas.py` (MODIFIED)
 - `trade-app/fastapi_backend/app/services/debate/repository.py` (MODIFIED)
 - `trade-app/fastapi_backend/app/routes/debate.py` (MODIFIED)
-- `trade-app/fastapi_backend/tests/conftest_history.py` (NEW)
-- `trade-app/fastapi_backend/tests/routes/test_debate_history.py` (NEW — expanded with 24 additional tests)
-- `trade-app/fastapi_backend/tests/repositories/test_debate_history_repo.py` (NEW — TEA automation)
-- `trade-app/fastapi_backend/tests/schemas/test_debate_history_schemas.py` (NEW — TEA automation pass 2)
+- `trade-app/fastapi_backend/tests/conftest.py` (MODIFIED — added pytest_plugins for conftest_history)
+- `trade-app/fastapi_backend/tests/conftest_history.py` (MODIFIED — consolidated shared fixtures)
+- `trade-app/fastapi_backend/tests/routes/test_debate_history_winner.py` (NEW — split from monolith)
+- `trade-app/fastapi_backend/tests/routes/test_debate_history_filters.py` (NEW — split from monolith)
+- `trade-app/fastapi_backend/tests/routes/test_debate_history_pagination.py` (NEW — split from monolith)
+- `trade-app/fastapi_backend/tests/routes/test_debate_history_contracts.py` (NEW — split from monolith)
+- `trade-app/fastapi_backend/tests/routes/test_debate_history.py` (DELETED — split into 4 files)
+- `trade-app/fastapi_backend/tests/repositories/test_debate_history_repo.py` (MODIFIED — shared fixtures + IDs)
+- `trade-app/fastapi_backend/tests/schemas/test_debate_history_schemas.py` (MODIFIED — IDs + priorities)
 - `_bmad-output/test-artifacts/automation-summary-story-4-2a.md` (NEW — TEA automation summary)
+- `_bmad-output/test-artifacts/test-review-story-4-2a.md` (NEW — TEA test quality review)
 
 ### Review Findings
 

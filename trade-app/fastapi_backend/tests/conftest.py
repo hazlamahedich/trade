@@ -13,6 +13,8 @@ from app.database import get_user_db, get_async_session
 from app.main import app
 from app.users import get_jwt_strategy
 
+pytest_plugins = ["tests.conftest_history"]
+
 
 def pytest_configure(config):
     config.addinivalue_line(

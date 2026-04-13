@@ -11,7 +11,10 @@ from app.services.debate.schemas import (
 
 
 class TestDebateHistoryItemValidation:
+    """P0 — DebateHistoryItem Pydantic validation (AC-7)"""
+
     def test_valid_minimal_fields(self):
+        """ID: 4.2a-SC-001 — Minimal valid item with defaults"""
         item = DebateHistoryItem(
             external_id="ext_1",
             asset="bitcoin",
@@ -28,6 +31,7 @@ class TestDebateHistoryItemValidation:
         assert item.completed_at is None
 
     def test_all_fields_populated(self):
+        """ID: 4.2a-SC-002 — All fields populated correctly"""
         item = DebateHistoryItem(
             external_id="ext_2",
             asset="eth",
@@ -46,6 +50,7 @@ class TestDebateHistoryItemValidation:
 
     @pytest.mark.parametrize("winner", ["bull", "bear", "undecided"])
     def test_valid_winner_values(self, winner):
+        """ID: 4.2a-SC-003 — Parametrized: valid winner enum values"""
         item = DebateHistoryItem(
             external_id="ext_w",
             asset="btc",
@@ -56,6 +61,7 @@ class TestDebateHistoryItemValidation:
         assert item.winner == winner
 
     def test_missing_required_winner_raises(self):
+        """ID: 4.2a-SC-004 — Missing winner raises ValidationError"""
         with pytest.raises(ValidationError) as exc_info:
             DebateHistoryItem(
                 external_id="ext_no_winner",
@@ -66,6 +72,7 @@ class TestDebateHistoryItemValidation:
         assert "winner" in str(exc_info.value)
 
     def test_missing_required_external_id_raises(self):
+        """ID: 4.2a-SC-005 — Missing external_id raises ValidationError"""
         with pytest.raises(ValidationError) as exc_info:
             DebateHistoryItem(
                 asset="btc",
@@ -76,6 +83,7 @@ class TestDebateHistoryItemValidation:
         assert "external_id" in str(exc_info.value)
 
     def test_missing_required_created_at_raises(self):
+        """ID: 4.2a-SC-006 — Missing created_at raises ValidationError"""
         with pytest.raises(ValidationError) as exc_info:
             DebateHistoryItem(
                 external_id="ext_no_date",
@@ -87,7 +95,10 @@ class TestDebateHistoryItemValidation:
 
 
 class TestDebateHistoryItemSerialization:
+    """P0 — CamelCase serialization via alias (AC-7)"""
+
     def test_camel_case_serialization(self):
+        """ID: 4.2a-SC-007 — All fields serialize to camelCase"""
         item = DebateHistoryItem(
             external_id="ext_camel",
             asset="btc",
@@ -115,6 +126,7 @@ class TestDebateHistoryItemSerialization:
         assert "total_votes" not in dumped
 
     def test_populate_by_name_works(self):
+        """ID: 4.2a-SC-008 — populate_by_name=True allows snake_case input"""
         item = DebateHistoryItem(
             external_id="ext_name",
             asset="btc",
@@ -127,6 +139,7 @@ class TestDebateHistoryItemSerialization:
         assert dumped["externalId"] == "ext_name"
 
     def test_null_guardian_verdict_serializes_as_none(self):
+        """ID: 4.2a-SC-009 — Null guardian_verdict → null in output"""
         item = DebateHistoryItem(
             external_id="ext_null_gv",
             asset="btc",
@@ -139,6 +152,7 @@ class TestDebateHistoryItemSerialization:
         assert dumped["guardianVerdict"] is None
 
     def test_null_completed_at_serializes_as_none(self):
+        """ID: 4.2a-SC-010 — Null completed_at → null in output"""
         item = DebateHistoryItem(
             external_id="ext_null_ca",
             asset="btc",
@@ -152,7 +166,10 @@ class TestDebateHistoryItemSerialization:
 
 
 class TestDebateHistoryMetaValidation:
+    """P0 — DebateHistoryMeta validation (AC-4)"""
+
     def test_valid_meta(self):
+        """ID: 4.2a-SC-011 — Valid meta with all fields"""
         meta = DebateHistoryMeta(page=1, size=20, total=100, pages=5)
         assert meta.page == 1
         assert meta.size == 20
@@ -160,6 +177,7 @@ class TestDebateHistoryMetaValidation:
         assert meta.pages == 5
 
     def test_camel_case_serialization(self):
+        """ID: 4.2a-SC-012 — Meta fields serialize correctly"""
         meta = DebateHistoryMeta(page=2, size=10, total=25, pages=3)
         dumped = meta.model_dump(by_alias=True)
         assert "page" in dumped
@@ -168,13 +186,17 @@ class TestDebateHistoryMetaValidation:
         assert "pages" in dumped
 
     def test_zero_results_meta(self):
+        """ID: 4.2a-SC-013 — Zero-results meta (total=0, pages=0)"""
         meta = DebateHistoryMeta(page=1, size=20, total=0, pages=0)
         assert meta.total == 0
         assert meta.pages == 0
 
 
 class TestStandardDebateHistoryResponseValidation:
+    """P0 — Standard envelope response validation (AC-4)"""
+
     def test_full_response_envelope(self):
+        """ID: 4.2a-SC-014 — Full {data, error, meta} envelope"""
         response = StandardDebateHistoryResponse(
             data=[
                 DebateHistoryItem(
@@ -193,6 +215,7 @@ class TestStandardDebateHistoryResponseValidation:
         assert response.meta.total == 1
 
     def test_empty_data_response(self):
+        """ID: 4.2a-SC-015 — Empty data with zero meta"""
         response = StandardDebateHistoryResponse(
             data=[],
             error=None,
@@ -202,6 +225,7 @@ class TestStandardDebateHistoryResponseValidation:
         assert response.meta.total == 0
 
     def test_error_response_shape(self):
+        """ID: 4.2a-SC-016 — Error response with code and message"""
         response = StandardDebateHistoryResponse(
             data=[],
             error=DebateErrorResponse(code="INVALID_ASSET", message="bad asset"),
@@ -212,6 +236,7 @@ class TestStandardDebateHistoryResponseValidation:
         assert response.error.message == "bad asset"
 
     def test_serialization_produces_correct_envelope(self):
+        """ID: 4.2a-SC-017 — Full serialization round-trip"""
         response = StandardDebateHistoryResponse(
             data=[
                 DebateHistoryItem(
