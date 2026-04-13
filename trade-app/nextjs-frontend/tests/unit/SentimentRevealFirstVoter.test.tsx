@@ -252,4 +252,118 @@ describe("[3-6-UNIT] SentimentReveal First Voter Celebration", () => {
 
     expect(screen.queryByTestId("first-voter-badge")).not.toBeInTheDocument();
   });
+
+  test("[3-6-UNIT-SRC12] no badge when debateId is undefined @p0", () => {
+    render(
+      <SentimentReveal
+        voteBreakdown={{ bull: 1, bear: 0 }}
+        totalVotes={1}
+        isFirstVoter={true}
+      />
+    );
+
+    expect(screen.queryByTestId("first-voter-badge")).not.toBeInTheDocument();
+  });
+
+  test("[3-6-UNIT-SRC13] aria-label shows pending status text @p1", () => {
+    render(
+      <SentimentReveal
+        voteBreakdown={{ bull: 1, bear: 0 }}
+        totalVotes={1}
+        optimisticSegment="bull"
+        optimisticStatus="pending"
+        isFirstVoter={false}
+        debateId="debate-aria-pending"
+      />
+    );
+
+    expect(screen.getByTestId("sentiment-reveal")).toHaveAttribute(
+      "aria-label",
+      "Your vote is being recorded"
+    );
+  });
+
+  test("[3-6-UNIT-SRC14] aria-label shows failed status text @p1", () => {
+    render(
+      <SentimentReveal
+        voteBreakdown={{ bull: 1, bear: 0 }}
+        totalVotes={1}
+        optimisticSegment="bull"
+        optimisticStatus="failed"
+        isFirstVoter={false}
+        debateId="debate-aria-failed"
+      />
+    );
+
+    expect(screen.getByTestId("sentiment-reveal")).toHaveAttribute(
+      "aria-label",
+      "Your vote was updated"
+    );
+  });
+
+  test("[3-6-UNIT-SRC15] aria-label shows timeout status text @p1", () => {
+    render(
+      <SentimentReveal
+        voteBreakdown={{ bull: 1, bear: 0 }}
+        totalVotes={1}
+        optimisticSegment="bull"
+        optimisticStatus="timeout"
+        isFirstVoter={false}
+        debateId="debate-aria-timeout"
+      />
+    );
+
+    expect(screen.getByTestId("sentiment-reveal")).toHaveAttribute(
+      "aria-label",
+      "Your vote is still being processed"
+    );
+  });
+
+  test("[3-6-UNIT-SRC16] bar opacity is 0.6 for timeout optimistic status @p1", () => {
+    render(
+      <SentimentReveal
+        voteBreakdown={{ bull: 1, bear: 0 }}
+        totalVotes={1}
+        optimisticSegment="bull"
+        optimisticStatus="timeout"
+        isFirstVoter={false}
+        debateId="debate-opacity-timeout"
+      />
+    );
+
+    const bullBar = screen.getByTestId("bull-bar");
+    expect(bullBar).toHaveStyle({ opacity: 0.6 });
+  });
+
+  test("[3-6-UNIT-SRC17] bar opacity is 0.85 for pending optimistic status @p1", () => {
+    render(
+      <SentimentReveal
+        voteBreakdown={{ bull: 1, bear: 0 }}
+        totalVotes={1}
+        optimisticSegment="bull"
+        optimisticStatus="pending"
+        isFirstVoter={false}
+        debateId="debate-opacity-pending"
+      />
+    );
+
+    const bullBar = screen.getByTestId("bull-bar");
+    expect(bullBar).toHaveStyle({ opacity: 0.85 });
+  });
+
+  test("[3-6-UNIT-SRC18] bar opacity is 1 for confirmed optimistic status @p1", () => {
+    render(
+      <SentimentReveal
+        voteBreakdown={{ bull: 1, bear: 0 }}
+        totalVotes={1}
+        optimisticSegment="bull"
+        optimisticStatus="confirmed"
+        isFirstVoter={false}
+        debateId="debate-opacity-confirmed"
+      />
+    );
+
+    const bullBar = screen.getByTestId("bull-bar");
+    expect(bullBar).toHaveStyle({ opacity: 1 });
+  });
 });

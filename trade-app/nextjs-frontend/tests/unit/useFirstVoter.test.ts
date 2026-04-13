@@ -148,6 +148,37 @@ describe("[3-6-UNIT] useFirstVoter Hook", () => {
     expect(result.current).toBe(false);
   });
 
+  test("[3-6-UNIT-FV12] SSR guard — sessionStorage not accessed during SSR initializer @p0", () => {
+    sessionStorageMock.clear();
+    jest.clearAllMocks();
+
+    const origSessionStorage = window.sessionStorage;
+    const accessSpy = jest.fn();
+    Object.defineProperty(window, "sessionStorage", {
+      value: new Proxy(origSessionStorage, {
+        get(target, prop) {
+          accessSpy(String(prop));
+          return Reflect.get(target, prop);
+        },
+      }),
+      writable: true,
+      configurable: true,
+    });
+
+    const { result } = renderHook(
+      () => useFirstVoter(0, "ssr-debate", false)
+    );
+
+    expect(result.current).toBe(false);
+    expect(accessSpy).toHaveBeenCalledWith("getItem");
+
+    Object.defineProperty(window, "sessionStorage", {
+      value: origSessionStorage,
+      writable: true,
+      configurable: true,
+    });
+  });
+
   test("[3-6-UNIT-FV11] prevTotalRef resets to zero on debateId change @p1", () => {
     const { result, rerender } = renderHook(
       ({ totalVotes, debateId, hasVoted }) => useFirstVoter(totalVotes, debateId, hasVoted),
