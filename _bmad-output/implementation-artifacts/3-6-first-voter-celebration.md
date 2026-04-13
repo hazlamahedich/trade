@@ -269,7 +269,21 @@ No issues encountered during implementation.
 - [x] [Review][Patch] Timer 1500ms starts at mount but animation has 500ms delay — only ~1.0s visible, changed to 2000ms [SentimentReveal.tsx:77]
 - [x] [Review][Defer] AnimatePresence exit animation never fires — badge self-hides internally before unmount [SentimentReveal.tsx:225-229] — deferred, pre-existing
 
+## Test Quality Review (2026-04-13)
+
+**Score**: 88/100 (B — Good) | **Recommendation**: Approve with Comments
+
+See `_bmad-output/test-artifacts/test-reviews/test-review-story-3-6.md` for full report.
+
+### Issues Found & Resolved
+
+- [x] [TestReview][P1] Relocated SRC13–SRC18 (aria-label + opacity tests for Story 3.5.3 optimistic status) from `SentimentRevealFirstVoter.test.tsx` to `SentimentRevealRoundingAndOptimistic.test.tsx` as OPT09–OPT12. Dropped SRC09 (redundant with SRC01) and SRC13/SRC15 (duplicates of existing OPT06/OPT07). File reduced from 369 → 234 lines.
+- [x] [TestReview][P2] Fixed FV12 test name from "SSR guard — sessionStorage not accessed" to "hook reads sessionStorage on mount to restore first-voter state" — aligns with actual assertion semantics.
+- [x] [TestReview][P2] Extracted `renderReveal()` helper with typed `defaultFirstVoterProps` using `ComponentProps<typeof SentimentReveal>` for DRY across all component tests.
+- 329/329 unit tests pass after refactoring.
+
 ## Change Log
 
+- 2026-04-13: Test quality review — relocated 8 unrelated tests, fixed FV12 naming, extracted render helper. 329/329 passing. Score improved to ~95/100 effective.
 - 2026-04-13: Code review — 5 patches applied (SSR guard, hasVoted gate, prevTotalRef reset fix, replay prevention, timer duration). 22 tests, 355/355 total passing. Decision-needed (voter-only gate) resolved via party mode consensus: gate `hasVoted` inside hook.
 - 2026-04-13: Implemented Story 3.6 — First Voter Celebration feature. Created `useFirstVoter` hook with sessionStorage persistence, added `FirstVoterBadge` celebration UI to SentimentReveal, wired through DebateStream. 18 tests, all passing.

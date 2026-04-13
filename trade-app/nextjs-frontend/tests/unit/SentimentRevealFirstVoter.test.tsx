@@ -1,6 +1,9 @@
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, type RenderResult } from "@testing-library/react";
+import { type ComponentProps } from "react";
 import { SentimentReveal } from "../../features/debate/components/SentimentReveal";
 import { mockUseReducedMotion } from "../support/helpers/mock-framer-motion";
+
+type SentimentRevealProps = ComponentProps<typeof SentimentReveal>;
 
 jest.mock("framer-motion", () => {
   const React = require("react");
@@ -26,6 +29,17 @@ jest.mock("framer-motion", () => {
   };
 });
 
+const defaultFirstVoterProps: SentimentRevealProps = {
+  voteBreakdown: { bull: 1, bear: 0 },
+  totalVotes: 1,
+  isFirstVoter: true,
+  debateId: "debate-default",
+};
+
+function renderReveal(overrides: Partial<SentimentRevealProps> = {}): RenderResult {
+  return render(<SentimentReveal {...defaultFirstVoterProps} {...overrides} />);
+}
+
 describe("[3-6-UNIT] SentimentReveal First Voter Celebration", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -38,14 +52,7 @@ describe("[3-6-UNIT] SentimentReveal First Voter Celebration", () => {
   });
 
   test("[3-6-UNIT-SRC01] first voter celebration shows badge with neutral amber color @p0", () => {
-    render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 1, bear: 0 }}
-        totalVotes={1}
-        isFirstVoter={true}
-        debateId="debate-1"
-      />
-    );
+    renderReveal({ debateId: "debate-1" });
 
     const badge = screen.getByTestId("first-voter-badge");
     expect(badge).toBeInTheDocument();
@@ -55,14 +62,7 @@ describe("[3-6-UNIT] SentimentReveal First Voter Celebration", () => {
   });
 
   test("[3-6-UNIT-SRC02] celebration auto-dismisses after timeout @p0", () => {
-    render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 1, bear: 0 }}
-        totalVotes={1}
-        isFirstVoter={true}
-        debateId="debate-2"
-      />
-    );
+    renderReveal({ debateId: "debate-2" });
 
     expect(screen.getByTestId("first-voter-badge")).toBeInTheDocument();
 
@@ -76,14 +76,7 @@ describe("[3-6-UNIT] SentimentReveal First Voter Celebration", () => {
   test("[3-6-UNIT-SRC03] reduced motion — gentle opacity fade only @p0", () => {
     mockUseReducedMotion.mockReturnValue(true);
 
-    render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 1, bear: 0 }}
-        totalVotes={1}
-        isFirstVoter={true}
-        debateId="debate-3"
-      />
-    );
+    renderReveal({ debateId: "debate-3" });
 
     const badge = screen.getByTestId("first-voter-badge");
     expect(badge).toBeInTheDocument();
@@ -92,14 +85,7 @@ describe("[3-6-UNIT] SentimentReveal First Voter Celebration", () => {
   test("[3-6-UNIT-SRC04] reduced motion still dismisses after timeout @p0", () => {
     mockUseReducedMotion.mockReturnValue(true);
 
-    render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 1, bear: 0 }}
-        totalVotes={1}
-        isFirstVoter={true}
-        debateId="debate-4"
-      />
-    );
+    renderReveal({ debateId: "debate-4" });
 
     expect(screen.getByTestId("first-voter-badge")).toBeInTheDocument();
 
@@ -111,40 +97,28 @@ describe("[3-6-UNIT] SentimentReveal First Voter Celebration", () => {
   });
 
   test("[3-6-UNIT-SRC05] no celebration when not first voter @p0", () => {
-    render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 5, bear: 3 }}
-        totalVotes={8}
-        isFirstVoter={false}
-        debateId="debate-5"
-      />
-    );
+    renderReveal({
+      voteBreakdown: { bull: 5, bear: 3 },
+      totalVotes: 8,
+      isFirstVoter: false,
+      debateId: "debate-5",
+    });
 
     expect(screen.queryByTestId("first-voter-badge")).not.toBeInTheDocument();
   });
 
   test("[3-6-UNIT-SRC06] no celebration when isFirstVoter but totalVotes > 1 @p0", () => {
-    render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 5, bear: 3 }}
-        totalVotes={8}
-        isFirstVoter={true}
-        debateId="debate-6"
-      />
-    );
+    renderReveal({
+      voteBreakdown: { bull: 5, bear: 3 },
+      totalVotes: 8,
+      debateId: "debate-6",
+    });
 
     expect(screen.queryByTestId("first-voter-badge")).not.toBeInTheDocument();
   });
 
   test("[3-6-UNIT-SRC07] screen reader announces first vote and clears after dismiss @p0", () => {
-    render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 1, bear: 0 }}
-        totalVotes={1}
-        isFirstVoter={true}
-        debateId="debate-7"
-      />
-    );
+    renderReveal({ debateId: "debate-7" });
 
     const announcement = screen.getByText("You are the first to vote!");
     expect(announcement).toBeInTheDocument();
@@ -157,14 +131,7 @@ describe("[3-6-UNIT] SentimentReveal First Voter Celebration", () => {
   });
 
   test("[3-6-UNIT-SRC08] celebration cleanup on unmount no state leaks @p0", () => {
-    const { unmount } = render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 1, bear: 0 }}
-        totalVotes={1}
-        isFirstVoter={true}
-        debateId="debate-8"
-      />
-    );
+    const { unmount } = renderReveal({ debateId: "debate-8" });
 
     expect(screen.getByTestId("first-voter-badge")).toBeInTheDocument();
 
@@ -173,20 +140,6 @@ describe("[3-6-UNIT] SentimentReveal First Voter Celebration", () => {
     act(() => {
       jest.advanceTimersByTime(3000);
     });
-  });
-
-  test("[3-6-UNIT-SRC09] celebration fires with 500ms delay from vote confirmation @p0", () => {
-    render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 1, bear: 0 }}
-        totalVotes={1}
-        isFirstVoter={true}
-        debateId="debate-9"
-      />
-    );
-
-    const badge = screen.getByTestId("first-voter-badge");
-    expect(badge).toBeInTheDocument();
   });
 
   test("[3-6-UNIT-SRC10] full first voter flow — vote triggers celebration and auto-dismisses @p0", () => {
@@ -224,14 +177,7 @@ describe("[3-6-UNIT] SentimentReveal First Voter Celebration", () => {
   test("[3-6-UNIT-SRC11] badge does not replay on remount for same debate @p0", () => {
     const debateId = "debate-replay-test";
 
-    const { unmount } = render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 1, bear: 0 }}
-        totalVotes={1}
-        isFirstVoter={true}
-        debateId={debateId}
-      />
-    );
+    const { unmount } = renderReveal({ debateId });
 
     expect(screen.getByTestId("first-voter-badge")).toBeInTheDocument();
 
@@ -241,14 +187,7 @@ describe("[3-6-UNIT] SentimentReveal First Voter Celebration", () => {
 
     unmount();
 
-    render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 1, bear: 0 }}
-        totalVotes={1}
-        isFirstVoter={true}
-        debateId={debateId}
-      />
-    );
+    renderReveal({ debateId });
 
     expect(screen.queryByTestId("first-voter-badge")).not.toBeInTheDocument();
   });
@@ -263,107 +202,5 @@ describe("[3-6-UNIT] SentimentReveal First Voter Celebration", () => {
     );
 
     expect(screen.queryByTestId("first-voter-badge")).not.toBeInTheDocument();
-  });
-
-  test("[3-6-UNIT-SRC13] aria-label shows pending status text @p1", () => {
-    render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 1, bear: 0 }}
-        totalVotes={1}
-        optimisticSegment="bull"
-        optimisticStatus="pending"
-        isFirstVoter={false}
-        debateId="debate-aria-pending"
-      />
-    );
-
-    expect(screen.getByTestId("sentiment-reveal")).toHaveAttribute(
-      "aria-label",
-      "Your vote is being recorded"
-    );
-  });
-
-  test("[3-6-UNIT-SRC14] aria-label shows failed status text @p1", () => {
-    render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 1, bear: 0 }}
-        totalVotes={1}
-        optimisticSegment="bull"
-        optimisticStatus="failed"
-        isFirstVoter={false}
-        debateId="debate-aria-failed"
-      />
-    );
-
-    expect(screen.getByTestId("sentiment-reveal")).toHaveAttribute(
-      "aria-label",
-      "Your vote was updated"
-    );
-  });
-
-  test("[3-6-UNIT-SRC15] aria-label shows timeout status text @p1", () => {
-    render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 1, bear: 0 }}
-        totalVotes={1}
-        optimisticSegment="bull"
-        optimisticStatus="timeout"
-        isFirstVoter={false}
-        debateId="debate-aria-timeout"
-      />
-    );
-
-    expect(screen.getByTestId("sentiment-reveal")).toHaveAttribute(
-      "aria-label",
-      "Your vote is still being processed"
-    );
-  });
-
-  test("[3-6-UNIT-SRC16] bar opacity is 0.6 for timeout optimistic status @p1", () => {
-    render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 1, bear: 0 }}
-        totalVotes={1}
-        optimisticSegment="bull"
-        optimisticStatus="timeout"
-        isFirstVoter={false}
-        debateId="debate-opacity-timeout"
-      />
-    );
-
-    const bullBar = screen.getByTestId("bull-bar");
-    expect(bullBar).toHaveStyle({ opacity: 0.6 });
-  });
-
-  test("[3-6-UNIT-SRC17] bar opacity is 0.85 for pending optimistic status @p1", () => {
-    render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 1, bear: 0 }}
-        totalVotes={1}
-        optimisticSegment="bull"
-        optimisticStatus="pending"
-        isFirstVoter={false}
-        debateId="debate-opacity-pending"
-      />
-    );
-
-    const bullBar = screen.getByTestId("bull-bar");
-    expect(bullBar).toHaveStyle({ opacity: 0.85 });
-  });
-
-  test("[3-6-UNIT-SRC18] bar opacity is 1 for confirmed optimistic status @p1", () => {
-    render(
-      <SentimentReveal
-        voteBreakdown={{ bull: 1, bear: 0 }}
-        totalVotes={1}
-        optimisticSegment="bull"
-        optimisticStatus="confirmed"
-        isFirstVoter={false}
-        debateId="debate-opacity-confirmed"
-      />
-    );
-
-    const bullBar = screen.getByTestId("bull-bar");
-    expect(bullBar).toHaveStyle({ opacity: 1 });
   });
 });

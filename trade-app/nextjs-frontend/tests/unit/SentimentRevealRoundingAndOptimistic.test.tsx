@@ -232,4 +232,56 @@ describe("[3-5-3-UNIT] SentimentReveal optimistic state", () => {
     const region = screen.getByTestId("sentiment-reveal");
     expect(region).toHaveAttribute("aria-label", "Bull: 63%, Bear: 37%");
   });
+
+  test("[3-5-3-UNIT-OPT09] aria-label reflects failed status @p1", () => {
+    render(
+      <SentimentReveal
+        voteBreakdown={{ bull: 5, bear: 3 }}
+        totalVotes={8}
+        optimisticSegment="bull"
+        optimisticStatus="failed"
+      />,
+    );
+    const region = screen.getByTestId("sentiment-reveal");
+    expect(region).toHaveAttribute("aria-label", "Your vote was updated");
+  });
+
+  test("[3-5-3-UNIT-OPT10] bar opacity is 0.6 for timeout optimistic status @p1", () => {
+    render(
+      <SentimentReveal
+        voteBreakdown={{ bull: 5, bear: 3 }}
+        totalVotes={8}
+        optimisticSegment="bull"
+        optimisticStatus="timeout"
+      />,
+    );
+    const bullBar = screen.getByTestId("bull-bar");
+    expect(bullBar).toHaveStyle({ opacity: 0.6 });
+  });
+
+  test("[3-5-3-UNIT-OPT11] bar opacity is 0.85 for pending optimistic status @p1", () => {
+    render(
+      <SentimentReveal
+        voteBreakdown={{ bull: 5, bear: 3 }}
+        totalVotes={8}
+        optimisticSegment="bull"
+        optimisticStatus="pending"
+      />,
+    );
+    const bullBar = screen.getByTestId("bull-bar");
+    expect(bullBar).toHaveStyle({ opacity: 0.85 });
+  });
+
+  test("[3-5-3-UNIT-OPT12] bar opacity is 1 for confirmed optimistic status @p1", () => {
+    render(
+      <SentimentReveal
+        voteBreakdown={{ bull: 5, bear: 3 }}
+        totalVotes={8}
+        optimisticSegment="bull"
+        optimisticStatus="confirmed"
+      />,
+    );
+    const bullBar = screen.getByTestId("bull-bar");
+    expect(bullBar).toHaveStyle({ opacity: 1 });
+  });
 });

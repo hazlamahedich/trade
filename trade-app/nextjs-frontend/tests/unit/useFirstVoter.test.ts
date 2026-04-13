@@ -148,7 +148,7 @@ describe("[3-6-UNIT] useFirstVoter Hook", () => {
     expect(result.current).toBe(false);
   });
 
-  test("[3-6-UNIT-FV12] SSR guard — sessionStorage not accessed during SSR initializer @p0", () => {
+  test("[3-6-UNIT-FV12] hook reads sessionStorage on mount to restore first-voter state @p0", () => {
     sessionStorageMock.clear();
     jest.clearAllMocks();
 
