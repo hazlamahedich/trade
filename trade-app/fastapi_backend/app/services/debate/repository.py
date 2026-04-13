@@ -1,7 +1,7 @@
 import logging
 from uuid import UUID
 
-from sqlalchemy import select, func, case, literal_column
+from sqlalchemy import select, func, case, literal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Debate, Vote
@@ -13,6 +13,35 @@ from app.services.debate.schemas import DebateHistoryItem
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
+
+
+def _build_winner_expr(bull_votes, bear_votes, undecided_votes):
+    return case(
+        (
+            (bull_votes == 0) & (bear_votes == 0) & (undecided_votes == 0),
+            literal("undecided"),
+        ),
+        (
+            undecided_votes > bull_votes,
+            case(
+                (undecided_votes > bear_votes, literal("undecided")),
+                else_=literal("bear"),
+            ),
+        ),
+        (
+            undecided_votes > bear_votes,
+            literal("bull"),
+        ),
+        (
+            bull_votes > bear_votes,
+            literal("bull"),
+        ),
+        (
+            bear_votes > bull_votes,
+            literal("bear"),
+        ),
+        else_=literal("undecided"),
+    )
 
 
 class DebateRepository:
@@ -162,32 +191,9 @@ class DebateRepository:
             func.count(Vote.id).filter(Vote.choice == "undecided"), 0
         ).label("undecided_votes")
 
-        winner_expr = case(
-            (
-                (bull_votes == 0) & (bear_votes == 0) & (undecided_votes == 0),
-                literal_column("'undecided'"),
-            ),
-            (
-                undecided_votes > bull_votes,
-                case(
-                    (undecided_votes > bear_votes, literal_column("'undecided'")),
-                    else_=literal_column("'bear'"),
-                ),
-            ),
-            (
-                undecided_votes > bear_votes,
-                literal_column("'bull'"),
-            ),
-            (
-                bull_votes > bear_votes,
-                literal_column("'bull'"),
-            ),
-            (
-                bear_votes > bull_votes,
-                literal_column("'bear'"),
-            ),
-            else_=literal_column("'undecided'"),
-        ).label("winner")
+        winner_expr = _build_winner_expr(bull_votes, bear_votes, undecided_votes).label(
+            "winner"
+        )
 
         total_votes_expr = func.coalesce(func.count(Vote.id), 0).label("total_votes")
 
@@ -227,13 +233,16 @@ class DebateRepository:
 
         if outcome is not None:
             data_query = data_query.having(winner_expr == outcome)
+            count_winner = _build_winner_expr(
+                bull_votes, bear_votes, undecided_votes
+            ).label("winner")
             count_cte = select(func.count()).select_from(
-                select(winner_expr)
+                select(count_winner)
                 .select_from(Debate)
                 .outerjoin(Vote, Vote.debate_id == Debate.id)
                 .where(*base_where_conditions)
                 .group_by(Debate.id)
-                .having(winner_expr == outcome)
+                .having(count_winner == outcome)
                 .subquery()
             )
             count_result = await self.session.execute(count_cte)
@@ -252,13 +261,11 @@ class DebateRepository:
 
         items: list[DebateHistoryItem] = []
         for row in rows:
-            vote_breakdown: dict[str, int] = {}
-            if row.bull_votes > 0:
-                vote_breakdown["bull"] = row.bull_votes
-            if row.bear_votes > 0:
-                vote_breakdown["bear"] = row.bear_votes
-            if row.undecided_votes > 0:
-                vote_breakdown["undecided"] = row.undecided_votes
+            vote_breakdown = {
+                "bull": row.bull_votes,
+                "bear": row.bear_votes,
+                "undecided": row.undecided_votes,
+            }
 
             items.append(
                 DebateHistoryItem(

@@ -267,6 +267,49 @@ Follow-up actions addressed:
 
 - [x] [Review][Patch] HTTPException detail envelope pattern [`app/routes/debate.py:~130-155`] — Kept as-is: this is the established codebase convention (all routes use same pattern). Changing one endpoint would create inconsistency.
 
-- [x] [Review][Defer] Duplicated heavy query for outcome-filtered count [`app/services/debate/repository.py:~220-232`] — deferred, spec-prescribed architecture. The count_cte and data_query both compute `winner_expr` independently. Optimization (e.g., `COUNT(*) OVER()` window function) is a follow-up concern.
+- [x] [Review][Patch] Duplicated winner_expr in count_cte + data_query [`app/services/debate/repository.py:~165-190`] — Extracted `_build_winner_expr()` module-level helper. Both data_query and count_cte call the same function, eliminating silent count/data mismatch risk. `literal_column("'undecided'")` replaced with idiomatic `literal("undecided")`.
 
-- [x] [Review][Defer] Asset filter case-sensitivity in SQL [`app/services/debate/repository.py:~189`] — deferred, write-side concern. The route normalizes query params to lowercase, but stored `Debate.asset` values with mixed case won't match. Should be addressed at write time (normalize on debate creation).
+- [x] [Review][Patch] vote_breakdown omitting zero keys [`app/services/debate/repository.py:~255-261`] — Changed to always emit all three keys (`bull`, `bear`, `undecided`) with integer values. Prevents implicit contract risk for frontend consumers and aligns with Lesson 10 (percentage bars must sum to 100). Tests updated: `TestVoteBreakdownOmitsZeroKeys` → `TestVoteBreakdownAlwaysIncludesAllKeys` (3 tests).
+
+- [x] [Review][Patch] SQL spec test documentation [`tests/repositories/test_debate_history_repo.py:TestCountQuerySqlVerification`] — Added docstring clarifying that the manually-constructed query test verifies SQL specification independently, and links to the repo integration tests that cover the actual code path.
+
+- [ ] [Review][Defer] Asset filter case-sensitivity in SQL [`app/services/debate/repository.py:~189`] — deferred, write-side concern. The route normalizes query params to lowercase, but stored `Debate.asset` values with mixed case won't match. Should be addressed at write time (normalize on debate creation).
+
+## Party Mode Implementation Review (2026-04-13)
+
+**Agents present:** Winston (Architect), Amelia (Dev), Murat (Test Architect), John (PM)
+
+### Patches Applied
+
+| # | Finding | Source | Action | Location |
+|---|---------|--------|--------|----------|
+| 1 | `vote_breakdown` omitting zero keys — implicit contract risk, violates Lesson 10 (bars sum to 100) | Amelia, John | **Fixed** — always emit `{bull, bear, undecided}` with 0 defaults | `repository.py:255-261` |
+| 2 | Duplicated `winner_expr` in count_cte and data_query — maintenance hazard (update one, miss the other) | Winston, Amelia | **Fixed** — extracted `_build_winner_expr()` helper, both queries call same function | `repository.py:16-44` |
+| 3 | `literal_column("'undecided'")` — non-idiomatic, looks injection-vulnerable to next reader | Amelia | **Fixed** — replaced with `literal("undecided")` | `repository.py:16-44` |
+| 4 | SQL spec test decoupled from actual repo method — false confidence risk | Murat | **Fixed** — added docstring linking spec test to integration tests | `test_debate_history_repo.py:TestCountQuerySqlVerification` |
+
+### Deferred (Confirmed)
+
+| # | Item | Reason | Owner |
+|---|------|--------|-------|
+| 1 | Asset case-sensitivity at write time | Write-side concern, not read-side. Route normalizes to lowercase. | Next debate-creation story |
+| 2 | Sort options (by votes, by closeness) | Not in original story scope. Flag for 4.3 or 4.4. | PM backlog |
+| 3 | Search/query parameter beyond exact match | MVP ships with exact asset filter. Frontend can build search UI against it. | PM backlog |
+| 4 | Baseline performance test with realistic dataset | Story-level concern is unit/integration coverage. NFR-03 load testing is separate discipline. | NFR assessment |
+
+### Consensus Notes
+
+- **Winston:** Architecture sound. Conditional count query (bare vs CTE) is correct optimization. OUTER JOIN + GROUP BY scales to 50k readers with `idx_vote_debate_choice` composite index.
+- **Amelia:** 3 action items totaling ~25 min. All covered by existing tests.
+- **Murat:** Suite genuinely strong at 92/100. Would add baseline perf test and error-path coverage for non-integer query params as follow-up.
+- **John:** API delivers user story. Contract stable for 4.2b. "Undecided" winner semantics correct — frontend should render as "No consensus" not "Undecided Won."
+
+### Test Results After Patches
+
+```
+101 passed, 1 warning in 16.76s (history tests)
+171 passed, 15 warnings in 42.96s (all route tests)
+40 passed, 3 warnings in 1.73s (repo + schema tests)
+ruff check: clean
+ruff format: clean
+```

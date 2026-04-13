@@ -258,7 +258,13 @@ class TestGetFilteredDebatesRepoUnit:
 
 
 class TestCountQuerySqlVerification:
-    """P0 — SQL-level query structure verification (AC-6)"""
+    """P0 — SQL-level query structure verification (AC-6)
+
+    NOTE: test_count_without_outcome_is_bare_count verifies the SQL *specification*
+    independently by constructing the expected query shape. The repo method's actual
+    behavior (no LATERAL without outcome) is validated through integration tests in
+    TestPaginationOutcomeInteraction (tests/routes/test_debate_history_pagination.py).
+    """
 
     @pytest.mark.asyncio
     async def test_count_without_outcome_is_bare_count(self, db_session):

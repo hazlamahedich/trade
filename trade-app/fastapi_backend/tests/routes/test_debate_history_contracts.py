@@ -345,36 +345,49 @@ class TestCompletedAtNullHandling:
         assert item["completedAt"] is None
 
 
-class TestVoteBreakdownOmitsZeroKeys:
-    """P1 — Vote breakdown omits zero-count keys"""
+class TestVoteBreakdownAlwaysIncludesAllKeys:
+    """P1 — Vote breakdown always includes all keys (bull, bear, undecided)"""
 
     @pytest.mark.asyncio
-    async def test_only_bull_votes_no_bear_key(
+    async def test_only_bull_votes_still_has_all_keys(
         self, db_session, history_client, make_completed_debate, seed_votes
     ):
-        """ID: 4.2a-RT-047 — Only bull votes → no bear/undecided keys"""
-        debate = make_completed_debate(ext_id="deb_bd_omit")
+        """ID: 4.2a-RT-047 — Only bull votes → all three keys present"""
+        debate = make_completed_debate(ext_id="deb_bd_all_keys")
         db_session.add(debate)
         await db_session.commit()
         await seed_votes(debate.id, bull=5, bear=0, undecided=0)
 
         resp = await history_client.get(HISTORY_URL)
         item = resp.json()["data"][0]
-        assert item["voteBreakdown"] == {"bull": 5}
-        assert "bear" not in item["voteBreakdown"]
-        assert "undecided" not in item["voteBreakdown"]
+        assert item["voteBreakdown"] == {"bull": 5, "bear": 0, "undecided": 0}
+        assert "bull" in item["voteBreakdown"]
+        assert "bear" in item["voteBreakdown"]
+        assert "undecided" in item["voteBreakdown"]
 
     @pytest.mark.asyncio
-    async def test_only_bear_votes_no_bull_key(
+    async def test_only_bear_votes_still_has_all_keys(
         self, db_session, history_client, make_completed_debate, seed_votes
     ):
-        """ID: 4.2a-RT-048 — Only bear votes → no bull key"""
-        debate = make_completed_debate(ext_id="deb_bd_bear_only")
+        """ID: 4.2a-RT-048 — Only bear votes → all three keys present"""
+        debate = make_completed_debate(ext_id="deb_bd_bear_all")
         db_session.add(debate)
         await db_session.commit()
         await seed_votes(debate.id, bull=0, bear=3, undecided=0)
 
         resp = await history_client.get(HISTORY_URL)
         item = resp.json()["data"][0]
-        assert item["voteBreakdown"] == {"bear": 3}
-        assert "bull" not in item["voteBreakdown"]
+        assert item["voteBreakdown"] == {"bull": 0, "bear": 3, "undecided": 0}
+
+    @pytest.mark.asyncio
+    async def test_zero_votes_all_keys_present(
+        self, db_session, history_client, make_completed_debate
+    ):
+        """ID: 4.2a-RT-049 — Zero votes → all keys present with value 0"""
+        debate = make_completed_debate(ext_id="deb_bd_zero_all")
+        db_session.add(debate)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL)
+        item = resp.json()["data"][0]
+        assert item["voteBreakdown"] == {"bull": 0, "bear": 0, "undecided": 0}
