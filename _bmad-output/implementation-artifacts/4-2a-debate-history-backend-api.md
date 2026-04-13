@@ -217,6 +217,7 @@ No issues encountered during implementation.
 - Ruff lint clean on all modified files
 - Code review: 5 patches applied (undecided-plurality winner, migration idempotency, 3 test gaps), 2 deferred — 34 tests passing
 - TEA automation: 23 new tests (10 repo unit, 2 SQL verification, 1 ordering, 3 pagination boundaries, 3 case-insensitive filters, 3 schema serialization) — 57 total tests, 159 route tests passing
+- TEA automation pass 2: 43 new tests (19 schema unit, 24 route integration) — 100 total tests all passing. Coverage gaps closed: empty DB, size/page boundary validation, 422 error body shape, outcome=undecided with undecided-plurality, all 6 SUPPORTED_ASSETS, null completed_at, vote_breakdown zero-key omission, guardian verdict field coverage.
 
 ### File List
 
@@ -225,8 +226,10 @@ No issues encountered during implementation.
 - `trade-app/fastapi_backend/app/services/debate/repository.py` (MODIFIED)
 - `trade-app/fastapi_backend/app/routes/debate.py` (MODIFIED)
 - `trade-app/fastapi_backend/tests/conftest_history.py` (NEW)
-- `trade-app/fastapi_backend/tests/routes/test_debate_history.py` (NEW)
+- `trade-app/fastapi_backend/tests/routes/test_debate_history.py` (NEW — expanded with 24 additional tests)
 - `trade-app/fastapi_backend/tests/repositories/test_debate_history_repo.py` (NEW — TEA automation)
+- `trade-app/fastapi_backend/tests/schemas/test_debate_history_schemas.py` (NEW — TEA automation pass 2)
+- `_bmad-output/test-artifacts/automation-summary-story-4-2a.md` (NEW — TEA automation summary)
 
 ### Review Findings
 

@@ -624,3 +624,258 @@ class TestSchemaSerialization:
         body = resp.json()
         assert body["meta"]["total"] == 1
         assert body["data"][0]["externalId"] == "deb_completed"
+
+
+class TestEmptyDatabase:
+    @pytest.mark.asyncio
+    async def test_empty_db_returns_200_with_empty_data(self, history_client):
+        resp = await history_client.get(HISTORY_URL)
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"] == []
+        assert body["meta"]["total"] == 0
+        assert body["meta"]["pages"] == 0
+        assert body["meta"]["page"] == 1
+        assert body["meta"]["size"] == 20
+
+    @pytest.mark.asyncio
+    async def test_empty_db_with_asset_filter(self, history_client):
+        resp = await history_client.get(HISTORY_URL, params={"asset": "bitcoin"})
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"] == []
+        assert body["meta"]["total"] == 0
+
+    @pytest.mark.asyncio
+    async def test_empty_db_with_outcome_filter(self, history_client):
+        resp = await history_client.get(HISTORY_URL, params={"outcome": "bull"})
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"] == []
+        assert body["meta"]["total"] == 0
+
+
+class TestSizeBoundaryValidation:
+    @pytest.mark.asyncio
+    async def test_size_max_100(
+        self, db_session, history_client, make_completed_debate
+    ):
+        for i in range(5):
+            debate = make_completed_debate(
+                ext_id=f"deb_smax_{i}",
+                created_at=datetime(2026, 1, i + 1, tzinfo=timezone.utc),
+            )
+            db_session.add(debate)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL, params={"size": 100})
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["meta"]["size"] == 100
+        assert len(body["data"]) == 5
+
+    @pytest.mark.asyncio
+    async def test_page_zero_rejected(self, history_client):
+        resp = await history_client.get(HISTORY_URL, params={"page": 0})
+        assert resp.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_size_zero_rejected(self, history_client):
+        resp = await history_client.get(HISTORY_URL, params={"size": 0})
+        assert resp.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_size_exceeds_max_rejected(self, history_client):
+        resp = await history_client.get(HISTORY_URL, params={"size": 101})
+        assert resp.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_negative_page_rejected(self, history_client):
+        resp = await history_client.get(HISTORY_URL, params={"page": -1})
+        assert resp.status_code == 422
+
+
+class TestErrorResponseBodyContract:
+    @pytest.mark.asyncio
+    async def test_invalid_asset_error_body_shape(self, history_client):
+        resp = await history_client.get(HISTORY_URL, params={"asset": "DOGE"})
+        assert resp.status_code == 422
+        body = resp.json()
+        detail = body.get("detail", body)
+        assert "error" in detail
+        assert detail["error"]["code"] == "INVALID_ASSET"
+        assert "Unsupported asset" in detail["error"]["message"]
+
+    @pytest.mark.asyncio
+    async def test_invalid_outcome_error_body_shape(self, history_client):
+        resp = await history_client.get(HISTORY_URL, params={"outcome": "tie"})
+        assert resp.status_code == 422
+        body = resp.json()
+        detail = body.get("detail", body)
+        assert detail["error"]["code"] == "INVALID_OUTCOME"
+        assert "Invalid outcome" in detail["error"]["message"]
+
+
+class TestOutcomeFilterWithUndecidedVotes:
+    @pytest.mark.asyncio
+    async def test_outcome_undecided_returns_undecided_winners(
+        self, db_session, history_client, make_completed_debate
+    ):
+        debate_und = make_completed_debate(ext_id="deb_und_winner")
+        db_session.add(debate_und)
+        await db_session.flush()
+        await seed_votes(db_session, debate_und.id, bull=1, bear=1, undecided=5)
+
+        debate_bull = make_completed_debate(ext_id="deb_bull_winner")
+        db_session.add(debate_bull)
+        await db_session.flush()
+        await seed_votes(db_session, debate_bull.id, bull=5, bear=1)
+
+        resp = await history_client.get(HISTORY_URL, params={"outcome": "undecided"})
+        body = resp.json()
+        assert body["meta"]["total"] == 1
+        assert body["data"][0]["externalId"] == "deb_und_winner"
+        assert body["data"][0]["winner"] == "undecided"
+
+    @pytest.mark.asyncio
+    async def test_outcome_undecided_excludes_bull_and_bear_winners(
+        self, db_session, history_client, make_completed_debate
+    ):
+        debate_bull = make_completed_debate(ext_id="deb_only_bull_w")
+        db_session.add(debate_bull)
+        await db_session.flush()
+        await seed_votes(db_session, debate_bull.id, bull=5, bear=1)
+
+        debate_bear = make_completed_debate(ext_id="deb_only_bear_w")
+        db_session.add(debate_bear)
+        await db_session.flush()
+        await seed_votes(db_session, debate_bear.id, bull=1, bear=5)
+
+        resp = await history_client.get(HISTORY_URL, params={"outcome": "undecided"})
+        body = resp.json()
+        assert body["meta"]["total"] == 0
+        assert body["data"] == []
+
+
+class TestConcurrentDebatesSameAsset:
+    @pytest.mark.asyncio
+    async def test_multiple_debates_same_asset_all_returned(
+        self, db_session, history_client, make_completed_debate
+    ):
+        for i in range(5):
+            debate = make_completed_debate(
+                ext_id=f"deb_multi_{i}",
+                asset="btc",
+                created_at=datetime(2026, 1, i + 1, tzinfo=timezone.utc),
+            )
+            db_session.add(debate)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL, params={"asset": "btc"})
+        body = resp.json()
+        assert body["meta"]["total"] == 5
+        assert len(body["data"]) == 5
+
+
+class TestGuardianVerdictField:
+    @pytest.mark.asyncio
+    async def test_populated_guardian_verdict(
+        self, db_session, history_client, make_completed_debate
+    ):
+        debate = make_completed_debate(ext_id="deb_gv_set")
+        debate.guardian_verdict = "High Risk"
+        db_session.add(debate)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL)
+        item = resp.json()["data"][0]
+        assert item["guardianVerdict"] == "High Risk"
+
+    @pytest.mark.asyncio
+    async def test_nonzero_guardian_interrupts_count(self, db_session, history_client):
+        debate = Debate(
+            external_id="deb_gic",
+            asset="bitcoin",
+            status="completed",
+            current_turn=6,
+            max_turns=6,
+            guardian_verdict="Caution",
+            guardian_interrupts_count=7,
+            created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            completed_at=datetime(2026, 1, 1, 12, tzinfo=timezone.utc),
+        )
+        db_session.add(debate)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL)
+        item = resp.json()["data"][0]
+        assert item["guardianInterruptsCount"] == 7
+
+
+class TestCompletedAtNullHandling:
+    @pytest.mark.asyncio
+    async def test_completed_at_null_when_not_set(self, db_session, history_client):
+        debate = Debate(
+            external_id="deb_null_ca_route",
+            asset="bitcoin",
+            status="completed",
+            current_turn=6,
+            max_turns=6,
+            created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            completed_at=None,
+        )
+        db_session.add(debate)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL)
+        item = resp.json()["data"][0]
+        assert item["completedAt"] is None
+
+
+class TestVoteBreakdownOmitsZeroKeys:
+    @pytest.mark.asyncio
+    async def test_only_bull_votes_no_bear_key(
+        self, db_session, history_client, make_completed_debate
+    ):
+        debate = make_completed_debate(ext_id="deb_bd_omit")
+        db_session.add(debate)
+        await db_session.commit()
+        await seed_votes(db_session, debate.id, bull=5, bear=0, undecided=0)
+
+        resp = await history_client.get(HISTORY_URL)
+        item = resp.json()["data"][0]
+        assert item["voteBreakdown"] == {"bull": 5}
+        assert "bear" not in item["voteBreakdown"]
+        assert "undecided" not in item["voteBreakdown"]
+
+    @pytest.mark.asyncio
+    async def test_only_bear_votes_no_bull_key(
+        self, db_session, history_client, make_completed_debate
+    ):
+        debate = make_completed_debate(ext_id="deb_bd_bear_only")
+        db_session.add(debate)
+        await db_session.commit()
+        await seed_votes(db_session, debate.id, bull=0, bear=3, undecided=0)
+
+        resp = await history_client.get(HISTORY_URL)
+        item = resp.json()["data"][0]
+        assert item["voteBreakdown"] == {"bear": 3}
+        assert "bull" not in item["voteBreakdown"]
+
+
+class TestAllSupportedAssets:
+    @pytest.mark.parametrize(
+        "asset",
+        ["bitcoin", "btc", "ethereum", "eth", "solana", "sol"],
+    )
+    @pytest.mark.asyncio
+    async def test_each_supported_asset_passes_validation(
+        self, db_session, history_client, make_completed_debate, asset
+    ):
+        debate = make_completed_debate(ext_id=f"deb_asset_{asset}", asset=asset)
+        db_session.add(debate)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL, params={"asset": asset})
+        assert resp.status_code == 200
+        assert resp.json()["meta"]["total"] == 1
