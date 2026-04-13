@@ -71,7 +71,9 @@ development_status:
 
   epic-4: in-progress
   4-1-debate-archival-service: done
-  4-2-debate-history-page-the-archive: ready-for-dev
+  4-2-debate-history-page-the-archive: superseded-by-split
+  4-2a-debate-history-backend-api: review
+  4-2b-debate-history-frontend-the-archive: backlog
   4-3-static-debate-page-seo: backlog
   4-4-high-conversion-landing-page: backlog
   epic-4-retrospective: optional

@@ -62,3 +62,39 @@ class StandardDebateResponse(BaseModel):
     data: DebateResponse | None = None
     error: DebateErrorResponse | None = None
     meta: DebateMeta | dict[str, Any] = {}
+
+
+class DebateHistoryItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    external_id: str = Field(serialization_alias="externalId")
+    asset: str
+    status: str
+    guardian_verdict: str | None = Field(None, serialization_alias="guardianVerdict")
+    guardian_interrupts_count: int = Field(
+        0, serialization_alias="guardianInterruptsCount"
+    )
+    total_votes: int = Field(0, serialization_alias="totalVotes")
+    vote_breakdown: dict[str, int] = Field(
+        default_factory=dict, serialization_alias="voteBreakdown"
+    )
+    winner: str
+    created_at: datetime = Field(serialization_alias="createdAt")
+    completed_at: datetime | None = Field(None, serialization_alias="completedAt")
+
+
+class DebateHistoryMeta(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    page: int
+    size: int
+    total: int
+    pages: int
+
+
+class StandardDebateHistoryResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    data: list[DebateHistoryItem]
+    error: DebateErrorResponse | None = None
+    meta: DebateHistoryMeta

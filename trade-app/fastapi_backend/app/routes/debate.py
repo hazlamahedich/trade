@@ -1,9 +1,10 @@
 import asyncio
 import hashlib
 import logging
+import math
 import time
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +14,9 @@ from app.services.debate.schemas import (
     DebateStartRequest,
     StandardDebateResponse,
     DebateMeta,
+    StandardDebateHistoryResponse,
+    DebateHistoryMeta,
+    SUPPORTED_ASSETS,
 )
 from app.services.debate.vote_schemas import (
     VoteRequest,
@@ -30,6 +34,8 @@ from app.services.rate_limiter import (
 )
 
 from app.services.debate.ws_schemas import WebSocketAction, VoteUpdatePayload
+
+VALID_OUTCOMES = {"bull", "bear", "undecided"}
 
 router = APIRouter(prefix="/api/debate", tags=["debate"])
 
@@ -111,6 +117,59 @@ async def start_debate(request: DebateStartRequest) -> StandardDebateResponse:
                 "meta": {},
             },
         )
+
+
+@router.get("/history", response_model=StandardDebateHistoryResponse)
+async def get_debate_history(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    asset: str | None = Query(None),
+    outcome: str | None = Query(None),
+    session: AsyncSession = Depends(get_async_session),
+) -> StandardDebateHistoryResponse:
+    if asset is not None:
+        normalized = asset.lower().strip()
+        if normalized not in SUPPORTED_ASSETS:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "data": [],
+                    "error": {
+                        "code": "INVALID_ASSET",
+                        "message": f"Unsupported asset: {asset}. Supported: {', '.join(sorted(SUPPORTED_ASSETS))}",
+                    },
+                    "meta": {},
+                },
+            )
+        asset = normalized
+
+    if outcome is not None:
+        normalized_outcome = outcome.lower().strip()
+        if normalized_outcome not in VALID_OUTCOMES:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "data": [],
+                    "error": {
+                        "code": "INVALID_OUTCOME",
+                        "message": f"Invalid outcome: {outcome}. Supported: {', '.join(sorted(VALID_OUTCOMES))}",
+                    },
+                    "meta": {},
+                },
+            )
+        outcome = normalized_outcome
+
+    repo = DebateRepository(session)
+    items, total = await repo.get_filtered_debates(
+        page=page, size=size, asset=asset, outcome=outcome
+    )
+    pages = math.ceil(total / size) if total > 0 else 0
+
+    return StandardDebateHistoryResponse(
+        data=items,
+        error=None,
+        meta=DebateHistoryMeta(page=page, size=size, total=total, pages=pages),
+    )
 
 
 @router.get("/{debate_id}/result", response_model=StandardDebateResultResponse)

@@ -1,7 +1,7 @@
 import logging
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, case, literal_column
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Debate, Vote
@@ -9,6 +9,7 @@ from app.services.debate.vote_schemas import (
     DebateResultResponse,
     VoteResponse,
 )
+from app.services.debate.schemas import DebateHistoryItem
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
@@ -143,3 +144,128 @@ class DebateRepository:
             voter_fingerprint=vote.voter_fingerprint,
             created_at=vote.created_at,
         )
+
+    async def get_filtered_debates(
+        self,
+        page: int = 1,
+        size: int = 20,
+        asset: str | None = None,
+        outcome: str | None = None,
+    ) -> tuple[list[DebateHistoryItem], int]:
+        bull_votes = func.coalesce(
+            func.count(Vote.id).filter(Vote.choice == "bull"), 0
+        ).label("bull_votes")
+        bear_votes = func.coalesce(
+            func.count(Vote.id).filter(Vote.choice == "bear"), 0
+        ).label("bear_votes")
+
+        winner_expr = case(
+            (
+                bull_votes == 0,
+                case(
+                    (bear_votes == 0, literal_column("'undecided'")),
+                    else_=literal_column("'bear'"),
+                ),
+            ),
+            (
+                bear_votes == 0,
+                literal_column("'bull'"),
+            ),
+            (
+                bull_votes > bear_votes,
+                literal_column("'bull'"),
+            ),
+            (
+                bear_votes > bull_votes,
+                literal_column("'bear'"),
+            ),
+            else_=literal_column("'undecided'"),
+        ).label("winner")
+
+        total_votes_expr = func.coalesce(func.count(Vote.id), 0).label("total_votes")
+
+        base_where_conditions = [Debate.status == "completed"]
+        if asset is not None:
+            base_where_conditions.append(Debate.asset == asset)
+
+        data_query = (
+            select(
+                Debate.external_id,
+                Debate.asset,
+                Debate.status,
+                Debate.guardian_verdict,
+                Debate.guardian_interrupts_count,
+                total_votes_expr,
+                bull_votes,
+                bear_votes,
+                winner_expr,
+                Debate.created_at,
+                Debate.completed_at,
+            )
+            .select_from(Debate)
+            .outerjoin(Vote, Vote.debate_id == Debate.id)
+            .where(*base_where_conditions)
+            .group_by(
+                Debate.id,
+                Debate.external_id,
+                Debate.asset,
+                Debate.status,
+                Debate.guardian_verdict,
+                Debate.guardian_interrupts_count,
+                Debate.created_at,
+                Debate.completed_at,
+            )
+        )
+
+        if outcome is not None:
+            data_query = data_query.having(winner_expr == outcome)
+            count_cte = select(func.count()).select_from(
+                select(winner_expr)
+                .select_from(Debate)
+                .outerjoin(Vote, Vote.debate_id == Debate.id)
+                .where(*base_where_conditions)
+                .group_by(Debate.id)
+                .having(winner_expr == outcome)
+                .subquery()
+            )
+            count_result = await self.session.execute(count_cte)
+            total = count_result.scalar() or 0
+        else:
+            count_stmt = select(func.count(Debate.id)).where(*base_where_conditions)
+            count_result = await self.session.execute(count_stmt)
+            total = count_result.scalar() or 0
+
+        data_query = data_query.order_by(Debate.created_at.desc())
+        offset = (page - 1) * size
+        data_query = data_query.offset(offset).limit(size)
+
+        result = await self.session.execute(data_query)
+        rows = result.all()
+
+        items: list[DebateHistoryItem] = []
+        for row in rows:
+            vote_breakdown: dict[str, int] = {}
+            if row.bull_votes > 0:
+                vote_breakdown["bull"] = row.bull_votes
+            if row.bear_votes > 0:
+                vote_breakdown["bear"] = row.bear_votes
+            undecided_count = row.total_votes - row.bull_votes - row.bear_votes
+            if undecided_count > 0:
+                vote_breakdown["undecided"] = undecided_count
+
+            items.append(
+                DebateHistoryItem(
+                    external_id=row.external_id,
+                    asset=row.asset,
+                    status=row.status,
+                    guardian_verdict=row.guardian_verdict,
+                    guardian_interrupts_count=row.guardian_interrupts_count,
+                    total_votes=row.total_votes,
+                    vote_breakdown=vote_breakdown,
+                    winner=row.winner,
+                    created_at=row.created_at,
+                    completed_at=row.completed_at,
+                )
+            )
+
+        return items, total
