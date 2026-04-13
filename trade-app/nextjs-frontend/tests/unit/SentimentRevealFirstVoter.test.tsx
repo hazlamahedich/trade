@@ -56,7 +56,7 @@ describe("[3-6-UNIT] SentimentReveal First Voter Celebration", () => {
 
     const badge = screen.getByTestId("first-voter-badge");
     expect(badge).toBeInTheDocument();
-    expect(badge).toHaveTextContent("First vote cast");
+    expect(badge).toHaveTextContent("You led the way");
     expect(badge.className).toContain("bg-amber-500/15");
     expect(badge.className).toContain("text-amber-300");
   });
@@ -200,6 +200,26 @@ describe("[3-6-UNIT] SentimentReveal First Voter Celebration", () => {
         isFirstVoter={true}
       />
     );
+
+    expect(screen.queryByTestId("first-voter-badge")).not.toBeInTheDocument();
+  });
+
+  test("[3-6-UNIT-SRC13] badge does not replay after simulated page refresh @p0", () => {
+    const debateId = "debate-refresh-test";
+
+    renderReveal({ debateId });
+
+    expect(screen.getByTestId("first-voter-badge")).toBeInTheDocument();
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    expect(screen.queryByTestId("first-voter-badge")).not.toBeInTheDocument();
+
+    expect(sessionStorage.getItem(`celebrated-${debateId}`)).toBe("true");
+
+    renderReveal({ debateId });
 
     expect(screen.queryByTestId("first-voter-badge")).not.toBeInTheDocument();
   });

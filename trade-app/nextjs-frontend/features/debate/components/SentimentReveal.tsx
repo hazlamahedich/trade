@@ -6,7 +6,28 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 export type OptimisticSegment = "bull" | "bear" | null;
 export type OptimisticStatus = "pending" | "confirmed" | "failed" | "timeout";
 
+const MAX_CELEBRATED = 50;
 const celebratedDebates = new Set<string>();
+
+function isCelebrated(debateId: string): boolean {
+  if (celebratedDebates.has(debateId)) return true;
+  if (typeof window !== "undefined" && sessionStorage.getItem(`celebrated-${debateId}`) === "true") {
+    celebratedDebates.add(debateId);
+    return true;
+  }
+  return false;
+}
+
+function markCelebrated(debateId: string): void {
+  celebratedDebates.add(debateId);
+  if (celebratedDebates.size > MAX_CELEBRATED) {
+    const oldest = celebratedDebates.values().next().value;
+    if (oldest !== undefined) celebratedDebates.delete(oldest);
+  }
+  if (typeof window !== "undefined") {
+    sessionStorage.setItem(`celebrated-${debateId}`, "true");
+  }
+}
 
 interface SentimentRevealProps {
   voteBreakdown: Record<string, number> | null;
@@ -92,7 +113,7 @@ function FirstVoterBadge({ shouldReduceMotion }: { shouldReduceMotion: boolean }
         animate={shouldReduceMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
         transition={{ duration: 0.2, delay: 0.5 }}
       >
-        First vote cast
+        You led the way
       </motion.div>
       <div aria-live="polite" className="sr-only">
         You are the first to vote!
@@ -112,11 +133,11 @@ export function SentimentReveal({
   const shouldReduceMotion = useReducedMotion() ?? false;
   const containerRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
-  const showBadge = isFirstVoter && totalVotes === 1 && debateId && !celebratedDebates.has(debateId);
+  const showBadge = isFirstVoter && totalVotes === 1 && debateId && !isCelebrated(debateId);
 
   useEffect(() => {
     if (showBadge && debateId) {
-      celebratedDebates.add(debateId);
+      markCelebrated(debateId);
     }
   }, [showBadge, debateId]);
 

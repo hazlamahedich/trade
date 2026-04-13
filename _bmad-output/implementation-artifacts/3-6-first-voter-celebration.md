@@ -282,8 +282,26 @@ See `_bmad-output/test-artifacts/test-reviews/test-review-story-3-6.md` for full
 - [x] [TestReview][P2] Extracted `renderReveal()` helper with typed `defaultFirstVoterProps` using `ComponentProps<typeof SentimentReveal>` for DRY across all component tests.
 - 329/329 unit tests pass after refactoring.
 
+## Party Mode Implementation Review (2026-04-13)
+
+**Panel:** Winston (Architect), Amelia (Dev), Sally (UX), Murat (Test Architect), John (PM)
+
+### Issues Found & Resolved
+
+- [x] [PartyReview][P2] Badge copy "First vote cast" reads like a receipt — changed to "You led the way" (Sally + John consensus) [SentimentReveal.tsx:95]
+- [x] [PartyReview][P1] `celebratedDebates` module Set lost on page refresh while `sessionStorage` survives — badge replays on F5. Fixed by persisting celebration to `sessionStorage` via `isCelebrated()`/`markCelebrated()` helpers (Amelia's find) [SentimentReveal.tsx:9-27]
+- [x] [PartyReview][P3] Module-level `celebratedDebates` Set grows unboundedly — capped at 50 entries with FIFO eviction (Winston's recommendation) [SentimentReveal.tsx:9]
+
+### Decisions
+
+- **Vote rollback edge case** (Sally): Skip — edge case of edge case, unanimous consensus (John: "If we get a single user report about this, I'll eat my hat.")
+- **Badge copy**: "You led the way" — factual but warm, delivers on "Celebrate Discipline" UX principle
+- **`celebratedDebates` sessionStorage persistence**: Persist `celebrated-${debateId}` key alongside the in-memory Set for refresh survival
+- **361/361 tests pass** after all patches, zero regressions
+
 ## Change Log
 
+- 2026-04-13: Party mode review — badge copy updated, celebratedDebates persisted to sessionStorage, Set capped at 50. 361/361 tests pass.
 - 2026-04-13: Test quality review — relocated 8 unrelated tests, fixed FV12 naming, extracted render helper. 329/329 passing. Score improved to ~95/100 effective.
 - 2026-04-13: Code review — 5 patches applied (SSR guard, hasVoted gate, prevTotalRef reset fix, replay prevention, timer duration). 22 tests, 355/355 total passing. Decision-needed (voter-only gate) resolved via party mode consensus: gate `hasVoted` inside hook.
 - 2026-04-13: Implemented Story 3.6 — First Voter Celebration feature. Created `useFirstVoter` hook with sessionStorage persistence, added `FirstVoterBadge` celebration UI to SentimentReveal, wired through DebateStream. 18 tests, all passing.
