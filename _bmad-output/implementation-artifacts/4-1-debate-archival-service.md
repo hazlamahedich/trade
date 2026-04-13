@@ -2,6 +2,7 @@
 
 Status: done
 Amended: 2026-04-13 — Adversarial review findings incorporated (see `_bmad-output/implementation-artifacts/4-1-adversarial-review.md`)
+Amended: 2026-04-13 — Party-mode review gap closure: retry wrapper, pending_archives table+sweeper, save_state field-preservation fix, transcript size cap, route test fixes, lifespan wiring
 
 ## Story
 
@@ -74,12 +75,14 @@ Task 4 (DB columns) must exist before Task 3 (repository method) can reference t
   - [x] **Observability:** Log structured entry on completion: `logger.info(f"Debate {debate_id} archived successfully")`. Log at ERROR level on archival failure with `debate_id` and exception details.
 - [x] Task 2: Wire archival into `stream_debate()` (AC: #5)
   - [x] Modify `trade-app/fastapi_backend/app/services/debate/engine.py`
-  - [x] Add import at top: `from app.services.debate.archival import archive_debate`
+  - [x] Add import at top: `from app.services.debate.archival import archive_with_retry`
+  - [x] Fixed `save_state` at ~L570 to preserve all fields via `{**current_state, "status": "completed"}` (LL#1 fix)
+  - [x] Archival now uses `archive_with_retry()` wrapper (3 attempts, linear backoff) instead of bare `archive_debate()`
   - [x] There are **three completion exit paths** that converge at the final `save_state` at engine.py:570. All three (normal loop exit, critical interrupt at L443, ack timeout at L443) fall through to the same code block. Archival needs to be called **once**, after this final `save_state`, before the function returns:
     ```python
     # After the final save_state at ~L570
     try:
-        await archive_debate(debate_id, current_state)
+        await archive_with_retry(debate_id, current_state)
     except Exception as e:
         logger.error(f"Archival failed for debate {debate_id}: {e}")
     ```
@@ -276,7 +279,7 @@ These gaps are acknowledged but NOT in scope for Story 4.1:
 
 - **Winner/outcome column:** No "winner" field on `Debate` model. Story 4.2 (history page) will define what "outcome" means and add the column.
 - **Error-state debate archival:** Error debates expire via Redis TTL (3600s). Future story may add partial archival for debugging/compliance.
-- **Retry mechanism for failed archival:** If archival fails, Redis state persists for 1 hour. No retry mechanism in this story. Future story may add a cleanup cron.
+- ~~**Retry mechanism for failed archival:**~~ If archival fails, Redis state persists for 1 hour. No retry mechanism in this story. Future story may add a cleanup cron. **RESOLVED 2026-04-13:** Added `archive_with_retry()` (3 attempts), `PendingArchive` model + sweeper for crash-resistant retry queue, wired via `lifespan` in `main.py`.
 - **Archival performance budget:** No explicit time budget. Archival should complete in <500ms (single DB write + Redis delete). If it exceeds this, investigate in a future story.
 - **Indexes for history page filtering:** Story 4.2 will add indexes on `asset`, `completed_at`, etc. when designing the filter queries.
 - **Metrics/counters for archival:** Structured logging is sufficient for initial observability. Prometheus metrics can be added post-launch.
@@ -329,20 +332,27 @@ GLM-5.1
 
 ### File List
 
-- `trade-app/fastapi_backend/app/models.py` — Added `vote_bull`, `vote_bear`, `vote_undecided` columns to `Debate` model
+- `trade-app/fastapi_backend/app/models.py` — Added `vote_bull`, `vote_bear`, `vote_undecided` columns to `Debate` model; added `PendingArchive` model with JSONB `full_state`
 - `trade-app/fastapi_backend/app/services/debate/repository.py` — Extended `complete_debate()` with vote count parameters
-- `trade-app/fastapi_backend/app/services/debate/archival.py` — New file: `archive_debate()` archival service
-- `trade-app/fastapi_backend/app/services/debate/engine.py` — Added archival import and call after completion
-- `trade-app/fastapi_backend/alembic_migrations/versions/d5b2f3a4e5c6_add_vote_counts_to_debates.py` — New migration
-- `trade-app/fastapi_backend/tests/services/debate/test_archival_unit.py` — Unit + extended unit tests (17 tests)
-- `trade-app/fastapi_backend/tests/services/debate/test_archival_engine_wiring.py` — Engine wiring tests (4 tests)
-- `trade-app/fastapi_backend/tests/services/debate/test_archival_integration.py` — Integration tests (7 tests)
-- `trade-app/fastapi_backend/tests/services/debate/conftest.py` — Added shared archival fixtures
+- `trade-app/fastapi_backend/app/services/debate/archival.py` — New file: `archive_debate()` archival service, `archive_with_retry()` wrapper (3 attempts), transcript size cap (500KB), fixed logging with `exc_info=True`
+- `trade-app/fastapi_backend/app/services/debate/archival_sweeper.py` — New file: `retry_pending_archives()`, `store_pending_archive()`, `sweep_loop()` for crash-resistant pending archive resolution
+- `trade-app/fastapi_backend/app/services/debate/engine.py` — Import changed to `archive_with_retry`; fixed `save_state` to preserve all fields via `{**current_state, "status": "completed"}`
+- `trade-app/fastapi_backend/app/main.py` — Added `lifespan` context manager to start/stop archival sweeper background task
+- `trade-app/fastapi_backend/alembic_migrations/versions/d5b2f3a4e5c6_add_vote_counts_to_debates.py` — New migration for vote columns
+- `trade-app/fastapi_backend/alembic_migrations/versions/e7a3b4c5d6f7_add_pending_archives_table.py` — New migration for `pending_archives` table
+- `trade-app/fastapi_backend/tests/services/debate/test_archival_unit.py` — Unit + extended unit tests (21 tests)
+- `trade-app/fastapi_backend/tests/services/debate/test_archival_engine_wiring.py` — Engine wiring tests (4 tests, updated to mock `archive_with_retry`)
+- `trade-app/fastapi_backend/tests/services/debate/test_archival_integration.py` — Integration tests (13 tests, incl. retry + sweeper)
+- `trade-app/fastapi_backend/tests/services/debate/conftest.py` — Shared archival fixtures
+- `trade-app/fastapi_backend/tests/conftest.py` — Added `pytest_configure` with `priority` marker registration
+- `trade-app/fastapi_backend/tests/routes/test_debate.py` — Fixed response shape assertions (`data["error"]` not `data["detail"]["error"]`)
+- `trade-app/fastapi_backend/tests/routes/test_market.py` — Fixed response shape assertions (`data["error"]` not `data["detail"]["error"]`)
 
 ## Change Log
 
 - 2026-04-13: Implemented Debate Archival Service (Story 4.1) — all 5 tasks complete, 16 tests, lint clean
 - 2026-04-13: Test quality review (82/100 B). Refactored: split monolithic test_archival.py (988 lines) into 3 files, extracted shared fixtures to conftest, added `archival_mocks` fixture to eliminate 3-4 level patch nesting. 28/28 tests pass, lint clean.
+- 2026-04-13: Party-mode review gap closure — 10 changes: (1) `save_state` field-preservation fix (LL#1), (2) transcript size cap 500KB, (3) `delete_state` logging `exc_info=True`, (4) `archive_with_retry()` 3-attempt wrapper, (5) `PendingArchive` model + migration, (6) `archival_sweeper.py` with `sweep_loop()`, (7) lifespan wiring in `main.py`, (8) 10 new tests (4 unit + 6 integration), (9) fixed route test response shape assertions in `test_debate.py` + `test_market.py`, (10) `pytest_configure` for priority marker. 38/38 archival tests + 110/110 route tests pass, ruff clean.
 
 ### Review Findings
 

@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -19,9 +21,26 @@ from app.middleware.mock_middleware import MockHeadersMiddleware
 
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    from app.services.debate.archival_sweeper import sweep_loop
+
+    sweeper_task = asyncio.create_task(sweep_loop())
+    logger.info("Archival sweeper started")
+    yield
+    sweeper_task.cancel()
+    try:
+        await sweeper_task
+    except asyncio.CancelledError:
+        pass
+    logger.info("Archival sweeper stopped")
+
+
 app = FastAPI(
     generate_unique_id_function=simple_generate_unique_route_id,
     openapi_url=settings.OPENAPI_URL,
+    lifespan=lifespan,
 )
 
 

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from typing import Any
@@ -10,6 +11,10 @@ from app.services.debate.repository import DebateRepository
 from app.services.debate.streaming import stream_state
 
 logger = logging.getLogger(__name__)
+
+MAX_TRANSCRIPT_BYTES = 500_000
+MAX_ARCHIVE_RETRIES = 3
+ARCHIVE_RETRY_DELAY_S = 1.0
 
 
 async def archive_debate(debate_id: str, state: dict[str, Any] | None = None) -> None:
@@ -46,6 +51,14 @@ async def archive_debate(debate_id: str, state: dict[str, Any] | None = None) ->
         messages = state.get("messages", [])
         transcript = json.dumps(messages) if messages else json.dumps([])
 
+        if len(transcript.encode("utf-8")) > MAX_TRANSCRIPT_BYTES:
+            logger.warning(
+                f"Transcript for debate {debate_id} exceeds {MAX_TRANSCRIPT_BYTES} bytes, "
+                f"truncating to last 100 messages"
+            )
+            messages = messages[-100:]
+            transcript = json.dumps(messages)
+
         guardian_verdict = state.get("guardian_verdict")
         interrupts = state.get("guardian_interrupts", [])
         guardian_interrupts_count = (
@@ -66,7 +79,29 @@ async def archive_debate(debate_id: str, state: dict[str, Any] | None = None) ->
 
         try:
             await stream_state.delete_state(debate_id)
-        except Exception as e:
-            logger.warning(f"Failed to delete Redis state for debate {debate_id}: {e}")
+        except Exception:
+            logger.warning(
+                f"Failed to delete Redis state for debate {debate_id}",
+                exc_info=True,
+            )
 
         logger.info(f"Debate {debate_id} archived successfully")
+
+
+async def archive_with_retry(
+    debate_id: str,
+    state: dict[str, Any],
+) -> bool:
+    for attempt in range(1, MAX_ARCHIVE_RETRIES + 1):
+        try:
+            await archive_debate(debate_id, state)
+            return True
+        except Exception:
+            logger.warning(
+                f"Archive attempt {attempt}/{MAX_ARCHIVE_RETRIES} failed for {debate_id}",
+                exc_info=True,
+            )
+            if attempt < MAX_ARCHIVE_RETRIES:
+                await asyncio.sleep(ARCHIVE_RETRY_DELAY_S * attempt)
+    logger.error(f"All {MAX_ARCHIVE_RETRIES} archive attempts failed for {debate_id}")
+    return False

@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.models import Debate, Vote
-from app.services.debate.archival import archive_debate
+from app.models import Debate, PendingArchive, Vote
+from app.services.debate.archival import archive_debate, archive_with_retry
 from app.services.debate.repository import DebateRepository
 from sqlalchemy import select
 
@@ -298,3 +298,225 @@ class TestArchivalExtendedIntegration:
         roles = [m["role"] for m in transcript]
         assert roles.count("bull") == 3
         assert roles.count("bear") == 3
+
+
+class TestArchivalRetryAndConcurrency:
+    """[4-1-INT] Retry wrapper, concurrent archival, large transcript tests."""
+
+    @pytest.mark.priority("P1")
+    @pytest.mark.asyncio
+    async def test_4_1_int_008_sequential_idempotent_no_double_archive(
+        self, db_session
+    ):
+        debate = Debate(
+            external_id="deb_concurrent",
+            asset="bitcoin",
+            status="running",
+            max_turns=6,
+            current_turn=4,
+        )
+        db_session.add(debate)
+        await db_session.commit()
+        await db_session.refresh(debate)
+
+        state = {
+            "messages": [{"role": "bull", "content": "Bull"}],
+            "guardian_verdict": "Caution",
+            "guardian_interrupts": [],
+            "current_turn": 4,
+        }
+
+        with patch("app.services.debate.archival.async_session_maker") as mock_sf:
+            mock_sf.return_value.__aenter__ = AsyncMock(return_value=db_session)
+            mock_sf.return_value.__aexit__ = AsyncMock(return_value=False)
+            with patch("app.services.debate.archival.stream_state") as mock_ss:
+                mock_ss.delete_state = AsyncMock()
+                await archive_debate("deb_concurrent", state)
+
+        stmt = select(Debate).where(Debate.external_id == "deb_concurrent")
+        result = await db_session.execute(stmt)
+        refreshed = result.scalar_one()
+        first_completed_at = refreshed.completed_at
+        assert refreshed.status == "completed"
+
+        with patch("app.services.debate.archival.async_session_maker") as mock_sf:
+            mock_sf.return_value.__aenter__ = AsyncMock(return_value=db_session)
+            mock_sf.return_value.__aexit__ = AsyncMock(return_value=False)
+            with patch("app.services.debate.archival.stream_state") as mock_ss:
+                mock_ss.delete_state = AsyncMock()
+                await archive_debate("deb_concurrent", state)
+
+        result2 = await db_session.execute(stmt)
+        refreshed2 = result2.scalar_one()
+        assert refreshed2.completed_at == first_completed_at
+        assert refreshed2.status == "completed"
+
+    @pytest.mark.priority("P1")
+    @pytest.mark.asyncio
+    async def test_4_1_int_009_large_transcript_toast_round_trip(self, db_session):
+        debate = Debate(
+            external_id="deb_large_transcript",
+            asset="bitcoin",
+            status="running",
+            max_turns=100,
+            current_turn=0,
+        )
+        db_session.add(debate)
+        await db_session.commit()
+        await db_session.refresh(debate)
+
+        messages = []
+        current_size = 0
+        target_bytes = 150_000
+        turn = 0
+        while current_size < target_bytes:
+            turn += 1
+            msg = {
+                "role": "bull" if turn % 2 == 1 else "bear",
+                "content": (
+                    f"Turn {turn} argument: "
+                    "The fundamental analysis supports the thesis based on "
+                    "revenue growth of 23% YoY, expanding gross margins from "
+                    "65% to 68%, and accelerating enterprise adoption. " + "x" * 350
+                ),
+                "turn_number": turn,
+            }
+            messages.append(msg)
+            current_size += len(json.dumps(msg))
+
+        state = {
+            "messages": messages,
+            "current_turn": len(messages),
+        }
+        transcript_json = json.dumps(messages)
+        assert len(transcript_json) > 100_000
+
+        with patch("app.services.debate.archival.async_session_maker") as mock_sf:
+            mock_sf.return_value.__aenter__ = AsyncMock(return_value=db_session)
+            mock_sf.return_value.__aexit__ = AsyncMock(return_value=False)
+            with patch("app.services.debate.archival.stream_state") as mock_ss:
+                mock_ss.delete_state = AsyncMock()
+                await archive_debate("deb_large_transcript", state)
+
+        stmt = select(Debate).where(Debate.external_id == "deb_large_transcript")
+        result = await db_session.execute(stmt)
+        refreshed = result.scalar_one()
+
+        assert refreshed.status == "completed"
+        round_tripped = json.loads(refreshed.transcript)
+        assert len(round_tripped) == len(messages)
+        assert round_tripped[0]["role"] == "bull"
+        assert round_tripped[-1]["turn_number"] == len(messages)
+
+    @pytest.mark.priority("P1")
+    @pytest.mark.asyncio
+    async def test_4_1_int_010_archive_with_retry_succeeds_on_second_attempt(
+        self, db_session
+    ):
+        debate = Debate(
+            external_id="deb_retry",
+            asset="ethereum",
+            status="running",
+            max_turns=6,
+            current_turn=2,
+        )
+        db_session.add(debate)
+        await db_session.commit()
+        await db_session.refresh(debate)
+
+        state = {
+            "messages": [{"role": "bull", "content": "Bull"}],
+            "current_turn": 2,
+        }
+
+        call_count = [0]
+
+        async def flaky_archive(debate_id, s):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise ConnectionError("DB connection lost")
+
+        with patch(
+            "app.services.debate.archival.archive_debate",
+            side_effect=flaky_archive,
+        ):
+            result = await archive_with_retry("deb_retry", state)
+
+        assert result is True
+        assert call_count[0] == 2
+
+    @pytest.mark.priority("P2")
+    @pytest.mark.asyncio
+    async def test_4_1_int_011_archive_with_retry_exhausts_attempts(self):
+        with patch(
+            "app.services.debate.archival.archive_debate",
+            side_effect=ConnectionError("DB down"),
+        ):
+            result = await archive_with_retry("deb_exhaust", {"messages": []})
+
+        assert result is False
+
+    @pytest.mark.priority("P2")
+    @pytest.mark.asyncio
+    async def test_4_1_int_012_sweeper_resolves_pending_archive(self, db_session):
+        from app.services.debate.archival_sweeper import retry_pending_archives
+
+        state = {
+            "messages": [{"role": "bull", "content": "Sweeper test"}],
+            "current_turn": 1,
+        }
+
+        debate = Debate(
+            external_id="deb_sweeper",
+            asset="bitcoin",
+            status="running",
+            max_turns=6,
+            current_turn=1,
+        )
+        db_session.add(debate)
+        await db_session.commit()
+        await db_session.refresh(debate)
+
+        pending = PendingArchive(
+            debate_external_id="deb_sweeper",
+            full_state=state,
+            attempt_count=0,
+        )
+        db_session.add(pending)
+        await db_session.commit()
+
+        with patch("app.services.debate.archival.async_session_maker") as mock_sf:
+            mock_sf.return_value.__aenter__ = AsyncMock(return_value=db_session)
+            mock_sf.return_value.__aexit__ = AsyncMock(return_value=False)
+            with patch(
+                "app.services.debate.archival_sweeper.async_session_maker"
+            ) as sw_sf:
+                sw_sf.return_value.__aenter__ = AsyncMock(return_value=db_session)
+                sw_sf.return_value.__aexit__ = AsyncMock(return_value=False)
+                with patch("app.services.debate.archival.stream_state") as mock_ss:
+                    mock_ss.delete_state = AsyncMock()
+                    count = await retry_pending_archives()
+
+        assert count == 1
+
+        stmt = select(Debate).where(Debate.external_id == "deb_sweeper")
+        result = await db_session.execute(stmt)
+        refreshed = result.scalar_one()
+        assert refreshed.status == "completed"
+
+    @pytest.mark.priority("P2")
+    @pytest.mark.asyncio
+    async def test_4_1_int_013_pending_archive_model_exists(self, db_session):
+        pending = PendingArchive(
+            debate_external_id="deb_model_test",
+            full_state={"messages": [], "current_turn": 0},
+        )
+        db_session.add(pending)
+        await db_session.commit()
+        await db_session.refresh(pending)
+
+        assert pending.id is not None
+        assert pending.attempt_count == 0
+        assert pending.max_attempts == 10
+        assert pending.resolved_at is None
+        assert pending.created_at is not None

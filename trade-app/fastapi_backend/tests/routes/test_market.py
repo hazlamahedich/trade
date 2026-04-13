@@ -50,12 +50,16 @@ class TestMarketEndpoint:
 
         assert response.status_code == 400
         data = response.json()
-        assert data["detail"]["error"]["code"] == "INVALID_ASSET"
-        assert "not supported" in data["detail"]["error"]["message"]
+        assert data["error"]["code"] == "INVALID_ASSET"
+        assert "not supported" in data["error"]["message"]
 
     def test_get_market_data_lowercase_asset_names(self):
         """Test that lowercase asset names (bitcoin, ethereum, solana) work."""
-        for asset_name, symbol in [("bitcoin", "BTC"), ("ethereum", "ETH"), ("solana", "SOL")]:
+        for asset_name, symbol in [
+            ("bitcoin", "BTC"),
+            ("ethereum", "ETH"),
+            ("solana", "SOL"),
+        ]:
             with patch(
                 "app.routes.market.market_service.get_data", new_callable=AsyncMock
             ) as mock:
@@ -77,7 +81,7 @@ class TestMarketEndpoint:
 
             assert response.status_code == 503
             data = response.json()
-            assert data["detail"]["error"]["code"] == "MARKET_DATA_UNAVAILABLE"
+            assert data["error"]["code"] == "MARKET_DATA_UNAVAILABLE"
 
     @patch("app.routes.market.market_service.get_data", new_callable=AsyncMock)
     def test_get_market_data_stale_warning_in_meta(self, mock_get_data):

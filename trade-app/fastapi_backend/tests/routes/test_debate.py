@@ -61,7 +61,7 @@ class TestDebateRoutes:
 
                 assert response.status_code == 400
                 data = response.json()
-                assert data["detail"]["error"]["code"] == "STALE_MARKET_DATA"
+                assert data["error"]["code"] == "STALE_MARKET_DATA"
 
     @pytest.mark.asyncio
     async def test_start_debate_llm_error(self):
@@ -83,7 +83,7 @@ class TestDebateRoutes:
 
                 assert response.status_code == 503
                 data = response.json()
-                assert data["detail"]["error"]["code"] == "LLM_PROVIDER_ERROR"
+                assert data["error"]["code"] == "LLM_PROVIDER_ERROR"
 
     @pytest.mark.asyncio
     async def test_start_debate_invalid_asset(self):

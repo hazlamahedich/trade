@@ -1,4 +1,5 @@
 from httpx import AsyncClient, ASGITransport
+import pytest  # noqa: F401 (needed for pytest_configure)
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from fastapi_users.db import SQLAlchemyUserDatabase
@@ -11,6 +12,13 @@ from app.models import User, Base
 from app.database import get_user_db, get_async_session
 from app.main import app
 from app.users import get_jwt_strategy
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "priority(level): Test priority — P1 (smoke), P2 (regression), P3 (low)",
+    )
 
 
 @pytest_asyncio.fixture(scope="function")

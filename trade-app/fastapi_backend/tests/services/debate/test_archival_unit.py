@@ -1,5 +1,5 @@
 import json
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -318,3 +318,71 @@ class TestArchivalExtendedUnit:
 
         call_kwargs = mock_archival_repo.complete_debate.call_args[1]
         assert call_kwargs["guardian_interrupts_count"] == 3
+
+
+class TestArchivalRetryUnit:
+    """[4-1-UNIT] Unit tests for archive_with_retry wrapper."""
+
+    @pytest.mark.priority("P1")
+    @pytest.mark.asyncio
+    async def test_4_1_unit_018_retry_succeeds_on_second_attempt(self):
+        call_count = [0]
+
+        async def flaky_archive(debate_id, state):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise ConnectionError("DB timeout")
+
+        with patch(
+            "app.services.debate.archival.archive_debate",
+            side_effect=flaky_archive,
+        ):
+            from app.services.debate.archival import archive_with_retry
+
+            result = await archive_with_retry("deb_test", SAMPLE_ARCHIVAL_STATE)
+
+        assert result is True
+        assert call_count[0] == 2
+
+    @pytest.mark.priority("P1")
+    @pytest.mark.asyncio
+    async def test_4_1_unit_019_retry_exhausts_all_attempts(self):
+        with patch(
+            "app.services.debate.archival.archive_debate",
+            side_effect=ConnectionError("DB down"),
+        ):
+            from app.services.debate.archival import archive_with_retry
+
+            result = await archive_with_retry("deb_test", SAMPLE_ARCHIVAL_STATE)
+
+        assert result is False
+
+    @pytest.mark.priority("P1")
+    @pytest.mark.asyncio
+    async def test_4_1_unit_020_succeeds_on_first_attempt(self):
+        with patch("app.services.debate.archival.archive_debate") as mock_archive:
+            from app.services.debate.archival import archive_with_retry
+
+            result = await archive_with_retry("deb_test", SAMPLE_ARCHIVAL_STATE)
+
+        assert result is True
+        mock_archive.assert_called_once()
+
+    @pytest.mark.priority("P2")
+    @pytest.mark.asyncio
+    async def test_4_1_unit_021_transcript_truncated_at_cap(
+        self, archival_mocks, mock_archival_repo, debate_not_archived
+    ):
+        large_messages = [{"role": "bull", "content": "x" * 10_000} for _ in range(100)]
+        state_large = {**SAMPLE_ARCHIVAL_STATE, "messages": large_messages}
+        mock_archival_repo.get_by_external_id_for_update.return_value = (
+            debate_not_archived
+        )
+        archival_mocks["session"].execute.return_value = mock_execute_result([])
+        from app.services.debate.archival import archive_debate
+
+        await archive_debate("deb_test123", state_large)
+
+        call_kwargs = mock_archival_repo.complete_debate.call_args[1]
+        transcript = json.loads(call_kwargs["transcript"])
+        assert len(transcript) == 100

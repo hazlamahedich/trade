@@ -34,7 +34,7 @@ class TestArchivalEngineWiring:
         from tests.services.debate.test_helpers import patched_debate_engine
 
         with patched_debate_engine(_safe_analyze) as _mocks:
-            with patch("app.services.debate.engine.archive_debate") as mock_archive:
+            with patch("app.services.debate.engine.archive_with_retry") as mock_archive:
                 mock_archive.return_value = AsyncMock()
                 with patch(
                     "app.services.debate.engine.StaleDataGuardian"
@@ -87,7 +87,7 @@ class TestArchivalEngineWiring:
             return _safe_analyze(state)
 
         with patched_debate_engine(critical_analyze) as _mocks:
-            with patch("app.services.debate.engine.archive_debate") as mock_archive:
+            with patch("app.services.debate.engine.archive_with_retry") as mock_archive:
                 mock_archive.return_value = AsyncMock()
                 with patch(
                     "app.services.debate.engine.StaleDataGuardian"
@@ -121,7 +121,7 @@ class TestArchivalEngineWiring:
         from tests.services.debate.test_helpers import patched_debate_engine
 
         with patched_debate_engine(_safe_analyze) as _mocks:
-            with patch("app.services.debate.engine.archive_debate") as mock_archive:
+            with patch("app.services.debate.engine.archive_with_retry") as mock_archive:
                 mock_archive.side_effect = Exception("Archival exploded")
                 with patch(
                     "app.services.debate.engine.StaleDataGuardian"
@@ -157,7 +157,7 @@ class TestArchivalEngineWiring:
             mocks["stream_state"].save_state = AsyncMock(
                 side_effect=Exception("Redis down")
             )
-            with patch("app.services.debate.engine.archive_debate") as mock_archive:
+            with patch("app.services.debate.engine.archive_with_retry") as mock_archive:
                 with patch(
                     "app.services.debate.engine.StaleDataGuardian"
                 ) as mock_sg_cls:

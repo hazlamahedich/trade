@@ -4,7 +4,7 @@ from fastapi_users.db import SQLAlchemyBaseUserTableUUID
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, Text, Index
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from uuid import uuid4
 
 
@@ -76,3 +76,25 @@ class Vote(Base):
             unique=True,
         ),
     )
+
+
+class PendingArchive(Base):
+    __tablename__ = "pending_archives"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    debate_external_id = Column(String, nullable=False, unique=True, index=True)
+    full_state = Column(JSONB, nullable=False)
+    attempt_count = Column(Integer, nullable=False, default=0)
+    max_attempts = Column(Integer, nullable=False, default=10)
+    next_attempt_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+    last_error = Column(Text, nullable=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)

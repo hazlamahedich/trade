@@ -32,7 +32,7 @@ from app.services.debate.sanitization import (
     SanitizationResult,
     sanitize_content,
 )
-from app.services.debate.archival import archive_debate
+from app.services.debate.archival import archive_with_retry
 from app.services.market.stale_data_guardian import StaleDataGuardian
 
 logger = logging.getLogger(__name__)
@@ -568,18 +568,15 @@ async def stream_debate(
                     turn=turn,
                 )
 
-        await stream_state.save_state(
-            debate_id,
-            {
-                "status": "completed",
-                "asset": asset,
-                "current_turn": current_state["current_turn"],
-            },
-        )
+        completed_state = {
+            **current_state,
+            "status": "completed",
+        }
+        await stream_state.save_state(debate_id, completed_state)
         await send_status_update(manager, debate_id, "completed")
 
         try:
-            await archive_debate(debate_id, current_state)
+            await archive_with_retry(debate_id, current_state)
         except Exception as e:
             logger.error(f"Archival failed for debate {debate_id}: {e}")
 
