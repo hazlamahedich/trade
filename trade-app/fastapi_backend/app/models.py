@@ -46,6 +46,9 @@ class Debate(Base):
         default=lambda: datetime.now(timezone.utc),
     )
     completed_at = Column(DateTime(timezone=True), nullable=True)
+    vote_bull = Column(Integer, nullable=True, default=None)
+    vote_bear = Column(Integer, nullable=True, default=None)
+    vote_undecided = Column(Integer, nullable=True, default=None)
 
     votes = relationship("Vote", back_populates="debate", cascade="all, delete-orphan")
 

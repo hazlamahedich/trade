@@ -55,3 +55,13 @@
 ## Deferred from: code review of 3-6-first-voter-celebration (2026-04-13)
 
 - AnimatePresence exit animation never fires — FirstVoterBadge self-hides via internal `showCelebration` state (returns null) before AnimatePresence detects unmount. No fade-out on dismiss, just instant hide. Low impact — badge is decorative, not structural. Could add exit animation by lifting visibility control to parent, but that adds complexity for marginal visual gain. [SentimentReveal.tsx:225-229] — deferred, pre-existing
+
+## Deferred from: code review of 4-1-debate-archival-service (2026-04-13)
+
+- Vote count snapshot can be stale if votes arrive between SELECT and COMMIT [archival.py:35-44] — by design: voting closes at debate completion, window is milliseconds, votes table remains source of truth
+- DB session relies on `complete_debate` internal commit with no explicit archival-level commit [archival.py:23] — follows existing repository pattern
+- Redis fallback path gets partial state (no messages) if Redis was already saved with reduced dict [engine.py:570-577] — documented in dev notes as known limitation, primary path passes current_state directly
+- Freeform `Vote.choice` column has no CHECK constraint — unexpected keys silently ignored in count aggregation [models.py:Vote.choice] — not in story scope
+- Redis deletion failure leaves orphaned keys until TTL expiry (3600s) [archival.py:64-67] — by design per spec AC3, TTL handles cleanup
+- Transcript JSON serialization risk if message dict contains non-serializable types (e.g. datetime) [archival.py:47] — messages are string-only dicts in practice
+- No dedicated test for ack-timeout exit path calling archival [test_archival.py] — all three exit paths converge to same code, critical-interrupt test provides indirect coverage

@@ -23,6 +23,11 @@ class DebateRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_by_external_id_for_update(self, external_id: str) -> Debate | None:
+        stmt = select(Debate).where(Debate.external_id == external_id).with_for_update()
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def save_debate(
         self,
         external_id: str,
@@ -56,6 +61,9 @@ class DebateRepository:
         guardian_interrupts_count: int = 0,
         transcript: str | None = None,
         current_turn: int = 0,
+        vote_bull: int | None = None,
+        vote_bear: int | None = None,
+        vote_undecided: int | None = None,
     ) -> Debate | None:
         debate = await self.get_by_external_id(external_id)
         if debate is None:
@@ -66,6 +74,12 @@ class DebateRepository:
         debate.guardian_interrupts_count = guardian_interrupts_count
         debate.transcript = transcript
         debate.current_turn = current_turn
+        if vote_bull is not None:
+            debate.vote_bull = vote_bull
+        if vote_bear is not None:
+            debate.vote_bear = vote_bear
+        if vote_undecided is not None:
+            debate.vote_undecided = vote_undecided
         await self.session.commit()
         await self.session.refresh(debate)
         return debate

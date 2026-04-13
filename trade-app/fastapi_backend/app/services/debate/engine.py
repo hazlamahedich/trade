@@ -32,6 +32,7 @@ from app.services.debate.sanitization import (
     SanitizationResult,
     sanitize_content,
 )
+from app.services.debate.archival import archive_debate
 from app.services.market.stale_data_guardian import StaleDataGuardian
 
 logger = logging.getLogger(__name__)
@@ -576,6 +577,11 @@ async def stream_debate(
             },
         )
         await send_status_update(manager, debate_id, "completed")
+
+        try:
+            await archive_debate(debate_id, current_state)
+        except Exception as e:
+            logger.error(f"Archival failed for debate {debate_id}: {e}")
 
         return final_state
 
