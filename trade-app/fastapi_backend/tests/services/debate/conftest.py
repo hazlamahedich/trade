@@ -1,12 +1,36 @@
 from uuid import UUID, uuid4
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock, AsyncMock, patch
 from datetime import datetime, timezone
 
 import pytest
 
+from app.models import Debate
 from app.services.market.schemas import MarketContext, FreshnessStatus
 from app.services.debate.agents.guardian import GuardianAnalysisResult
 from app.services.debate.repository import DebateRepository
+
+
+SAMPLE_ARCHIVAL_STATE = {
+    "debate_id": "deb_test123",
+    "asset": "bitcoin",
+    "status": "completed",
+    "messages": [
+        {"role": "bull", "content": "Bitcoin going up!"},
+        {"role": "bear", "content": "Regulatory risks ahead."},
+    ],
+    "current_turn": 2,
+    "max_turns": 6,
+    "guardian_verdict": "Caution",
+    "guardian_interrupts": [{"turn": 1, "reason": "test"}],
+    "paused": False,
+    "pause_history": [],
+}
+
+
+def mock_execute_result(rows):
+    result = MagicMock()
+    result.__iter__ = MagicMock(return_value=iter(rows))
+    return result
 
 
 async def create_votes(
@@ -202,3 +226,70 @@ def critical_guardian_result():
         detailed_reasoning="Dangerous advice detected in the argument.",
         summary_verdict="High Risk",
     )
+
+
+# --- Archival test fixtures (Story 4.1) ---
+
+
+@pytest.fixture
+def mock_archival_repo():
+    repo = MagicMock(spec=DebateRepository)
+    repo.get_by_external_id = AsyncMock()
+    repo.get_by_external_id_for_update = AsyncMock()
+    repo.complete_debate = AsyncMock()
+    return repo
+
+
+@pytest.fixture
+def mock_archival_session():
+    session = MagicMock()
+    session.execute = AsyncMock()
+    session.commit = AsyncMock()
+    return session
+
+
+@pytest.fixture
+def debate_not_archived():
+    debate = MagicMock(spec=Debate)
+    debate.id = uuid4()
+    debate.completed_at = None
+    return debate
+
+
+@pytest.fixture
+def debate_already_archived():
+    debate = MagicMock(spec=Debate)
+    debate.id = uuid4()
+    debate.completed_at = datetime.now(timezone.utc)
+    return debate
+
+
+@pytest.fixture
+def archival_mocks(mock_archival_repo, mock_archival_session):
+    from contextlib import ExitStack
+
+    with ExitStack() as stack:
+        mock_sf = stack.enter_context(
+            patch("app.services.debate.archival.async_session_maker")
+        )
+        mock_sf.return_value.__aenter__ = AsyncMock(return_value=mock_archival_session)
+        mock_sf.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        stack.enter_context(
+            patch(
+                "app.services.debate.archival.DebateRepository",
+                return_value=mock_archival_repo,
+            )
+        )
+
+        mock_ss = stack.enter_context(
+            patch("app.services.debate.archival.stream_state")
+        )
+        mock_ss.delete_state = AsyncMock()
+
+        yield {
+            "session_factory": mock_sf,
+            "stream_state": mock_ss,
+            "repo": mock_archival_repo,
+            "session": mock_archival_session,
+        }

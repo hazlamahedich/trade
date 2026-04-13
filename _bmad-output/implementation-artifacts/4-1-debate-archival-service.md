@@ -334,11 +334,15 @@ GLM-5.1
 - `trade-app/fastapi_backend/app/services/debate/archival.py` — New file: `archive_debate()` archival service
 - `trade-app/fastapi_backend/app/services/debate/engine.py` — Added archival import and call after completion
 - `trade-app/fastapi_backend/alembic_migrations/versions/d5b2f3a4e5c6_add_vote_counts_to_debates.py` — New migration
-- `trade-app/fastapi_backend/tests/services/debate/test_archival.py` — New test file (16 tests)
+- `trade-app/fastapi_backend/tests/services/debate/test_archival_unit.py` — Unit + extended unit tests (17 tests)
+- `trade-app/fastapi_backend/tests/services/debate/test_archival_engine_wiring.py` — Engine wiring tests (4 tests)
+- `trade-app/fastapi_backend/tests/services/debate/test_archival_integration.py` — Integration tests (7 tests)
+- `trade-app/fastapi_backend/tests/services/debate/conftest.py` — Added shared archival fixtures
 
 ## Change Log
 
 - 2026-04-13: Implemented Debate Archival Service (Story 4.1) — all 5 tasks complete, 16 tests, lint clean
+- 2026-04-13: Test quality review (82/100 B). Refactored: split monolithic test_archival.py (988 lines) into 3 files, extracted shared fixtures to conftest, added `archival_mocks` fixture to eliminate 3-4 level patch nesting. 28/28 tests pass, lint clean.
 
 ### Review Findings
 
