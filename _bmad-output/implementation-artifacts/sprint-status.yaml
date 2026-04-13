@@ -63,6 +63,10 @@ development_status:
   3-2-voting-ui-components: done
   3-3-sentiment-aggregation-service: done
   3-4-real-time-sentiment-reveal: done
+  3-5-1-rounding-overflow-fix: done
+  3-5-2-ws-poll-consistency: done
+  3-5-3-empty-state-optimistic-update: done
+  3-6-first-voter-celebration: done
   epic-3-retrospective: optional
 
   epic-4: in-progress

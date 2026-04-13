@@ -51,3 +51,7 @@
 
 - Percentage rounding can produce `bullPct + bearPct = 101%` bar overflow — pre-existing `Math.round` behavior in SentimentReveal, mitigated by `overflow-hidden` on flex container [SentimentReveal.tsx:45-47]
 - Polling + WS both active — stale poll can overwrite fresher WS update for ~5s window — accepted eventual consistency per spec; next poll corrects stale data [useVotingStatus.ts:25 + DebateStream.tsx:202]
+
+## Deferred from: code review of 3-6-first-voter-celebration (2026-04-13)
+
+- AnimatePresence exit animation never fires — FirstVoterBadge self-hides via internal `showCelebration` state (returns null) before AnimatePresence detects unmount. No fade-out on dismiss, just instant hide. Low impact — badge is decorative, not structural. Could add exit animation by lifting visibility control to parent, but that adds complexity for marginal visual gain. [SentimentReveal.tsx:225-229] — deferred, pre-existing

@@ -18,6 +18,7 @@ import { useReasoningGraph } from "../hooks/useReasoningGraph";
 import { useGuardianFreeze } from "../hooks/useGuardianFreeze";
 import { useVote } from "../hooks/useVote";
 import { useVotingStatus } from "../hooks/useVotingStatus";
+import { useFirstVoter } from "../hooks/useFirstVoter";
 import { queryKeys } from "../hooks/queryKeys";
 import type { DebateResultEnvelope } from "../api";
 import { ArgumentBubble, type AgentType } from "./ArgumentBubble";
@@ -259,6 +260,7 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
   const { vote, userVote, voteStatus } = useVote(debateId);
   const wsConnected = status === "connected";
   const { hasVoted, voteCounts, totalVotes, serverStatus } = useVotingStatus(debateId, { wsConnected });
+  const isFirstVoter = useFirstVoter(totalVotes, debateId, hasVoted);
   const showSentiment = hasVoted || voteStatus === "voted";
 
   const optimisticSegment: OptimisticSegment = userVote ?? null;
@@ -454,6 +456,8 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
           totalVotes={totalVotes}
           optimisticSegment={optimisticSegment}
           optimisticStatus={optimisticStatus}
+          isFirstVoter={isFirstVoter}
+          debateId={debateId}
         />
       ) : (
         <VoteControls

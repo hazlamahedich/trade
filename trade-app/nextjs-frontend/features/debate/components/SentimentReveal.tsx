@@ -1,16 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 export type OptimisticSegment = "bull" | "bear" | null;
 export type OptimisticStatus = "pending" | "confirmed" | "failed" | "timeout";
+
+const celebratedDebates = new Set<string>();
 
 interface SentimentRevealProps {
   voteBreakdown: Record<string, number> | null;
   totalVotes: number;
   optimisticSegment?: OptimisticSegment;
   optimisticStatus?: OptimisticStatus;
+  isFirstVoter?: boolean;
+  debateId?: string;
 }
 
 function BarSegment({
@@ -68,15 +72,53 @@ function BarSegment({
   );
 }
 
+function FirstVoterBadge({ shouldReduceMotion }: { shouldReduceMotion: boolean }) {
+  const [showCelebration, setShowCelebration] = useState(true);
+
+  useEffect(() => {
+    if (!showCelebration) return;
+    const timer = setTimeout(() => setShowCelebration(false), 2000);
+    return () => clearTimeout(timer);
+  }, [showCelebration]);
+
+  if (!showCelebration) return null;
+
+  return (
+    <>
+      <motion.div
+        data-testid="first-voter-badge"
+        className="text-center text-xs mt-2 px-3 py-1.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/20 inline-block"
+        initial={shouldReduceMotion ? { opacity: 0 } : { scale: 0.95, opacity: 0 }}
+        animate={shouldReduceMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+        transition={{ duration: 0.2, delay: 0.5 }}
+      >
+        First vote cast
+      </motion.div>
+      <div aria-live="polite" className="sr-only">
+        You are the first to vote!
+      </div>
+    </>
+  );
+}
+
 export function SentimentReveal({
   voteBreakdown,
   totalVotes,
   optimisticSegment = null,
   optimisticStatus,
+  isFirstVoter = false,
+  debateId,
 }: SentimentRevealProps) {
   const shouldReduceMotion = useReducedMotion() ?? false;
   const containerRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
+  const showBadge = isFirstVoter && totalVotes === 1 && debateId && !celebratedDebates.has(debateId);
+
+  useEffect(() => {
+    if (showBadge && debateId) {
+      celebratedDebates.add(debateId);
+    }
+  }, [showBadge, debateId]);
 
   useEffect(() => {
     containerRef.current?.focus();
@@ -191,6 +233,11 @@ export function SentimentReveal({
           optimisticStatus={optimisticStatus}
         />
       </div>
+      <AnimatePresence>
+        {showBadge && (
+          <FirstVoterBadge shouldReduceMotion={shouldReduceMotion} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
