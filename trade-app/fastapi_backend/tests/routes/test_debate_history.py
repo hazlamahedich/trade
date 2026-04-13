@@ -447,3 +447,180 @@ class TestRouteValidation:
         body = resp.json()
         assert body["meta"]["total"] == 1
         assert body["data"][0]["externalId"] == "deb_btc_bull"
+
+
+class TestOrderingVerification:
+    @pytest.mark.asyncio
+    async def test_results_ordered_newest_first(
+        self, db_session, history_client, make_completed_debate
+    ):
+        for i in range(3):
+            debate = make_completed_debate(
+                ext_id=f"deb_ordered_{i}",
+                created_at=datetime(2026, 1, i + 1, tzinfo=timezone.utc),
+            )
+            db_session.add(debate)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL)
+        body = resp.json()
+        dates = [item["createdAt"] for item in body["data"]]
+        assert dates == sorted(dates, reverse=True)
+
+
+class TestPaginationBoundaries:
+    @pytest.mark.asyncio
+    async def test_size_one(self, db_session, history_client, make_completed_debate):
+        for i in range(3):
+            debate = make_completed_debate(
+                ext_id=f"deb_s1_{i}",
+                created_at=datetime(2026, 1, i + 1, tzinfo=timezone.utc),
+            )
+            db_session.add(debate)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL, params={"size": 1})
+        body = resp.json()
+        assert len(body["data"]) == 1
+        assert body["meta"]["size"] == 1
+        assert body["meta"]["total"] == 3
+        assert body["meta"]["pages"] == 3
+
+    @pytest.mark.asyncio
+    async def test_page_beyond_range_returns_empty(
+        self, db_session, history_client, make_completed_debate
+    ):
+        for i in range(3):
+            debate = make_completed_debate(ext_id=f"deb_pbr_{i}")
+            db_session.add(debate)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL, params={"page": 99, "size": 10})
+        body = resp.json()
+        assert resp.status_code == 200
+        assert body["data"] == []
+        assert body["meta"]["total"] == 3
+        assert body["meta"]["page"] == 99
+
+    @pytest.mark.asyncio
+    async def test_single_debate_pagination(
+        self, db_session, history_client, make_completed_debate
+    ):
+        debate = make_completed_debate(ext_id="deb_single")
+        db_session.add(debate)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL, params={"page": 1, "size": 20})
+        body = resp.json()
+        assert body["meta"]["total"] == 1
+        assert body["meta"]["pages"] == 1
+        assert len(body["data"]) == 1
+
+
+class TestCaseInsensitiveFilters:
+    @pytest.mark.asyncio
+    async def test_asset_filter_case_insensitive(
+        self, db_session, history_client, make_completed_debate
+    ):
+        debate = make_completed_debate(ext_id="deb_case", asset="bitcoin")
+        db_session.add(debate)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL, params={"asset": "Bitcoin"})
+        body = resp.json()
+        assert body["meta"]["total"] == 1
+
+    @pytest.mark.asyncio
+    async def test_outcome_filter_case_insensitive(
+        self, db_session, history_client, make_completed_debate
+    ):
+        debate = make_completed_debate(ext_id="deb_case_outcome")
+        db_session.add(debate)
+        await db_session.commit()
+        await seed_votes(db_session, debate.id, bull=3, bear=1)
+
+        resp = await history_client.get(HISTORY_URL, params={"outcome": "BULL"})
+        body = resp.json()
+        assert body["meta"]["total"] == 1
+
+    @pytest.mark.asyncio
+    async def test_asset_with_whitespace(
+        self, db_session, history_client, make_completed_debate
+    ):
+        debate = make_completed_debate(ext_id="deb_ws", asset="bitcoin")
+        db_session.add(debate)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL, params={"asset": "  bitcoin  "})
+        body = resp.json()
+        assert body["meta"]["total"] == 1
+
+
+class TestSchemaSerialization:
+    @pytest.mark.asyncio
+    async def test_camel_case_field_names(
+        self, db_session, history_client, make_completed_debate
+    ):
+        debate = make_completed_debate(ext_id="deb_camel", asset="btc")
+        db_session.add(debate)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL)
+        item = resp.json()["data"][0]
+
+        assert "externalId" in item
+        assert "guardianVerdict" in item
+        assert "guardianInterruptsCount" in item
+        assert "totalVotes" in item
+        assert "voteBreakdown" in item
+        assert "createdAt" in item
+        assert "completedAt" in item
+
+        assert "external_id" not in item
+        assert "guardian_verdict" not in item
+        assert "total_votes" not in item
+
+    @pytest.mark.asyncio
+    async def test_null_guardian_verdict_serializes(
+        self, db_session, history_client, make_completed_debate
+    ):
+        debate = Debate(
+            external_id="deb_null_gv",
+            asset="bitcoin",
+            status="completed",
+            current_turn=6,
+            max_turns=6,
+            guardian_verdict=None,
+            guardian_interrupts_count=0,
+            created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            completed_at=datetime(2026, 1, 1, 12, tzinfo=timezone.utc),
+        )
+        db_session.add(debate)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL)
+        item = resp.json()["data"][0]
+        assert item["guardianVerdict"] is None
+
+    @pytest.mark.asyncio
+    async def test_error_status_debates_excluded(
+        self, db_session, history_client, make_completed_debate
+    ):
+        completed = make_completed_debate(ext_id="deb_completed")
+        db_session.add(completed)
+
+        errored = Debate(
+            external_id="deb_errored",
+            asset="bitcoin",
+            status="error",
+            current_turn=2,
+            max_turns=6,
+            created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        )
+        db_session.add(errored)
+        await db_session.commit()
+
+        resp = await history_client.get(HISTORY_URL)
+        body = resp.json()
+        assert body["meta"]["total"] == 1
+        assert body["data"][0]["externalId"] == "deb_completed"
