@@ -116,7 +116,7 @@ src/features/debate/
 | API JSON keys | camelCase | `createdAt` |
 | WebSocket actions | SCREAMING_SNAKE | `DEBATE/ARGUMENT_RECEIVED` |
 
-**WebSocket Action Types (CRITICAL — verify before use):** All actions use `DEBATE/` prefix, NOT `GUARDIAN/`. Examples: `DEBATE/GUARDIAN_INTERRUPT`, `DEBATE/GUARDIAN_VERDICT`, `DEBATE/STATUS_UPDATE`, `DEBATE/DEBATE_PAUSED`, `DEBATE/DEBATE_RESUMED`, `DEBATE/ARGUMENT_COMPLETE`, `DEBATE/REASONING_NODE`, `DEBATE/TURN_CHANGE`, `DEBATE/COMPLETED`. Follow same `{ type, payload, timestamp }` envelope.
+**WebSocket Action Types (CRITICAL — verify before use):** All actions use `DEBATE/` prefix, NOT `GUARDIAN/` or `VOTE/`. Examples: `DEBATE/GUARDIAN_INTERRUPT`, `DEBATE/GUARDIAN_VERDICT`, `DEBATE/STATUS_UPDATE`, `DEBATE/DEBATE_PAUSED`, `DEBATE/DEBATE_RESUMED`, `DEBATE/ARGUMENT_COMPLETE`, `DEBATE/REASONING_NODE`, `DEBATE/TURN_CHANGE`, `DEBATE/COMPLETED`, `DEBATE/VOTE_UPDATE`. Follow same `{ type, payload, timestamp }` envelope.
 
 **Sanitization Architecture:** Two-layer defense — prompt prohibition (LLM system message) + regex safety-net (`sanitization.py`). Output uses `SanitizationResult` / `SanitizationContext` Pydantic models with structured audit logging (NFR-09).
 
@@ -273,6 +273,69 @@ with patch("app.config.settings") as mock_settings:
 **Pattern:** Several files had unused imports (`typing.Any`, `typing.Literal`) and unused variables (`window_key`, `latency_ms`, `start_time`) that ruff caught.
 
 **Rule:** Run `ruff check .` before committing. Fix ALL errors — unused imports, unused variables, unreachable code.
+
+### 10. Percentage Bars Must Sum to 100
+
+**Bug:** Independent `Math.round()` calls on `bullPct` and `bearPct` can sum to 99 or 101.
+
+**Rule:** Only round ONE percentage independently (e.g., `bullPct = Math.round(...)`). Derive the last bar as the complement: `bearPct = 100 - bullPct - otherPct`. NEVER round all percentages independently.
+
+### 11. React Query setQueryData — Always Use Updater Function
+
+**Bug:** `setQueryData(key, directValue)` from a closure reads stale state when multiple updates arrive before React re-renders.
+
+**Rule:** ALWAYS use the updater function form: `setQueryData(key, (old) => newValue)`. This reads the latest cache state, preventing stale closure overwrites.
+
+### 12. Shared Query Key Factory — Never Inline Keys
+
+**Bug:** Inlining `["debateResult", debateId]` in a WebSocket handler silently breaks if the key structure changes in the hook.
+
+**Rule:** ALWAYS use the shared `queryKeys.debateResult(debateId)` factory from `features/debate/hooks/queryKeys.ts`. Every consumer must reference the same factory.
+
+### 13. WS/Poll Single Writer Pattern
+
+**Bug:** Both WebSocket handler and HTTP polling can write to React Query cache simultaneously, causing stale poll to overwrite fresher WS update.
+
+**Rule:** Gate polling on WS connection state: `refetchInterval: hasVoted && !wsConnected ? interval : false`. Only one data source writes at a time.
+
+### 14. Component Size Limit: 300 Lines
+
+**Pattern:** `DebateStream` grew from 376→450+ lines across Epic 3. Every story added "just a few lines" of wiring.
+
+**Rule:** Any component exceeding 300 lines MUST be decomposed before the story can be marked done. Extract hooks for state logic, sub-components for rendering sections.
+
+### 15. Framer Motion — Animate Interpolation, NOT Key Re-animation
+
+**Bug:** Using `key` prop changes to trigger re-animation forces React unmount/remount, causing visible flashing under rapid vote sequences.
+
+**Rule:** Use `animate` prop interpolation — Framer Motion handles animation interruption natively by interpolating from current position to new target. Use `isFirstRender` ref for stagger-on-mount-only effects. NEVER change `key` to re-trigger animations.
+
+### 16. Broadcast Only on Successful INSERT
+
+**Bug:** Broadcasting on rejected votes (duplicate, rate limit) sends misleading WebSocket actions.
+
+**Rule:** Place broadcast code AFTER all guard chain exits AND the DB commit. Broadcast MUST be wrapped in try/except — vote write must succeed even if broadcast fails.
+
+### 17. Polling Constants — Named Exports
+
+**Pattern:** Magic numbers like `5000` in `refetchInterval` are hard to test and maintain.
+
+**Rule:** Extract polling intervals to named constants (e.g., `export const VOTE_POLL_INTERVAL_MS = 5000`). Export for test assertions.
+
+---
+
+## Frontend Accessibility Pre-Submission Checklist
+
+**MANDATORY — verify ALL items before submitting any frontend story for review.**
+
+- [ ] **Reduced Motion:** All animations respect `useReducedMotion()` from Framer Motion. When true: `duration: 0`, no stagger delays, no shimmer. Gentle opacity fade-in is acceptable.
+- [ ] **aria-live Regions:** Dynamic content updates (vote counts, celebration text, status changes) have `aria-live="polite"`. Use `"assertive"` ONLY for critical error announcements. Clear announcements after dismissal.
+- [ ] **Touch Targets:** All interactive elements have minimum 44×44px hit area. Use `min-h-[44px] min-w-[44px]` or equivalent padding.
+- [ ] **Contrast Ratios:** Text meets WCAG AA minimum (4.5:1 for normal text, 3:1 for large text). Verify against both light and dark backgrounds.
+- [ ] **Dual-Coding:** Information is never conveyed by color alone — always pair with icon, text, or pattern.
+- [ ] **Focus Management:** Modal/overlay traps focus. Return focus to trigger element on close. Visible focus indicators.
+- [ ] **Keyboard Navigation:** All interactive elements reachable via Tab. Enter/Space activates buttons. Escape closes modals.
+- [ ] **Semantic HTML:** Use `<button>` not `<div onClick>`. Use `<nav>`, `<main>`, `<section>` landmarks. Headings follow h1→h6 hierarchy.
 
 ---
 

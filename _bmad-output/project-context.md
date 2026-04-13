@@ -1,7 +1,7 @@
 ---
 project_name: 'trade'
 user_name: 'team mantis a'
-date: '2026-04-11'
+date: '2026-04-13'
 sections_completed: ['technology_stack', 'implementation_rules', 'testing_rules', 'workflow_rules', 'usage_guidelines']
 status: 'complete'
 rule_count: 42
@@ -73,10 +73,22 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Token Streaming Sanitization:** Buffer ALL tokens, sanitize the ENTIRE accumulated text on each flush, then emit only the new delta. NEVER sanitize individual chunks — forbidden phrases can straddle chunk boundaries.
 - **`asyncio.Event` Coordination:** For backend pause/resume flows, use `asyncio.Event` pattern (established in Story 1-6, reused in Story 2-2). Do NOT use polling or sleep-based approaches.
 - **`ArgumentEntry` NamedTuple:** Standardized structure for debate arguments. All new argument types must conform to this interface.
-- **WebSocket Action Prefix:** ALL WebSocket actions use `DEBATE/` prefix — there are NO `GUARDIAN/` prefixed actions. Full list: `DEBATE/GUARDIAN_INTERRUPT`, `DEBATE/GUARDIAN_VERDICT`, `DEBATE/STATUS_UPDATE`, `DEBATE/DEBATE_PAUSED`, `DEBATE/DEBATE_RESUMED`, `DEBATE/ARGUMENT_COMPLETE`, `DEBATE/REASONING_NODE`, `DEBATE/TURN_CHANGE`, `DEBATE/COMPLETED`. Verify against `ws_schemas.py`.
+- **WebSocket Action Prefix:** ALL WebSocket actions use `DEBATE/` prefix — there are NO `GUARDIAN/` or `VOTE/` prefixed actions. Full list: `DEBATE/GUARDIAN_INTERRUPT`, `DEBATE/GUARDIAN_VERDICT`, `DEBATE/STATUS_UPDATE`, `DEBATE/DEBATE_PAUSED`, `DEBATE/DEBATE_RESUMED`, `DEBATE/ARGUMENT_COMPLETE`, `DEBATE/REASONING_NODE`, `DEBATE/TURN_CHANGE`, `DEBATE/COMPLETED`, `DEBATE/VOTE_UPDATE`. Verify against `ws_schemas.py`.
 - **State Rebuild Discipline:** When rebuilding a dict from a subset of fields, ALWAYS include ALL fields from the original — especially list/dict accumulators (`guardian_interrupts`, `pause_history`, `messages`). Use `current_state.get("field", default)` for optional fields.
 - **Config Patching:** When patching `app.config.settings`, provide ALL required fields (it's a Pydantic model that validates on access). See AGENTS.md for the full list.
 - **Multi-Turn Test Mocks:** `patched_debate_engine()` returns static turn counts. For `max_turns > 2`, ALWAYS override `mocks["bull"].generate` and `mocks["bear"].generate` with dynamic `side_effect` functions that increment `current_turn`.
+
+### Architecture Patterns (Proven in Epic 3)
+
+- **React Query Cache Updates:** ALWAYS use the updater function form: `setQueryData(key, (old) => newValue)`. NEVER pass a direct value — stale closures will overwrite fresher data when multiple updates arrive before React re-renders.
+- **Shared Query Key Factory:** NEVER inline query key arrays (e.g., `["debateResult", id]`). Always use `queryKeys.debateResult(debateId)` from `features/debate/hooks/queryKeys.ts`. If the key structure changes, inlined keys silently stop updating the cache.
+- **WS/Poll Single Writer Pattern:** Gate HTTP polling on WebSocket connection state: `refetchInterval: hasVoted && !wsConnected ? interval : false`. Only one data source writes to React Query cache at a time — prevents stale poll overwriting fresher WS update.
+- **Component Size Limit (300 Lines):** Any component exceeding 300 lines MUST be decomposed. Extract hooks for state logic, sub-components for rendering sections. The "just a few lines" per story pattern compounds dangerously.
+- **Framer Motion Animation Rules:** Use `animate` prop interpolation — Framer Motion handles animation interruption natively. Use `isFirstRender` ref for stagger-on-mount-only effects. NEVER use `key` prop changes to re-trigger animations (causes unmount/remount flashing).
+- **Percentage Bars Must Sum to 100:** Only round ONE percentage independently. Derive the last bar as the complement (`bearPct = 100 - bullPct - otherPct`). NEVER round all percentages independently.
+- **Broadcast After Commit:** WebSocket broadcasts MUST be placed AFTER all guard chain exits AND the DB commit. Wrap in try/except — write must succeed even if broadcast fails. NEVER broadcast on rejected operations.
+- **Polling Constants:** Extract all polling intervals to named constants (e.g., `export const VOTE_POLL_INTERVAL_MS = 5000`). Export for test assertions. NEVER use magic numbers.
+- **sessionStorage Persistence:** For per-session UI state (first voter, celebration), use `sessionStorage` keyed by `debateId`. Guard SSR with `typeof window !== "undefined"` check. Use `useState` (NOT `useRef`) for values that must trigger re-renders.
 
 ### Radix UI / Shadcn Component Patterns
 
@@ -132,4 +144,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review quarterly for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-04-11 (Prep Sprint — added streaming sanitization, WS prefix correction, state rebuild discipline, config patching, mock patterns)
+Last Updated: 2026-04-13 (Epic 3 — added voting patterns, WS/poll single writer, React Query updater function, component size limit, Framer Motion animation rules, accessibility checklist)

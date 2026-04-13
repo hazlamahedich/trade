@@ -4,6 +4,7 @@ import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@api/client", "@api/sdk"],
+  output: "standalone",
   turbopack: {},
 };
 
