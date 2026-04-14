@@ -11,14 +11,24 @@ import { useRouter } from "next/navigation";
 
 interface PageSizeSelectorProps {
   currentSize: number;
+  basePath?: string;
+  extraParams?: Record<string, string>;
 }
 
-export function PageSizeSelector({ currentSize }: PageSizeSelectorProps) {
+export function PageSizeSelector({
+  currentSize,
+  basePath = "/dashboard",
+  extraParams = {},
+}: PageSizeSelectorProps) {
   const router = useRouter();
   const pageSizeOptions = [5, 10, 20, 50, 100];
 
   const handleSizeChange = (newSize: string) => {
-    router.push(`/dashboard?page=1&size=${newSize}`);
+    const params = new URLSearchParams({ page: "1", size: newSize });
+    Object.entries(extraParams).forEach(([key, val]) => {
+      if (val) params.set(key, val);
+    });
+    router.push(`${basePath}?${params.toString()}`);
   };
 
   return (

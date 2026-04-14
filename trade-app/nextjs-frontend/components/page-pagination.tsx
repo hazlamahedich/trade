@@ -13,6 +13,7 @@ interface PagePaginationProps {
   pageSize: number;
   totalItems: number;
   basePath?: string;
+  extraParams?: Record<string, string>;
 }
 
 export function PagePagination({
@@ -21,12 +22,21 @@ export function PagePagination({
   pageSize,
   totalItems,
   basePath = "/dashboard",
+  extraParams = {},
 }: PagePaginationProps) {
   const hasNextPage = currentPage < totalPages;
   const hasPreviousPage = currentPage > 1;
 
-  const buildUrl = (page: number) =>
-    `${basePath}?page=${page}&size=${pageSize}`;
+  const buildUrl = (page: number) => {
+    const params = new URLSearchParams({
+      page: String(page),
+      size: String(pageSize),
+    });
+    Object.entries(extraParams).forEach(([key, val]) => {
+      if (val) params.set(key, val);
+    });
+    return `${basePath}?${params.toString()}`;
+  };
 
   return (
     <div className="flex items-center justify-between my-4">
@@ -43,7 +53,6 @@ export function PagePagination({
       </div>
 
       <div className="flex items-center space-x-2">
-        {/* First Page */}
         <Link
           href={buildUrl(1)}
           className={!hasPreviousPage ? "pointer-events-none opacity-50" : ""}
@@ -53,7 +62,6 @@ export function PagePagination({
           </Button>
         </Link>
 
-        {/* Previous Page */}
         <Link
           href={buildUrl(currentPage - 1)}
           className={!hasPreviousPage ? "pointer-events-none opacity-50" : ""}
@@ -63,14 +71,12 @@ export function PagePagination({
           </Button>
         </Link>
 
-        {/* Page Info */}
         {totalPages > 0 && (
           <span className="text-sm font-medium">
             Page {currentPage} of {totalPages}
           </span>
         )}
 
-        {/* Next Page */}
         <Link
           href={buildUrl(currentPage + 1)}
           className={hasNextPage ? "" : "pointer-events-none opacity-50"}
@@ -80,7 +86,6 @@ export function PagePagination({
           </Button>
         </Link>
 
-        {/* Last Page */}
         <Link
           href={buildUrl(totalPages)}
           className={hasNextPage ? "" : "pointer-events-none opacity-50"}

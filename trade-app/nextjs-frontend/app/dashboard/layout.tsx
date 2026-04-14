@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Home, Users2, List } from "lucide-react";
+import { Home, Users2, List, History } from "lucide-react";
 import Image from "next/image";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import {
   Breadcrumb,
@@ -52,6 +53,18 @@ export default function DashboardLayout({
           >
             <Users2 className="h-5 w-5" />
           </Link>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href="/dashboard/debates"
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                aria-label="Debate History"
+              >
+                <History className="h-5 w-5" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right">Debate History</TooltipContent>
+          </Tooltip>
         </div>
       </aside>
       <main className="ml-16 w-full p-8 bg-muted/40">
