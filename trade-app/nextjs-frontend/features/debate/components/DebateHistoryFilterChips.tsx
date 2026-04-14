@@ -53,21 +53,21 @@ export function DebateHistoryFilterChips({
   }
 
   return (
-    <div className="flex flex-wrap gap-2" role="list" aria-label="Active filters">
+    <div className="flex flex-wrap gap-2" aria-label="Active filters">
       {chips.map((chip) => (
-        <button
-          key={chip.key}
-          role="listitem"
-          onClick={() => removeFilter(chip.key)}
-          className="inline-flex items-center gap-1 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-sm text-slate-300 hover:bg-white/15 transition-colors min-h-[44px]"
-          aria-label={`Remove ${chip.label} filter`}
-          type="button"
-        >
-          <span>
-            {chip.label}: {chip.value}
-          </span>
-          <X className="h-3.5 w-3.5" aria-hidden="true" />
-        </button>
+        <div key={chip.key} role="listitem">
+          <button
+            onClick={() => removeFilter(chip.key)}
+            className="inline-flex items-center gap-1 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-sm text-slate-300 hover:bg-white/15 transition-colors min-h-[44px]"
+            aria-label={`Remove ${chip.label} filter`}
+            type="button"
+          >
+            <span>
+              {chip.label}: {chip.value}
+            </span>
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </div>
       ))}
     </div>
   );

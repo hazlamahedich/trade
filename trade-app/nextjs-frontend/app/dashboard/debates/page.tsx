@@ -13,9 +13,9 @@ interface DebatesPageProps {
 
 export default async function DebatesPage({ searchParams }: DebatesPageProps) {
   const params = await searchParams;
-  const page = Number(params.page) || 1;
-  const size = Number(params.size) || 20;
-  const asset = params.asset ?? "";
+  const page = Math.max(1, Number(params.page) || 1);
+  const size = Math.max(1, Number(params.size) || 20);
+  const asset = (params.asset ?? "").toLowerCase();
   const outcome = params.outcome ?? "";
 
   const paramsKey = `asset=${asset}&outcome=${outcome}&page=${page}&size=${size}`;

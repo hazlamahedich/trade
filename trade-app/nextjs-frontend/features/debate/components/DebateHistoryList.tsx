@@ -27,12 +27,14 @@ export async function DebateHistoryList({
   });
 
   const hasActiveFilters = !!(asset || outcome);
+  const isPageOutOfRange = response.meta.pages > 0 && page > response.meta.pages;
+  const effectiveHasFilters = hasActiveFilters || isPageOutOfRange;
   const extraParams: Record<string, string> = {};
   if (asset) extraParams.asset = asset;
   if (outcome) extraParams.outcome = outcome;
 
   if (response.data.length === 0) {
-    return <DebateHistoryEmpty hasActiveFilters={hasActiveFilters} />;
+    return <DebateHistoryEmpty hasActiveFilters={effectiveHasFilters} />;
   }
 
   return (

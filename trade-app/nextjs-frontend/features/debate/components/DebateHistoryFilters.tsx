@@ -27,8 +27,8 @@ export function DebateHistoryFilters({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const currentAsset = searchParams.get("asset") ?? initialAsset;
-  const currentOutcome = searchParams.get("outcome") ?? initialOutcome;
+  const currentAsset = (searchParams.get("asset") ?? initialAsset).toLowerCase();
+  const currentOutcome = (searchParams.get("outcome") ?? initialOutcome).toLowerCase();
   const currentSize = searchParams.get("size") ?? "20";
 
   function buildUrl(
@@ -48,7 +48,7 @@ export function DebateHistoryFilters({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 sm:flex-row">
+    <div className="flex items-center gap-2 overflow-x-auto flex-nowrap sm:flex-wrap">
       <Select
         value={currentAsset || "__all__"}
         onValueChange={(value) =>

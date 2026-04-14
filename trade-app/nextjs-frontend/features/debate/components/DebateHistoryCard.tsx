@@ -73,7 +73,7 @@ export function DebateHistoryCard({
   return (
     <article aria-label={`Debate for ${debate.asset}`}>
       <Link href={`/dashboard/debates/${debate.externalId}`}>
-        <div className="rounded-lg border border-white/15 bg-white/5 p-4 hover:bg-white/8 transition-colors">
+        <div className="rounded-lg border border-white/15 bg-white/5 p-4 hover:bg-white/[0.08] transition-colors">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xl font-bold text-slate-100">
               {debate.asset.toUpperCase()}
@@ -87,7 +87,7 @@ export function DebateHistoryCard({
             </Badge>
           </div>
 
-          <DebateVoteBar bullVotes={votes.bullVotes} bearVotes={votes.bearVotes} />
+          <DebateVoteBar bullVotes={votes.bullVotes} bearVotes={votes.bearVotes} undecidedVotes={votes.undecidedVotes} />
 
           <div className="mt-3 flex items-center justify-between text-sm text-slate-400">
             <span>{formatRelativeTime(debate.createdAt)}</span>

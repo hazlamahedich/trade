@@ -1,14 +1,17 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import { SearchX, Inbox } from "lucide-react";
 
 interface DebateHistoryEmptyProps {
   hasActiveFilters: boolean;
-  onClearFilters?: () => void;
 }
 
 export function DebateHistoryEmpty({
   hasActiveFilters,
-  onClearFilters,
 }: DebateHistoryEmptyProps) {
+  const router = useRouter();
+
   if (hasActiveFilters) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -19,15 +22,14 @@ export function DebateHistoryEmpty({
         <p className="mt-2 text-sm text-slate-400">
           Try adjusting or clearing your filters.
         </p>
-        {onClearFilters && (
-          <button
-            onClick={onClearFilters}
-            className="mt-4 rounded-md bg-white/10 border border-white/15 px-4 py-2 text-sm text-slate-300 hover:bg-white/15 transition-colors min-h-[44px]"
-            type="button"
-          >
-            Clear all filters
-          </button>
-        )}
+        <button
+          onClick={() => router.push("/dashboard/debates")}
+          className="mt-4 rounded-md bg-white/10 border border-white/15 px-4 py-2 text-sm text-slate-300 hover:bg-white/15 transition-colors min-h-[44px]"
+          type="button"
+          aria-label="Clear all filters"
+        >
+          Clear all filters
+        </button>
       </div>
     );
   }

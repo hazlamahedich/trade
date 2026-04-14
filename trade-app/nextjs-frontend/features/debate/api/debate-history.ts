@@ -47,9 +47,9 @@ export function extractVotes(voteBreakdown: Record<string, number>): {
   const bearVotes = voteBreakdown["bear"] ?? 0;
   const undecidedVotes = voteBreakdown["undecided"] ?? 0;
 
-  if (bullVotes === 0 && bearVotes === 0) {
+  if (bullVotes === 0 && bearVotes === 0 && undecidedVotes === 0 && Object.keys(voteBreakdown).length > 0) {
     console.warn(
-      "voteBreakdown has neither 'bull' nor 'bear' keys:",
+      "voteBreakdown has unexpected keys:",
       voteBreakdown,
     );
   }
@@ -79,8 +79,17 @@ export async function fetchDebateHistory(
   });
 
   if (!response.ok) {
+    let detail = "";
+    try {
+      const errorBody = await response.json();
+      if (errorBody?.error?.message) {
+        detail = `: ${errorBody.error.message}`;
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
     throw new Error(
-      `Failed to fetch debate history: HTTP ${response.status}`,
+      `Failed to fetch debate history: HTTP ${response.status}${detail}`,
     );
   }
 
