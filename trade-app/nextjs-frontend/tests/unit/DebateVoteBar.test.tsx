@@ -20,27 +20,36 @@ describe("DebateVoteBar", () => {
     expect(screen.getByText("Bear 100%")).toBeInTheDocument();
   });
 
-  it("renders No votes for 0/0", () => {
+  it("renders No votes for 0/0/0", () => {
     render(<DebateVoteBar bullVotes={0} bearVotes={0} />);
     expect(screen.getByText("No votes")).toBeInTheDocument();
   });
 
-  it("percentages always sum to 100", () => {
-    const { container } = render(
-      <DebateVoteBar bullVotes={33} bearVotes={67} />,
+  it("percentages always sum to 100 with undecided", () => {
+    render(
+      <DebateVoteBar bullVotes={30} bearVotes={20} undecidedVotes={50} />,
     );
     const bullText = screen.getByText(/Bull/);
     const bearText = screen.getByText(/Bear/);
-    const bullMatch = bullText.textContent?.match(/(\d+)%/);
-    const bearMatch = bearText.textContent?.match(/(\d+)%/);
-    const bullPct = parseInt(bullMatch?.[1] ?? "0");
-    const bearPct = parseInt(bearMatch?.[1] ?? "0");
+    const undecidedText = screen.getByText(/Undecided/);
+    const bullPct = parseInt(bullText.textContent?.match(/(\d+)%/)?.[1] ?? "0");
+    const bearPct = parseInt(bearText.textContent?.match(/(\d+)%/)?.[1] ?? "0");
+    const undPct = parseInt(undecidedText.textContent?.match(/(\d+)%/)?.[1] ?? "0");
+    expect(bullPct + bearPct + undPct).toBe(100);
+  });
+
+  it("percentages always sum to 100 without undecided", () => {
+    render(<DebateVoteBar bullVotes={33} bearVotes={67} />);
+    const bullText = screen.getByText(/Bull/);
+    const bearText = screen.getByText(/Bear/);
+    const bullPct = parseInt(bullText.textContent?.match(/(\d+)%/)?.[1] ?? "0");
+    const bearPct = parseInt(bearText.textContent?.match(/(\d+)%/)?.[1] ?? "0");
     expect(bullPct + bearPct).toBe(100);
   });
 
-  it("has aria-label with percentages", () => {
-    render(<DebateVoteBar bullVotes={60} bearVotes={40} />);
-    const bar = screen.getByLabelText("Bull: 60%, Bear: 40%");
+  it("has aria-label with all three percentages", () => {
+    render(<DebateVoteBar bullVotes={60} bearVotes={30} undecidedVotes={10} />);
+    const bar = screen.getByLabelText("Bull: 60%, Bear: 30%, Undecided: 10%");
     expect(bar).toBeInTheDocument();
   });
 
@@ -55,5 +64,26 @@ describe("DebateVoteBar", () => {
     );
     expect(screen.getByText("Long 75%")).toBeInTheDocument();
     expect(screen.getByText("Short 25%")).toBeInTheDocument();
+  });
+
+  it("hides undecided label when zero undecided votes", () => {
+    render(<DebateVoteBar bullVotes={60} bearVotes={40} undecidedVotes={0} />);
+    expect(screen.queryByText(/Undecided/)).not.toBeInTheDocument();
+  });
+
+  it("applies motion-reduce:transition-none class for reduced motion", () => {
+    const { container } = render(
+      <DebateVoteBar bullVotes={60} bearVotes={30} undecidedVotes={10} />,
+    );
+    const bars = container.querySelectorAll(".motion-reduce\\:transition-none");
+    expect(bars.length).toBe(3);
+  });
+
+  it("passes className prop to container", () => {
+    const { container } = render(
+      <DebateVoteBar bullVotes={50} bearVotes={50} className="my-custom-class" />,
+    );
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper.className).toContain("my-custom-class");
   });
 });

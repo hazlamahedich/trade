@@ -111,4 +111,50 @@ describe("DebateHistoryCard", () => {
     render(<DebateHistoryCard debate={baseDebate} />);
     expect(screen.getByRole("article", { name: /Debate for BTC/i })).toBeInTheDocument();
   });
+
+  it("renders thesisPreview when provided", () => {
+    render(
+      <DebateHistoryCard
+        debate={baseDebate}
+        thesisPreview="BTC will reach new highs"
+      />,
+    );
+    expect(
+      screen.getByText("BTC will reach new highs"),
+    ).toBeInTheDocument();
+  });
+
+  it("does not render thesisPreview section when not provided", () => {
+    const { container } = render(<DebateHistoryCard debate={baseDebate} />);
+    const lineClamped = container.querySelector(".line-clamp-2");
+    expect(lineClamped).not.toBeInTheDocument();
+  });
+
+  it("renders guardian sr-only text when guardianVerdict present", () => {
+    render(
+      <DebateHistoryCard
+        debate={{ ...baseDebate, guardianVerdict: "Caution" }}
+      />,
+    );
+    expect(screen.getByText("Guardian: Caution")).toBeInTheDocument();
+  });
+
+  it("handles mixed-case winner values via toLowerCase", () => {
+    render(
+      <DebateHistoryCard debate={{ ...baseDebate, winner: "BULL" }} />,
+    );
+    expect(screen.getByText("Bull")).toBeInTheDocument();
+    expect(screen.getByText("▲")).toBeInTheDocument();
+  });
+
+  it("renders relative time for recent debate", () => {
+    const recent = new Date();
+    recent.setMinutes(recent.getMinutes() - 30);
+    render(
+      <DebateHistoryCard
+        debate={{ ...baseDebate, createdAt: recent.toISOString() }}
+      />,
+    );
+    expect(screen.getByText("30m ago")).toBeInTheDocument();
+  });
 });

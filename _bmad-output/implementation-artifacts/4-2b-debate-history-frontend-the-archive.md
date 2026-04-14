@@ -1,6 +1,6 @@
 # Story 4.2b: Debate History Frontend (The Archive)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -493,3 +493,25 @@ No blocking issues encountered during implementation.
 - `trade-app/nextjs-frontend/tests/unit/debateHistoryConstants.test.ts` — New
 - `trade-app/nextjs-frontend/tests/unit/PagePagination.test.tsx` — New
 - `trade-app/nextjs-frontend/tests/unit/PageSizeSelector.test.tsx` — New
+- `trade-app/nextjs-frontend/tests/unit/DebateHistoryFilters.test.tsx` — New (testarch-automate)
+- `trade-app/nextjs-frontend/tests/unit/DebateHistoryFilterChips.test.tsx` — New (testarch-automate)
+- `trade-app/nextjs-frontend/tests/unit/fetchDebateHistory.test.ts` — New (testarch-automate)
+- `trade-app/nextjs-frontend/tests/unit/getDebateHistory.test.ts` — New (testarch-automate)
+
+### Review Findings
+
+- [x] [Review][Decision→Patch] Vote bar ignores undecided votes — RESOLVED: Added third slate-600 segment for undecided votes. Math: round bullPct + bearPct, derive undecidedPct as complement (100 - bullPct - bearPct). Updated card to pass `undecidedVotes`. [DebateVoteBar.tsx, DebateHistoryCard.tsx]
+
+- [x] [Review][Patch] Clear-filters CTA never renders — Fixed: made DebateHistoryEmpty a `"use client"` component with internal `useRouter().push("/dashboard/debates")`. Removed `onClearFilters` prop. [DebateHistoryEmpty.tsx, DebateHistoryList.tsx]
+- [x] [Review][Patch] Negative page/size params pass through — Fixed: `Math.max(1, Number(params.page) || 1)` and same for size. [page.tsx:16-17]
+- [x] [Review][Patch] Missing prefers-reduced-motion on vote bar — Fixed: added `motion-reduce:transition-none` to all bar fills. [DebateVoteBar.tsx]
+- [x] [Review][Patch] role="listitem" overrides button semantics — Fixed: wrapped each chip in `<div role="listitem">` with button inside. [DebateHistoryFilterChips.tsx]
+- [x] [Review][Patch] Mobile filter uses flex-wrap instead of overflow-x-auto flex-nowrap — Fixed: `overflow-x-auto flex-nowrap sm:flex-wrap`. [DebateHistoryFilters.tsx:51]
+- [x] [Review][Patch] Zod error detection unreachable — Fixed: check `error instanceof ZodError` directly. [debate-history-action.ts]
+- [x] [Review][Patch] Backend 422 error body discarded — Fixed: parse response JSON for `error.message` on non-OK responses. [debate-history.ts]
+- [x] [Review][Patch] hover:bg-white/8 non-standard Tailwind opacity — Fixed: `hover:bg-white/[0.08]`. [DebateHistoryCard.tsx]
+- [x] [Review][Patch] Sidebar Tooltip outside TooltipProvider — Fixed: moved TooltipProvider to wrap entire layout (sidebar + main). [layout.tsx]
+- [x] [Review][Patch] Out-of-range page shows "No debates yet" — Fixed: detect `page > meta.pages` and set `effectiveHasFilters=true` to show correct empty state with clear-filters CTA. [DebateHistoryList.tsx]
+- [x] [Review][Patch] Uppercase asset in URL breaks filter select — Fixed: `.toLowerCase()` on URL param read in both page.tsx and filters. [page.tsx, DebateHistoryFilters.tsx]
+
+- [x] [Review][TestArch-Automate] Missing P0/P1 test files for DebateHistoryFilters, FilterChips, URL sync, reduced motion — RESOLVED: Generated 4 new test files (DebateHistoryFilters.test.tsx, DebateHistoryFilterChips.test.tsx, fetchDebateHistory.test.ts, getDebateHistory.test.ts) and extended 5 existing files. +46 new tests, all 465 pass. See automation-summary-story-4-2b.md.

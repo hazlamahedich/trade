@@ -62,4 +62,40 @@ describe("PagePagination with extraParams", () => {
     expect(href).toContain("asset=btc");
     expect(href).not.toContain("outcome=");
   });
+
+  it("shows Showing X to Y of Z text", () => {
+    render(
+      <PagePagination
+        currentPage={2}
+        totalPages={5}
+        pageSize={20}
+        totalItems={100}
+      />,
+    );
+    expect(screen.getByText(/Showing 21 to 40 of 100 results/)).toBeInTheDocument();
+  });
+
+  it("shows Showing 0 of 0 for empty results", () => {
+    render(
+      <PagePagination
+        currentPage={1}
+        totalPages={0}
+        pageSize={20}
+        totalItems={0}
+      />,
+    );
+    expect(screen.getByText(/Showing 0 of 0 results/)).toBeInTheDocument();
+  });
+
+  it("shows Page X of Y text", () => {
+    render(
+      <PagePagination
+        currentPage={3}
+        totalPages={5}
+        pageSize={20}
+        totalItems={100}
+      />,
+    );
+    expect(screen.getByText(/Page 3 of 5/)).toBeInTheDocument();
+  });
 });
