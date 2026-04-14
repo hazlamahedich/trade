@@ -14,6 +14,7 @@ import {
   SUPPORTED_ASSETS,
   VALID_OUTCOMES,
 } from "@/features/debate/types/debate-history";
+import { getOutcomeLabel } from "@/features/debate/utils/filter-labels";
 
 interface DebateHistoryFiltersProps {
   initialAsset?: string;
@@ -95,11 +96,7 @@ export function DebateHistoryFilters({
           <SelectItem value="__all__">All Outcomes</SelectItem>
           {VALID_OUTCOMES.map((outcome) => (
             <SelectItem key={outcome} value={outcome}>
-              {outcome === "bull"
-                ? "Bull Wins"
-                : outcome === "bear"
-                  ? "Bear Wins"
-                  : "Undecided"}
+              {getOutcomeLabel(outcome)}
             </SelectItem>
           ))}
         </SelectContent>

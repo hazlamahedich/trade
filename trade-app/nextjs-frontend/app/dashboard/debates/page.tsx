@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { DebateHistorySkeleton } from "@/features/debate/components/DebateHistorySkeleton";
 import { DebateHistoryList } from "@/features/debate/components/DebateHistoryList";
+import type { OutcomeFilter } from "@/features/debate/types/debate-history";
 
 interface DebatesPageProps {
   searchParams: Promise<{
@@ -16,7 +17,8 @@ export default async function DebatesPage({ searchParams }: DebatesPageProps) {
   const page = Math.max(1, Number(params.page) || 1);
   const size = Math.max(1, Number(params.size) || 20);
   const asset = (params.asset ?? "").toLowerCase();
-  const outcome = params.outcome ?? "";
+  const rawOutcome = (params.outcome ?? "").toLowerCase();
+  const outcome = (rawOutcome === "bull" || rawOutcome === "bear" ? rawOutcome : "") as OutcomeFilter;
 
   const paramsKey = `asset=${asset}&outcome=${outcome}&page=${page}&size=${size}`;
 
@@ -37,5 +39,7 @@ export default async function DebatesPage({ searchParams }: DebatesPageProps) {
     </div>
   );
 }
+
+export const metadata = { title: "Debate History | AI Trading Debate Lab" };
 
 export const dynamic = "force-dynamic";

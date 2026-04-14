@@ -11,19 +11,6 @@ export interface DebateHistoryItem {
   completedAt: string | null;
 }
 
-export interface DebateHistoryMeta {
-  page: number;
-  size: number;
-  total: number;
-  pages: number;
-}
-
-export interface StandardDebateHistoryResponse {
-  data: DebateHistoryItem[];
-  error: { code: string; message: string } | null;
-  meta: DebateHistoryMeta;
-}
-
 export type WinnerType = "bull" | "bear" | "undecided";
 export type OutcomeFilter = "bull" | "bear" | "";
 export type AssetFilter = string;

@@ -26,7 +26,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipProvider delayDuration={200}>
       <div className="flex min-h-screen">
         <aside className="fixed inset-y-0 left-0 z-10 w-16 flex flex-col border-r bg-background p-4">
           <div className="flex flex-col items-center gap-8">
@@ -44,13 +44,15 @@ export default function DashboardLayout({
             </Link>
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              aria-label="Dashboard"
+              className="flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5"
             >
               <List className="h-5 w-5" />
             </Link>
             <Link
               href="/customers"
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              aria-label="Customers"
+              className="flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5"
             >
               <Users2 className="h-5 w-5" />
             </Link>
@@ -58,7 +60,7 @@ export default function DashboardLayout({
               <TooltipTrigger asChild>
                 <Link
                   href="/dashboard/debates"
-                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                  className="flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5"
                   aria-label="Debate History"
                 >
                   <History className="h-5 w-5" />
@@ -94,7 +96,7 @@ export default function DashboardLayout({
             <div className="relative">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-300 hover:bg-gray-400">
+                  <button className="flex items-center justify-center w-10 h-10 rounded-full bg-muted hover:bg-muted/80" aria-label="User menu">
                     <Avatar>
                       <AvatarFallback>U</AvatarFallback>
                     </Avatar>
@@ -104,7 +106,7 @@ export default function DashboardLayout({
                   <DropdownMenuItem>
                     <Link
                       href="/support"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded"
                     >
                       Support
                     </Link>
@@ -112,7 +114,7 @@ export default function DashboardLayout({
                   <DropdownMenuItem>
                     <button
                       onClick={logout}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded"
                     >
                       Logout
                     </button>

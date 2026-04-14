@@ -524,3 +524,33 @@ No blocking issues encountered during implementation.
   - P3: Replaced escaped CSS class selector in `DebateVoteBar.test.tsx` with contract-based `[style]` + className check
   - P3: Replaced regex URL assertion in `PagePagination.test.tsx` with `parseUrlParams()` helper using `new URL()`
   - All 52 test suites (434 tests) pass. Zero lint errors in changed files.
+
+### Patch: Party Mode Review Fixes (Post-Done)
+
+**Review agents:** Winston (Architect), Amelia (Dev), Sally (UX), Murat (Test Architect), John (PM), Bob (Scrum Master)
+
+**Decision:** New patch (not story reopen). All agreed these are type-safety/validation fixes, not new features.
+
+| # | Finding | Fix | File(s) |
+|---|---------|-----|---------|
+| 1 | `params.outcome` not lowercased — uppercase URL value would pass through | `(params.outcome ?? "").toLowerCase()` + validated against `OutcomeFilter` | `page.tsx:19,34` |
+| 2 | Missing `metadata` export — page has no `<title>` | Added `export const metadata = { title: "Debate History \| AI Trading Debate Lab" }` | `page.tsx:41` |
+| 3 | Duplicate types — `StandardDebateHistoryResponse` + `DebateHistoryMeta` duplicated Zod-inferred type | Deleted both from `types/debate-history.ts`, use `DebateHistoryResponse` (Zod-inferred) as single source | `types/debate-history.ts`, `api/debate-history.ts` |
+| 4 | Dual `as` cast + no input validation in server action | Rewrote with `getDebateHistoryParamsSchema` (Zod: `z.number().int().min(1)` for page/size, `z.enum(VALID_OUTCOMES)` for outcome), removed `as` cast | `debate-history-action.ts` |
+| 5 | Error double-wrapping — action caught Error and wrapped in new Error | Re-throw `Error` instances as-is, only wrap non-Error types | `debate-history-action.ts` |
+| 6 | Duplicated `getOutcomeLabel` in Filters + FilterChips | Extracted to `features/debate/utils/filter-labels.ts`, both components import shared util | `filter-labels.ts`, `DebateHistoryFilters.tsx`, `DebateHistoryFilterChips.tsx` |
+| 7 | Card list missing `aria-live` for dynamic content updates | Added `aria-live="polite"` to `<ul>` | `DebateHistoryList.tsx:56` |
+| 8 | `delayDuration=300` — AGENTS.md specifies 200 | Changed to `200` | `layout.tsx:29` |
+| 9 | `outcome` prop type mismatch — `string` vs `OutcomeFilter` | Typed `outcome` as `OutcomeFilter` in `DebateHistoryListProps`, validated at page edge | `DebateHistoryList.tsx`, `page.tsx` |
+| 10 | `bg-gray-300` on avatar button — hardcoded, breaks dark mode | Changed to `bg-muted hover:bg-muted/80` + theme-aware dropdown items | `layout.tsx` |
+| 11 | Sidebar links missing 44×44px touch targets + aria-labels | Added `min-h-[44px] min-w-[44px]` + `aria-label` on Dashboard, Customers, Debate History links | `layout.tsx` |
+| 12 | `formatRelativeTime` inline — not testable, hardcoded `now` | Extracted to `utils/format-time.ts` with injectable `now: Date` param, 11 pure unit tests | `format-time.ts`, `DebateHistoryCard.tsx`, `formatRelativeTime.test.ts` |
+
+**Test impact:** 61 suites, 482 tests — all pass. +11 new `formatRelativeTime` tests, +2 `DebateHistoryFilters` tests, +4 `getDebateHistory` input validation tests.
+
+**Deferred to separate stories (conscious backlog decisions):**
+- Guardian badge Radix Tooltip → Story 4.3 (detail page)
+- E2E Playwright filter round-trip tests → parallel with Story 4.3
+- Sidebar a11y touch targets + aria-labels → DONE (this patch, item 11)
+- Dark mode avatar audit → DONE (this patch, item 10)
+- `formatRelativeTime` extraction → DONE (this patch, item 12)

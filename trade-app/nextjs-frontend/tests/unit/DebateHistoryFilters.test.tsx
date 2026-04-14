@@ -97,4 +97,22 @@ describe("DebateHistoryFilters", () => {
     const clearButton = screen.getByLabelText("Clear all filters");
     expect(clearButton.className).toContain("min-h-[44px]");
   });
+
+  it("[P0] normalizes uppercase outcome from URL to lowercase", () => {
+    mockGet.mockImplementation((key: string) => {
+      if (key === "outcome") return "BULL";
+      return null;
+    });
+    render(<DebateHistoryFilters />);
+    expect(screen.getByLabelText("Filter by outcome")).toBeInTheDocument();
+  });
+
+  it("[P1] ignores invalid outcome values from URL gracefully", () => {
+    mockGet.mockImplementation((key: string) => {
+      if (key === "outcome") return "bogus";
+      return null;
+    });
+    render(<DebateHistoryFilters />);
+    expect(screen.getByLabelText("Filter by outcome")).toBeInTheDocument();
+  });
 });

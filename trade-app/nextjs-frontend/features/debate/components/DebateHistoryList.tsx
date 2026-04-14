@@ -5,12 +5,13 @@ import { DebateHistoryFilters } from "@/features/debate/components/DebateHistory
 import { DebateHistoryFilterChips } from "@/features/debate/components/DebateHistoryFilterChips";
 import { PagePagination } from "@/components/page-pagination";
 import { PageSizeSelector } from "@/components/page-size-selector";
+import type { OutcomeFilter } from "@/features/debate/types/debate-history";
 
 interface DebateHistoryListProps {
   page: number;
   size: number;
   asset: string;
-  outcome: string;
+  outcome: OutcomeFilter;
 }
 
 export async function DebateHistoryList({
@@ -53,7 +54,7 @@ export async function DebateHistoryList({
         </div>
       </div>
 
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4" role="list">
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4" role="list" aria-live="polite">
         {response.data.map((debate) => (
           <li key={debate.externalId}>
             <DebateHistoryCard debate={debate} />

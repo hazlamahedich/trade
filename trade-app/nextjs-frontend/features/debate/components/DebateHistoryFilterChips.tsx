@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
+import { getOutcomeLabel } from "@/features/debate/utils/filter-labels";
 
 interface FilterChip {
   key: string;
@@ -12,19 +13,6 @@ interface FilterChip {
 interface DebateHistoryFilterChipsProps {
   asset?: string;
   outcome?: string;
-}
-
-function getOutcomeLabel(outcome: string): string {
-  switch (outcome) {
-    case "bull":
-      return "Bull Wins";
-    case "bear":
-      return "Bear Wins";
-    case "undecided":
-      return "Undecided";
-    default:
-      return outcome;
-  }
 }
 
 export function DebateHistoryFilterChips({

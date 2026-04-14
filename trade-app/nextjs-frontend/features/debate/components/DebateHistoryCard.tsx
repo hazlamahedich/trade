@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Shield } from "lucide-react";
 import { DebateVoteBar } from "./DebateVoteBar";
 import { extractVotes } from "@/features/debate/api/debate-history";
+import { formatRelativeTime } from "@/features/debate/utils/format-time";
 import type { DebateHistoryItem } from "@/features/debate/types/debate-history";
 
 type WinnerBadge = {
@@ -41,21 +42,6 @@ function getWinnerBadge(winner: string): WinnerBadge {
           "bg-slate-500/20 text-slate-400 border-slate-500/30",
       };
   }
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 30) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
 }
 
 interface DebateHistoryCardProps {
