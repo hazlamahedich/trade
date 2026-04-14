@@ -12,12 +12,12 @@ describe("getApiBaseUrl", () => {
     process.env = originalEnv;
   });
 
-  it("returns the API_BASE_URL when set", () => {
+  it("[P0] returns the API_BASE_URL when set", () => {
     process.env.API_BASE_URL = "http://localhost:8000";
     expect(getApiBaseUrl()).toBe("http://localhost:8000");
   });
 
-  it("throws when API_BASE_URL is not set", () => {
+  it("[P0] throws when API_BASE_URL is not set", () => {
     delete process.env.API_BASE_URL;
     expect(() => getApiBaseUrl()).toThrow("API_BASE_URL env var is not set");
   });
@@ -48,7 +48,7 @@ describe("fetchDebateHistory", () => {
     jest.restoreAllMocks();
   });
 
-  it("constructs URL with required params", async () => {
+  it("[P0] constructs URL with required params", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockResponse),
@@ -61,7 +61,7 @@ describe("fetchDebateHistory", () => {
     expect(calledUrl).toContain("size=10");
   });
 
-  it("includes optional asset param when provided", async () => {
+  it("[P0] includes optional asset param when provided", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockResponse),
@@ -73,7 +73,7 @@ describe("fetchDebateHistory", () => {
     expect(calledUrl).toContain("asset=btc");
   });
 
-  it("includes optional outcome param when provided", async () => {
+  it("[P0] includes optional outcome param when provided", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockResponse),
@@ -85,7 +85,7 @@ describe("fetchDebateHistory", () => {
     expect(calledUrl).toContain("outcome=bull");
   });
 
-  it("does not include optional params when not provided", async () => {
+  it("[P1] does not include optional params when not provided", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockResponse),
@@ -98,7 +98,7 @@ describe("fetchDebateHistory", () => {
     expect(calledUrl).not.toContain("outcome=");
   });
 
-  it("throws on HTTP error with status code", async () => {
+  it("[P0] throws on HTTP error with status code", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 500,
@@ -110,7 +110,7 @@ describe("fetchDebateHistory", () => {
     ).rejects.toThrow("HTTP 500: Internal error");
   });
 
-  it("throws on HTTP error without error body detail", async () => {
+  it("[P0] throws on HTTP error without error body detail", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 503,
@@ -122,7 +122,7 @@ describe("fetchDebateHistory", () => {
     ).rejects.toThrow("HTTP 503");
   });
 
-  it("handles JSON parse failure in error body gracefully", async () => {
+  it("[P1] handles JSON parse failure in error body gracefully", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 500,
@@ -134,7 +134,7 @@ describe("fetchDebateHistory", () => {
     ).rejects.toThrow("HTTP 500");
   });
 
-  it("throws on Zod validation failure", async () => {
+  it("[P0] throws on Zod validation failure", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ invalid: "shape" }),
@@ -145,7 +145,7 @@ describe("fetchDebateHistory", () => {
     ).rejects.toThrow();
   });
 
-  it("returns parsed response on success", async () => {
+  it("[P0] returns parsed response on success", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockResponse),
@@ -158,7 +158,7 @@ describe("fetchDebateHistory", () => {
 });
 
 describe("extractVotes console.warn branch", () => {
-  it("warns when keys exist but all three standard keys are zero", () => {
+  it("[P1] warns when keys exist but all three standard keys are zero", () => {
     const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     extractVotes({ unknown: 10, other: 20 });
     expect(warnSpy).toHaveBeenCalledWith(
@@ -168,14 +168,14 @@ describe("extractVotes console.warn branch", () => {
     warnSpy.mockRestore();
   });
 
-  it("does not warn when standard keys have values", () => {
+  it("[P1] does not warn when standard keys have values", () => {
     const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     extractVotes({ bull: 5, bear: 3 });
     expect(warnSpy).not.toHaveBeenCalled();
     warnSpy.mockRestore();
   });
 
-  it("does not warn on empty object", () => {
+  it("[P1] does not warn on empty object", () => {
     const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     extractVotes({});
     expect(warnSpy).not.toHaveBeenCalled();

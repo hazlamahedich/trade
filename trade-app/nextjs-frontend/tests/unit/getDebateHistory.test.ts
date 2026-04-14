@@ -1,47 +1,68 @@
 import { ZodError } from "zod";
 
-function getDebateHistoryErrorRouter(error: unknown): Error {
-  if (error instanceof ZodError) {
-    return new Error("Invalid response shape from debate history API");
-  }
-  if (error instanceof Error) {
-    return new Error(`Failed to fetch debate history: ${error.message}`);
-  }
-  return new Error("Failed to fetch debate history: Unknown error");
-}
+jest.mock("../../features/debate/api/debate-history", () => ({
+  fetchDebateHistory: jest.fn(),
+}));
 
-describe("getDebateHistory error handling logic", () => {
-  it("throws Invalid response shape on ZodError", () => {
-    const result = getDebateHistoryErrorRouter(new ZodError([]));
-    expect(result.message).toBe("Invalid response shape from debate history API");
+import { fetchDebateHistory } from "@/features/debate/api/debate-history";
+import { getDebateHistory } from "@/features/debate/actions/debate-history-action";
+
+describe("getDebateHistory error handling", () => {
+  beforeEach(() => {
+    jest.mocked(fetchDebateHistory).mockReset();
   });
 
-  it("wraps generic Error with prefix message", () => {
-    const result = getDebateHistoryErrorRouter(new Error("Network timeout"));
-    expect(result.message).toBe("Failed to fetch debate history: Network timeout");
+  it("[P0] throws Invalid response shape on ZodError", async () => {
+    jest.mocked(fetchDebateHistory).mockRejectedValue(new ZodError([]));
+
+    await expect(
+      getDebateHistory({ page: 1, size: 20 }),
+    ).rejects.toThrow("Invalid response shape from debate history API");
   });
 
-  it("throws Unknown error for non-Error throws", () => {
-    const result = getDebateHistoryErrorRouter("string error");
-    expect(result.message).toBe("Failed to fetch debate history: Unknown error");
+  it("[P0] wraps generic Error with prefix message", async () => {
+    jest.mocked(fetchDebateHistory).mockRejectedValue(
+      new Error("Network timeout"),
+    );
+
+    await expect(
+      getDebateHistory({ page: 1, size: 20 }),
+    ).rejects.toThrow("Failed to fetch debate history: Network timeout");
   });
 
-  it("wraps HTTP error messages from fetch layer", () => {
-    const result = getDebateHistoryErrorRouter(
+  it("[P0] throws Unknown error for non-Error throws", async () => {
+    jest.mocked(fetchDebateHistory).mockRejectedValue("string error");
+
+    await expect(
+      getDebateHistory({ page: 1, size: 20 }),
+    ).rejects.toThrow("Failed to fetch debate history: Unknown error");
+  });
+
+  it("[P1] wraps HTTP error messages from fetch layer", async () => {
+    jest.mocked(fetchDebateHistory).mockRejectedValue(
       new Error("Failed to fetch debate history: HTTP 500"),
     );
-    expect(result.message).toBe(
+
+    await expect(
+      getDebateHistory({ page: 1, size: 20 }),
+    ).rejects.toThrow(
       "Failed to fetch debate history: Failed to fetch debate history: HTTP 500",
     );
   });
 
-  it("handles null error input", () => {
-    const result = getDebateHistoryErrorRouter(null);
-    expect(result.message).toBe("Failed to fetch debate history: Unknown error");
+  it("[P1] handles null error input", async () => {
+    jest.mocked(fetchDebateHistory).mockRejectedValue(null);
+
+    await expect(
+      getDebateHistory({ page: 1, size: 20 }),
+    ).rejects.toThrow("Failed to fetch debate history: Unknown error");
   });
 
-  it("handles undefined error input", () => {
-    const result = getDebateHistoryErrorRouter(undefined);
-    expect(result.message).toBe("Failed to fetch debate history: Unknown error");
+  it("[P1] handles undefined error input", async () => {
+    jest.mocked(fetchDebateHistory).mockRejectedValue(undefined);
+
+    await expect(
+      getDebateHistory({ page: 1, size: 20 }),
+    ).rejects.toThrow("Failed to fetch debate history: Unknown error");
   });
 });

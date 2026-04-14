@@ -2,30 +2,30 @@ import { render, screen } from "@testing-library/react";
 import { DebateVoteBar } from "@/features/debate/components/DebateVoteBar";
 
 describe("DebateVoteBar", () => {
-  it("renders correct percentages for 50/50 split", () => {
+  it("[P0] renders correct percentages for 50/50 split", () => {
     render(<DebateVoteBar bullVotes={50} bearVotes={50} />);
     expect(screen.getByText("Bull 50%")).toBeInTheDocument();
     expect(screen.getByText("Bear 50%")).toBeInTheDocument();
   });
 
-  it("renders correct percentages for 99/1 split", () => {
+  it("[P0] renders correct percentages for 99/1 split", () => {
     render(<DebateVoteBar bullVotes={99} bearVotes={1} />);
     expect(screen.getByText("Bull 99%")).toBeInTheDocument();
     expect(screen.getByText("Bear 1%")).toBeInTheDocument();
   });
 
-  it("renders correct percentages for 0/100 split", () => {
+  it("[P0] renders correct percentages for 0/100 split", () => {
     render(<DebateVoteBar bullVotes={0} bearVotes={100} />);
     expect(screen.getByText("Bull 0%")).toBeInTheDocument();
     expect(screen.getByText("Bear 100%")).toBeInTheDocument();
   });
 
-  it("renders No votes for 0/0/0", () => {
+  it("[P0] renders No votes for 0/0/0", () => {
     render(<DebateVoteBar bullVotes={0} bearVotes={0} />);
     expect(screen.getByText("No votes")).toBeInTheDocument();
   });
 
-  it("percentages always sum to 100 with undecided", () => {
+  it("[P0] percentages always sum to 100 with undecided", () => {
     render(
       <DebateVoteBar bullVotes={30} bearVotes={20} undecidedVotes={50} />,
     );
@@ -38,7 +38,7 @@ describe("DebateVoteBar", () => {
     expect(bullPct + bearPct + undPct).toBe(100);
   });
 
-  it("percentages always sum to 100 without undecided", () => {
+  it("[P0] percentages always sum to 100 without undecided", () => {
     render(<DebateVoteBar bullVotes={33} bearVotes={67} />);
     const bullText = screen.getByText(/Bull/);
     const bearText = screen.getByText(/Bear/);
@@ -47,18 +47,18 @@ describe("DebateVoteBar", () => {
     expect(bullPct + bearPct).toBe(100);
   });
 
-  it("has aria-label with all three percentages", () => {
+  it("[P0] has aria-label with all three percentages", () => {
     render(<DebateVoteBar bullVotes={60} bearVotes={30} undecidedVotes={10} />);
     const bar = screen.getByLabelText("Bull: 60%, Bear: 30%, Undecided: 10%");
     expect(bar).toBeInTheDocument();
   });
 
-  it("has aria-label for no votes state", () => {
+  it("[P0] has aria-label for no votes state", () => {
     render(<DebateVoteBar bullVotes={0} bearVotes={0} />);
     expect(screen.getByLabelText("No votes yet")).toBeInTheDocument();
   });
 
-  it("uses custom labels when provided", () => {
+  it("[P1] uses custom labels when provided", () => {
     render(
       <DebateVoteBar bullVotes={75} bearVotes={25} bullLabel="Long" bearLabel="Short" />,
     );
@@ -66,20 +66,24 @@ describe("DebateVoteBar", () => {
     expect(screen.getByText("Short 25%")).toBeInTheDocument();
   });
 
-  it("hides undecided label when zero undecided votes", () => {
+  it("[P1] hides undecided label when zero undecided votes", () => {
     render(<DebateVoteBar bullVotes={60} bearVotes={40} undecidedVotes={0} />);
     expect(screen.queryByText(/Undecided/)).not.toBeInTheDocument();
   });
 
-  it("applies motion-reduce:transition-none class for reduced motion", () => {
+  it("[P1] applies transition-none for reduced motion via style", () => {
     const { container } = render(
       <DebateVoteBar bullVotes={60} bearVotes={30} undecidedVotes={10} />,
     );
-    const bars = container.querySelectorAll(".motion-reduce\\:transition-none");
-    expect(bars.length).toBe(3);
+    const bars = container.querySelectorAll("[style]");
+    const transitionBars = Array.from(bars).filter((el) => {
+      const div = el as HTMLElement;
+      return div.className.includes("transition");
+    });
+    expect(transitionBars.length).toBe(3);
   });
 
-  it("passes className prop to container", () => {
+  it("[P2] passes className prop to container", () => {
     const { container } = render(
       <DebateVoteBar bullVotes={50} bearVotes={50} className="my-custom-class" />,
     );

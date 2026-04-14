@@ -14,7 +14,7 @@ describe("DebateHistoryEmpty", () => {
     mockPush.mockClear();
   });
 
-  it("renders filtered-empty state with clear-filters CTA", () => {
+  it("[P0] renders filtered-empty state with clear-filters CTA", () => {
     render(<DebateHistoryEmpty hasActiveFilters={true} />);
     expect(
       screen.getByText("No debates match your filters"),
@@ -22,7 +22,7 @@ describe("DebateHistoryEmpty", () => {
     expect(screen.getByText("Clear all filters")).toBeInTheDocument();
   });
 
-  it("renders true-empty state when no filters active", () => {
+  it("[P0] renders true-empty state when no filters active", () => {
     render(<DebateHistoryEmpty hasActiveFilters={false} />);
     expect(screen.getByText("No debates yet")).toBeInTheDocument();
     expect(
@@ -30,26 +30,26 @@ describe("DebateHistoryEmpty", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("clear button navigates to debates page", () => {
+  it("[P0] clear button navigates to debates page", () => {
     render(<DebateHistoryEmpty hasActiveFilters={true} />);
     fireEvent.click(screen.getByText("Clear all filters"));
     expect(mockPush).toHaveBeenCalledWith("/dashboard/debates");
   });
 
-  it("clear button has aria-label", () => {
+  it("[P1] clear button has aria-label", () => {
     render(<DebateHistoryEmpty hasActiveFilters={true} />);
     expect(
       screen.getByLabelText("Clear all filters"),
     ).toBeInTheDocument();
   });
 
-  it("clear button has touch target sizing", () => {
+  it("[P1] clear button has touch target sizing", () => {
     render(<DebateHistoryEmpty hasActiveFilters={true} />);
     const button = screen.getByLabelText("Clear all filters");
     expect(button.className).toContain("min-h-[44px]");
   });
 
-  it("clear button has type button", () => {
+  it("[P1] clear button has type button", () => {
     render(<DebateHistoryEmpty hasActiveFilters={true} />);
     const button = screen.getByLabelText("Clear all filters");
     expect(button).toHaveAttribute("type", "button");

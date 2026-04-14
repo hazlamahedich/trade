@@ -11,7 +11,7 @@ describe("PageSizeSelector with extraParams", () => {
     mockPush.mockClear();
   });
 
-  it("preserves filter params when changing page size", () => {
+  it("[P0] preserves filter params when changing page size", () => {
     render(
       <PageSizeSelector
         currentSize={10}
@@ -31,7 +31,7 @@ describe("PageSizeSelector with extraParams", () => {
     );
   });
 
-  it("backward compatible without extraParams", () => {
+  it("[P0] backward compatible without extraParams", () => {
     render(<PageSizeSelector currentSize={10} />);
     const trigger = screen.getByRole("combobox");
     fireEvent.click(trigger);
@@ -40,7 +40,7 @@ describe("PageSizeSelector with extraParams", () => {
     expect(mockPush).toHaveBeenCalledWith("/dashboard?page=1&size=20");
   });
 
-  it("excludes empty-string extraParams values", () => {
+  it("[P1] excludes empty-string extraParams values", () => {
     render(
       <PageSizeSelector
         currentSize={10}

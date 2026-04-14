@@ -13,8 +13,13 @@ jest.mock("next/link", () => {
   };
 });
 
+function parseUrlParams(url: string): URLSearchParams {
+  const parsed = new URL(url, "http://localhost");
+  return parsed.searchParams;
+}
+
 describe("PagePagination with extraParams", () => {
-  it("merges extraParams into URLs", () => {
+  it("[P0] merges extraParams into URLs", () => {
     render(
       <PagePagination
         currentPage={1}
@@ -32,7 +37,7 @@ describe("PagePagination with extraParams", () => {
     expect(href).toContain("outcome=bull");
   });
 
-  it("backward compatible without extraParams", () => {
+  it("[P0] backward compatible without extraParams", () => {
     render(
       <PagePagination
         currentPage={1}
@@ -43,10 +48,12 @@ describe("PagePagination with extraParams", () => {
     );
     const links = screen.getAllByRole("link");
     const href = links[0].getAttribute("href") ?? "";
-    expect(href).toMatch(/^\/dashboard\?page=1&size=10$/);
+    const params = parseUrlParams(href);
+    expect(params.get("page")).toBe("1");
+    expect(params.get("size")).toBe("10");
   });
 
-  it("excludes empty-string extraParams values", () => {
+  it("[P1] excludes empty-string extraParams values", () => {
     render(
       <PagePagination
         currentPage={1}
@@ -63,7 +70,7 @@ describe("PagePagination with extraParams", () => {
     expect(href).not.toContain("outcome=");
   });
 
-  it("shows Showing X to Y of Z text", () => {
+  it("[P1] shows Showing X to Y of Z text", () => {
     render(
       <PagePagination
         currentPage={2}
@@ -75,7 +82,7 @@ describe("PagePagination with extraParams", () => {
     expect(screen.getByText(/Showing 21 to 40 of 100 results/)).toBeInTheDocument();
   });
 
-  it("shows Showing 0 of 0 for empty results", () => {
+  it("[P1] shows Showing 0 of 0 for empty results", () => {
     render(
       <PagePagination
         currentPage={1}
@@ -87,7 +94,7 @@ describe("PagePagination with extraParams", () => {
     expect(screen.getByText(/Showing 0 of 0 results/)).toBeInTheDocument();
   });
 
-  it("shows Page X of Y text", () => {
+  it("[P1] shows Page X of Y text", () => {
     render(
       <PagePagination
         currentPage={3}

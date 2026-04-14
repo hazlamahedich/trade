@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { DebateHistoryCard } from "@/features/debate/components/DebateHistoryCard";
-import type { DebateHistoryItem } from "@/features/debate/types/debate-history";
+import { createDebateHistoryItem } from "./factories/debate-history-factory";
 
 jest.mock("next/link", () => {
   return function MockLink({
@@ -14,108 +14,100 @@ jest.mock("next/link", () => {
   };
 });
 
-const baseDebate: DebateHistoryItem = {
-  externalId: "test-123",
-  asset: "btc",
-  status: "completed",
-  guardianVerdict: null,
-  guardianInterruptsCount: 0,
-  totalVotes: 100,
-  voteBreakdown: { bull: 60, bear: 40, undecided: 0 },
-  winner: "bull",
-  createdAt: new Date().toISOString(),
-  completedAt: new Date().toISOString(),
-};
-
 describe("DebateHistoryCard", () => {
-  it("renders asset symbol in uppercase", () => {
-    render(<DebateHistoryCard debate={baseDebate} />);
+  it("[P0] renders asset symbol in uppercase", () => {
+    render(<DebateHistoryCard debate={createDebateHistoryItem()} />);
     expect(screen.getByText("BTC")).toBeInTheDocument();
   });
 
-  it("renders bull winner badge with dual-coding (color + icon + text)", () => {
-    render(<DebateHistoryCard debate={baseDebate} />);
+  it("[P0] renders bull winner badge with dual-coding (color + icon + text)", () => {
+    render(<DebateHistoryCard debate={createDebateHistoryItem()} />);
     expect(screen.getByText("Bull")).toBeInTheDocument();
     expect(screen.getByText("▲")).toBeInTheDocument();
   });
 
-  it("renders bear winner badge with dual-coding", () => {
+  it("[P0] renders bear winner badge with dual-coding", () => {
     render(
       <DebateHistoryCard
-        debate={{ ...baseDebate, winner: "bear", voteBreakdown: { bull: 30, bear: 70, undecided: 0 } }}
+        debate={createDebateHistoryItem({
+          winner: "bear",
+          voteBreakdown: { bull: 30, bear: 70, undecided: 0 },
+        })}
       />,
     );
     expect(screen.getByText("Bear")).toBeInTheDocument();
     expect(screen.getByText("▼")).toBeInTheDocument();
   });
 
-  it("renders undecided winner badge with dual-coding", () => {
+  it("[P0] renders undecided winner badge with dual-coding", () => {
     render(
       <DebateHistoryCard
-        debate={{ ...baseDebate, winner: "undecided", voteBreakdown: { bull: 0, bear: 0, undecided: 10 } }}
+        debate={createDebateHistoryItem({
+          winner: "undecided",
+          voteBreakdown: { bull: 0, bear: 0, undecided: 10 },
+        })}
       />,
     );
     expect(screen.getByText("Undecided")).toBeInTheDocument();
     expect(screen.getByText("?")).toBeInTheDocument();
   });
 
-  it("renders Unknown fallback badge for unexpected winner values", () => {
+  it("[P1] renders Unknown fallback badge for unexpected winner values", () => {
     render(
       <DebateHistoryCard
-        debate={{ ...baseDebate, winner: "pending" }}
+        debate={createDebateHistoryItem({ winner: "pending" })}
       />,
     );
     expect(screen.getByText("Unknown")).toBeInTheDocument();
     expect(screen.getByText("—")).toBeInTheDocument();
   });
 
-  it("renders total votes", () => {
-    render(<DebateHistoryCard debate={baseDebate} />);
+  it("[P0] renders total votes", () => {
+    render(<DebateHistoryCard debate={createDebateHistoryItem()} />);
     expect(screen.getByText("100 votes")).toBeInTheDocument();
   });
 
-  it("renders guardian badge when guardianVerdict is present", () => {
+  it("[P1] renders guardian badge when guardianVerdict is present", () => {
     render(
       <DebateHistoryCard
-        debate={{ ...baseDebate, guardianVerdict: "Caution" }}
+        debate={createDebateHistoryItem({ guardianVerdict: "Caution" })}
       />,
     );
     expect(screen.getByTitle("Guardian intervened")).toBeInTheDocument();
   });
 
-  it("does not render guardian badge when guardianVerdict is null", () => {
-    render(<DebateHistoryCard debate={baseDebate} />);
+  it("[P1] does not render guardian badge when guardianVerdict is null", () => {
+    render(<DebateHistoryCard debate={createDebateHistoryItem()} />);
     expect(screen.queryByTitle("Guardian intervened")).not.toBeInTheDocument();
   });
 
-  it("navigates to debate detail page", () => {
-    render(<DebateHistoryCard debate={baseDebate} />);
+  it("[P0] navigates to debate detail page", () => {
+    render(<DebateHistoryCard debate={createDebateHistoryItem()} />);
     const link = screen.getByRole("link");
     expect(link).toHaveAttribute("href", "/dashboard/debates/test-123");
   });
 
-  it("renders with 0 votes without crashing", () => {
+  it("[P0] renders with 0 votes without crashing", () => {
     render(
       <DebateHistoryCard
-        debate={{
-          ...baseDebate,
+        debate={createDebateHistoryItem({
           totalVotes: 0,
           voteBreakdown: { bull: 0, bear: 0, undecided: 0 },
-        }}
+        })}
       />,
     );
     expect(screen.getByText("No votes")).toBeInTheDocument();
   });
 
-  it("uses article element with accessible name", () => {
-    render(<DebateHistoryCard debate={baseDebate} />);
+  it("[P1] uses article element with accessible name", () => {
+    render(<DebateHistoryCard debate={createDebateHistoryItem()} />);
     expect(screen.getByRole("article", { name: /Debate for BTC/i })).toBeInTheDocument();
   });
 
-  it("renders thesisPreview when provided", () => {
+  it("[P1] renders thesisPreview when provided", () => {
     render(
       <DebateHistoryCard
-        debate={baseDebate}
+        debate={createDebateHistoryItem()}
         thesisPreview="BTC will reach new highs"
       />,
     );
@@ -124,37 +116,40 @@ describe("DebateHistoryCard", () => {
     ).toBeInTheDocument();
   });
 
-  it("does not render thesisPreview section when not provided", () => {
-    const { container } = render(<DebateHistoryCard debate={baseDebate} />);
+  it("[P2] does not render thesisPreview section when not provided", () => {
+    const { container } = render(<DebateHistoryCard debate={createDebateHistoryItem()} />);
     const lineClamped = container.querySelector(".line-clamp-2");
     expect(lineClamped).not.toBeInTheDocument();
   });
 
-  it("renders guardian sr-only text when guardianVerdict present", () => {
+  it("[P1] renders guardian sr-only text when guardianVerdict present", () => {
     render(
       <DebateHistoryCard
-        debate={{ ...baseDebate, guardianVerdict: "Caution" }}
+        debate={createDebateHistoryItem({ guardianVerdict: "Caution" })}
       />,
     );
     expect(screen.getByText("Guardian: Caution")).toBeInTheDocument();
   });
 
-  it("handles mixed-case winner values via toLowerCase", () => {
+  it("[P1] handles mixed-case winner values via toLowerCase", () => {
     render(
-      <DebateHistoryCard debate={{ ...baseDebate, winner: "BULL" }} />,
+      <DebateHistoryCard debate={createDebateHistoryItem({ winner: "BULL" })} />,
     );
     expect(screen.getByText("Bull")).toBeInTheDocument();
     expect(screen.getByText("▲")).toBeInTheDocument();
   });
 
-  it("renders relative time for recent debate", () => {
-    const recent = new Date();
-    recent.setMinutes(recent.getMinutes() - 30);
+  it("[P1] renders relative time with deterministic fixed dates", () => {
+    jest.useFakeTimers({ now: new Date("2026-04-14T12:00:00Z") });
     render(
       <DebateHistoryCard
-        debate={{ ...baseDebate, createdAt: recent.toISOString() }}
+        debate={createDebateHistoryItem({
+          createdAt: "2026-04-14T11:30:00Z",
+          completedAt: "2026-04-14T12:00:00Z",
+        })}
       />,
     );
     expect(screen.getByText("30m ago")).toBeInTheDocument();
+    jest.useRealTimers();
   });
 });

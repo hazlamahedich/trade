@@ -70,3 +70,7 @@
 
 - Duplicated heavy query for outcome-filtered count — count_cte and data_query both compute winner_expr independently. Spec-prescribed architecture. Optimization (e.g., COUNT(*) OVER() window function) is a follow-up concern.
 - Asset filter case-sensitivity in SQL — route normalizes query params to lowercase, but stored Debate.asset values with mixed case won't match. Should be addressed at write time (normalize on debate creation).
+
+## Deferred from: code review of 4-2b-debate-history-frontend-the-archive (2026-04-14)
+
+- Missing P0/P1 test files for DebateHistoryFilters, DebateHistoryFilterChips, URL sync tests, and reduced-motion vote bar test. Story claims "42 new tests" but several spec-mandated P0/P1 test tasks (12.1, 12.2, 12.4, 12.6) have no corresponding test artifacts. Needs verification and test creation in a follow-up task.

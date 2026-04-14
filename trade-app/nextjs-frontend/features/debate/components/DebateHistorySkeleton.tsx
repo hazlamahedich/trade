@@ -10,6 +10,7 @@ export function DebateHistorySkeleton() {
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
+          data-testid="skeleton-card"
           className="rounded-lg border border-white/15 bg-white/5 p-4"
         >
           <div className="flex items-center justify-between mb-3">
