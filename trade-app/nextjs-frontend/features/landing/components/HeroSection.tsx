@@ -23,14 +23,18 @@ export function HeroSection() {
         </p>
 
         <div className="mt-8 flex items-center justify-center gap-6">
-          <svg width="48" height="48" viewBox="0 0 48 48" className="text-emerald-500" aria-hidden="true">
-            <circle cx="24" cy="24" r="20" fill="currentColor" opacity="0.15" />
-            <path d="M16 20h16M16 28h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <svg width="56" height="56" viewBox="0 0 56 56" className="text-emerald-500" aria-hidden="true">
+            <circle cx="28" cy="28" r="26" fill="currentColor" opacity="0.1" />
+            <path d="M18 14l-4-6M38 14l4-6M22 20c-2 0-4 1-5 3M34 20c2 0 4 1 5 3M20 30c0 4 4 10 8 10s8-6 8-10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
+            <path d="M24 30a1.5 1.5 0 01-3 0M32 30a1.5 1.5 0 01-3 0" fill="currentColor" />
+            <path d="M14 42l6-8M42 42l-6-8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" fill="none" />
           </svg>
-          <span className="text-slate-400 text-sm font-medium">vs</span>
-          <svg width="48" height="48" viewBox="0 0 48 48" className="text-rose-500" aria-hidden="true">
-            <circle cx="24" cy="24" r="20" fill="currentColor" opacity="0.15" />
-            <path d="M16 20h16M22 28h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <span className="text-slate-400 text-sm font-bold tracking-widest">VS</span>
+          <svg width="56" height="56" viewBox="0 0 56 56" className="text-rose-500" aria-hidden="true">
+            <circle cx="28" cy="28" r="26" fill="currentColor" opacity="0.1" />
+            <path d="M14 18l6 4M42 18l-6 4M14 22l6 2M42 22l-6 2M20 34c0-4 4-10 8-10s8 6 8 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
+            <path d="M24 32a1.5 1.5 0 01-3 0M32 32a1.5 1.5 0 01-3 0" fill="currentColor" />
+            <path d="M22 40c2 2 4 3 6 3s4-1 6-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
           </svg>
         </div>
 

@@ -66,17 +66,17 @@ export default async function Home() {
 
           <section className="px-6 py-12 text-center" aria-labelledby="cta-heading">
             <h2 id="cta-heading" className="text-3xl font-bold text-white">
-              Ready to Watch?
+              Pick a Side.
             </h2>
             <p className="mt-3 text-slate-400">
-              Enter the arena and see AI agents debate in real time.
+              Watch Bull take on Bear — hear both sides, weigh the evidence, decide for yourself.
             </p>
             <div className="mt-6">
               <Link
                 href="/debates"
                 className="inline-flex items-center justify-center rounded-sm bg-emerald-600 px-8 py-3 text-base font-semibold text-white shadow-lg shadow-emerald-500/20 transition-colors hover:bg-emerald-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 min-h-[44px] min-w-[44px]"
               >
-                Enter the Arena
+                Start Your First Debate
               </Link>
             </div>
             <p className="mt-4 text-xs text-slate-400">

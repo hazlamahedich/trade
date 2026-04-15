@@ -36,7 +36,7 @@ export function StickyCtaBar() {
         href="/debates"
         className="flex w-full items-center justify-center rounded-sm bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 min-h-[44px]"
       >
-        Enter the Arena
+        Pick a Side
       </Link>
     </div>
   );

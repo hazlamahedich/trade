@@ -52,7 +52,7 @@ describe("[4.4-UNIT-007] StickyCtaBar", () => {
     });
     const link = container.querySelector("a[href='/debates']");
     expect(link).toBeInTheDocument();
-    expect(link).toHaveTextContent("Enter the Arena");
+    expect(link).toHaveTextContent("Pick a Side");
   });
 
   it("given hero exits viewport, when the bar appears, then it has mobile-only visibility class (md:hidden)", () => {

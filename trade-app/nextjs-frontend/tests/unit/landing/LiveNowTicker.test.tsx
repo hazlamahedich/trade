@@ -20,7 +20,7 @@ describe("[4.4-UNIT-008] LiveNowTicker", () => {
   it("given a scheduled debate, when the ticker renders, then it shows the scheduled state", () => {
     const debate = createActiveDebateSummary({ status: "scheduled" });
     render(<LiveNowTicker activeDebate={debate} />);
-    expect(screen.getByText(/Next debate scheduled/i)).toBeInTheDocument();
+    expect(screen.getByText(/No upcoming debates right now/i)).toBeInTheDocument();
   });
 
   it("given null activeDebate, when the ticker renders, then it shows the empty state", () => {

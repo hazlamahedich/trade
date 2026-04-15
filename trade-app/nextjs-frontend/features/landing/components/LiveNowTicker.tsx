@@ -25,9 +25,9 @@ export function LiveNowTicker({ activeDebate }: LiveNowTickerProps) {
       role="status"
       data-testid="live-now-ticker"
     >
-      {state === "live" && (
+      {state === "live" && activeDebate && (
         <Link
-          href={`/debates/${activeDebate!.id}`}
+          href={`/debates/${activeDebate.id}`}
           className="flex items-center gap-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-5 py-3 transition-colors hover:bg-emerald-500/20 min-h-[44px]"
         >
           <span
@@ -41,7 +41,7 @@ export function LiveNowTicker({ activeDebate }: LiveNowTickerProps) {
             LIVE
           </span>
           <span className="text-sm text-slate-300">
-            {activeDebate!.asset.toUpperCase()} Bull vs Bear
+            {activeDebate.asset.toUpperCase()} Bull vs Bear
           </span>
         </Link>
       )}
@@ -49,8 +49,14 @@ export function LiveNowTicker({ activeDebate }: LiveNowTickerProps) {
       {state === "scheduled" && (
         <div className="flex items-center gap-3 rounded-lg border border-slate-700 px-5 py-3 min-h-[44px]">
           <span className="text-sm text-slate-400">
-            Next debate scheduled — coming soon
+            No upcoming debates right now.
           </span>
+          <Link
+            href="/debates"
+            className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
+          >
+            Start one
+          </Link>
         </div>
       )}
 

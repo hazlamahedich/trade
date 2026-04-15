@@ -15,6 +15,7 @@ from app.routes.items import router as items_router
 from app.routes.health import router as health_router
 from app.routes.market import router as market_router
 from app.routes.debate import router as debate_router
+from app.routes.landing import router as landing_router
 from app.routes.ws import router as ws_router
 from app.config import settings
 from app.middleware.mock_middleware import MockHeadersMiddleware
@@ -127,5 +128,6 @@ app.include_router(items_router, prefix="/items")
 app.include_router(health_router)
 app.include_router(market_router)
 app.include_router(debate_router)
+app.include_router(landing_router, prefix="/api")
 app.include_router(ws_router)
 add_pagination(app)

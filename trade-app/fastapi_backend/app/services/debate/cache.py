@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 
@@ -8,16 +9,24 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 ACTIVE_DEBATE_CACHE_KEY = "landing:active_debate"
+# Cache TTL cascade: Redis=12s < CDN s-maxage=15s < ISR revalidate=30s
+# Redis is shortest so backend always has freshest data when CDN revalidates.
+# If these values drift, stale-data bugs will appear — change deliberately.
 ACTIVE_DEBATE_CACHE_TTL = 12
 NULL_SENTINEL = "__null_sentinel__"
 
 _redis_pool: aioredis.Redis | None = None
+_redis_lock = asyncio.Lock()
 
 
 async def _get_redis() -> aioredis.Redis:
     global _redis_pool
     if _redis_pool is None:
-        _redis_pool = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+        async with _redis_lock:
+            if _redis_pool is None:
+                _redis_pool = aioredis.from_url(
+                    settings.REDIS_URL, decode_responses=True
+                )
     return _redis_pool
 
 

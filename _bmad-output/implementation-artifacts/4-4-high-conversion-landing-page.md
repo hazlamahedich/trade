@@ -486,6 +486,41 @@ Key learnings from Story 4.3 (Static Debate Page):
 
 ### File List
 
+### Composite Landing Endpoint & Bug Fixes (2026-04-15, Session 2)
+
+Multi-agent roundtable review (Winston, Amelia, Murat, Sally) identified 5 bugs + 8 follow-up items. All resolved.
+
+#### Bugs Fixed
+
+- [x] **Lesson #10 rounding bug:** `DebatePreviewCard.tsx` rounded both `bullPct` and `bearPct` independently → could sum to 101%. Fixed: `bearPct = Math.max(0, 100 - bullPct - undecidedPct)` [`DebatePreviewCard.tsx:18`]
+- [x] **Non-null assertion crash:** `LiveNowTicker.tsx:30` used `activeDebate!.id` — crash on state desync. Fixed with `activeDebate &&` guard [`LiveNowTicker.tsx:28`]
+- [x] **Sequential fetches:** Server action fetched active then recent sequentially → wasted TTFB. Fixed with `Promise.all` → then replaced with composite endpoint
+- [x] **Redis singleton race condition:** `cache.py` had no lock on module-level singleton. Fixed with `asyncio.Lock` double-checked locking [`cache.py:16-27`]
+- [x] **`get_filtered_debates(status=...)` bug:** `landing.py:71` passed non-existent `status` kwarg. Method already hardcodes `Debate.status == "completed"`. Also fixed tuple unpacking (`recent_debates, _ = ...`) [`landing.py:71`]
+
+#### Follow-up Items Completed
+
+- [x] CTA copy: "Ready to Watch?" → "Pick a Side." + "Enter the Arena" → "Start Your First Debate" [`page.tsx`, `StickyCtaBar.tsx`]
+- [x] Footer dead links: created 4 legal pages — `app/terms/`, `app/privacy/`, `app/risk-disclosure/`, `app/contact/`
+- [x] Scheduled ticker: "coming soon" → warm empty-state with "Start one" CTA [`LiveNowTicker.tsx`]
+- [x] Hero icons: replaced minimal circles with Bull (horns/face) and Bear (claws/face) SVG silhouettes [`HeroSection.tsx`]
+- [x] Schema contract test — `tests/unit/landing/schema-contract.test.ts` (7 tests)
+- [x] Composite `/api/landing` endpoint — `app/routes/landing.py` + registered in `app/main.py`
+- [x] Server action rewritten to single `/api/landing` fetch [`landing-data-action.ts`]
+- [x] Cache TTL cascade documentation — comment in `cache.py`
+- [x] Lighthouse budget warning at 90% — `lighthouse-budget.json`
+
+#### Test Updates
+
+- [x] Rewrote `landing-data-action.test.ts` from dual-fetch to single-fetch (7 tests)
+- [x] Rewrote `landing-data-action.edge.test.ts` from dual-fetch to single-fetch (6 tests)
+- [x] Updated `StickyCtaBar.test.tsx` assertion: `"Enter the Arena"` → `"Pick a Side"`
+- [x] Updated `LiveNowTicker.test.tsx` assertion: `/Next debate scheduled/` → `/No upcoming debates right now/`
+- [x] Updated `RecentDebatesSection.test.tsx` for warm empty-state CTA
+- [x] Removed unused `bearVotes` variable from `DebatePreviewCard.tsx`
+
+**Quality gates:** 143/143 tests passing, ruff clean.
+
 ### Review Findings (2026-04-15)
 
 #### Decision-Needed

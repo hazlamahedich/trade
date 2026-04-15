@@ -7,12 +7,9 @@ const mockRecent = [
   createRecentDebatePreview({ externalId: "r2" }),
 ];
 
-function mockFetchSequence(responses: Array<{ ok: boolean; json?: unknown; status?: number; throwError?: boolean }>) {
-  let i = 0;
+function mockFetchResponse(cfg: { ok: boolean; json?: unknown; status?: number; throwError?: boolean }) {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = jest.fn(() => {
-    const cfg = responses[i++];
-    if (cfg === undefined) return Promise.reject(new Error("Unexpected fetch call"));
     if (cfg.throwError) return Promise.reject(new Error("Network error"));
     return Promise.resolve({
       ok: cfg.ok,
@@ -44,81 +41,75 @@ describe("[4.4-UNIT-011-EDGE] getLandingPageData edge cases", () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it("given a 500 from active endpoint, when getLandingPageData is called, then it logs an error", async () => {
-    mockFetchSequence([
-      { ok: false, status: 500, throwError: true },
-      { ok: true, json: { data: [], error: null, meta: {} } },
-    ]);
+  it("given a 500 from landing endpoint, when getLandingPageData is called, then it logs an error", async () => {
+    mockFetchResponse({ ok: false, status: 500, throwError: true });
 
     const result = await getLandingPageData();
-    expect(result.activeDebate).toBeNull();
+    expect(result).toEqual({ activeDebate: null, recentDebates: [] });
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       expect.stringContaining("[landing]"),
       expect.any(String),
     );
   });
 
-  it("given a response with invalid JSON body, when getLandingPageData is called, then it logs an error and returns null", async () => {
-    mockFetchSequence([
-      { ok: true } as { ok: boolean; throwError?: boolean; json?: unknown },
-      { ok: true, json: { data: [], error: null, meta: {} } },
-    ]);
+  it("given a response with invalid JSON body, when getLandingPageData is called, then it logs an error and returns defaults", async () => {
+    mockFetchResponse({ ok: true } as { ok: boolean; throwError?: boolean; json?: unknown });
 
     const result = await getLandingPageData();
-    expect(result.activeDebate).toBeNull();
+    expect(result).toEqual({ activeDebate: null, recentDebates: [] });
   });
 
-  it("given envelope with null data (not undefined), when getLandingPageData is called, then it sets activeDebate to null", async () => {
-    mockFetchSequence([
-      { ok: true, json: { data: null, error: null, meta: {} } },
-      { ok: true, json: { data: [], error: null, meta: {} } },
-    ]);
+  it("given envelope with null data, when getLandingPageData is called, then it returns defaults", async () => {
+    mockFetchResponse({
+      ok: true,
+      json: { data: null, error: null, meta: {} },
+    });
 
     const result = await getLandingPageData();
-    expect(result.activeDebate).toBeNull();
-    expect(result.recentDebates).toEqual([]);
+    expect(result).toEqual({ activeDebate: null, recentDebates: [] });
   });
 
-  it("given active fetch succeeds but recent fetch fails, when getLandingPageData is called, then it returns active debate with empty recent", async () => {
-    mockFetchSequence([
-      { ok: true, json: { data: mockDebate, error: null, meta: {} } },
-      { ok: false, throwError: true },
-    ]);
+  it("given successful response, when getLandingPageData is called, then it returns both fields", async () => {
+    mockFetchResponse({
+      ok: true,
+      json: {
+        data: { activeDebate: mockDebate, recentDebates: mockRecent },
+        error: null,
+        meta: {},
+      },
+    });
 
     const result = await getLandingPageData();
     expect(result.activeDebate).toEqual(mockDebate);
-    expect(result.recentDebates).toEqual([]);
+    expect(result.recentDebates).toEqual(mockRecent);
   });
 
-  it("given successful responses, when getLandingPageData is called sequentially, then it returns consistent results", async () => {
-    mockFetchSequence([
-      { ok: true, json: { data: mockDebate, error: null, meta: {} } },
-      { ok: true, json: { data: mockRecent, error: null, meta: {} } },
-    ]);
-
-    const r1 = await getLandingPageData();
-    expect(r1.activeDebate).toEqual(mockDebate);
-    expect(r1.recentDebates).toEqual(mockRecent);
-  });
-
-  it("given API_BASE_URL is set, when getLandingPageData is called, then it uses correct endpoint URLs", async () => {
-    mockFetchSequence([
-      { ok: true, json: { data: null, error: null, meta: {} } },
-      { ok: true, json: { data: [], error: null, meta: {} } },
-    ]);
+  it("given API_BASE_URL is set, when getLandingPageData is called, then it fetches from /api/landing", async () => {
+    mockFetchResponse({
+      ok: true,
+      json: {
+        data: { activeDebate: null, recentDebates: [] },
+        error: null,
+        meta: {},
+      },
+    });
 
     await getLandingPageData();
 
     const fetchCalls = (globalThis.fetch as jest.Mock).mock.calls;
-    expect(fetchCalls[0][0]).toBe("http://localhost:8000/api/debate/active");
-    expect(fetchCalls[1][0]).toBe("http://localhost:8000/api/debate/history?status=completed&size=3");
+    expect(fetchCalls.length).toBe(1);
+    expect(fetchCalls[0][0]).toBe("http://localhost:8000/api/landing");
   });
 
-  it("given non-array json.data for recent, when getLandingPageData is called, then it returns empty recentDebates", async () => {
-    mockFetchSequence([
-      { ok: true, json: { data: null, error: null, meta: {} } },
-      { ok: true, json: { data: { not: "array" }, error: null, meta: {} } },
-    ]);
+  it("given non-array recentDebates, when getLandingPageData is called, then it returns empty recentDebates", async () => {
+    mockFetchResponse({
+      ok: true,
+      json: {
+        data: { activeDebate: null, recentDebates: { not: "array" } },
+        error: null,
+        meta: {},
+      },
+    });
 
     const result = await getLandingPageData();
     expect(result.recentDebates).toEqual([]);

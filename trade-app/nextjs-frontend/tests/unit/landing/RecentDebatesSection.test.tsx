@@ -13,9 +13,10 @@ describe("[4.4-UNIT-004] RecentDebatesSection", () => {
     expect(screen.getByText("ETH")).toBeInTheDocument();
   });
 
-  it("given an empty debates array, when the section renders, then it renders nothing", () => {
-    const { container } = render(<RecentDebatesSection debates={[]} />);
-    expect(container.innerHTML).toBe("");
+  it("given an empty debates array, when the section renders, then it shows an empty state CTA", () => {
+    render(<RecentDebatesSection debates={[]} />);
+    expect(screen.getByText(/start the first one/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /start the first one/i })).toHaveAttribute("href", "/debates");
   });
 
   it("given debates data, when the section renders, then it has an accessible h2 heading", () => {

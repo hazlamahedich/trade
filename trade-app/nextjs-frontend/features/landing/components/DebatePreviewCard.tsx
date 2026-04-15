@@ -8,13 +8,13 @@ interface DebatePreviewCardProps {
 
 export function DebatePreviewCard({ debate }: DebatePreviewCardProps) {
   const bullVotes = debate.voteBreakdown.bull ?? 0;
-  const bearVotes = debate.voteBreakdown.bear ?? 0;
   const displayVotes = debate.totalVotes ?? 0;
   const totalVotes = displayVotes || 1;
 
+  const undecidedVotes = debate.voteBreakdown.undecided ?? 0;
+  const undecidedPct = Math.round((undecidedVotes / totalVotes) * 100);
   const bullPct = Math.round((bullVotes / totalVotes) * 100);
-  const bearPct = Math.round((bearVotes / totalVotes) * 100);
-  const undecidedPct = Math.max(0, 100 - bullPct - bearPct);
+  const bearPct = Math.max(0, 100 - bullPct - undecidedPct);
 
   const winnerLabel =
     debate.winner === "bull"

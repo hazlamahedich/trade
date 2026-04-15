@@ -7,16 +7,13 @@ const mockRecent = [
   createRecentDebatePreview({ externalId: "r2" }),
 ];
 
-function mockFetchSequence(responses: Array<{ ok: boolean; json?: unknown; error?: boolean }>) {
-  let i = 0;
+function mockFetchResponse(response: { ok: boolean; json?: unknown; error?: boolean }) {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = jest.fn(() => {
-    const cfg = responses[i++];
-    if (cfg === undefined) return Promise.reject(new Error("Unexpected fetch call"));
-    if (cfg.error) return Promise.reject(new Error("Network error"));
+    if (response.error) return Promise.reject(new Error("Network error"));
     return Promise.resolve({
-      ok: cfg.ok,
-      json: () => Promise.resolve(cfg.json),
+      ok: response.ok,
+      json: () => Promise.resolve(response.json),
     } as unknown as Response);
   });
   return originalFetch;
@@ -33,77 +30,87 @@ describe("[4.4-UNIT-011] getLandingPageData server action", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("given successful responses from both endpoints, when getLandingPageData is called, then it returns active debate and recent debates", async () => {
-    mockFetchSequence([
-      { ok: true, json: { data: mockDebate, error: null, meta: {} } },
-      { ok: true, json: { data: mockRecent, error: null, meta: {} } },
-    ]);
+  it("given successful response, when getLandingPageData is called, then it returns active debate and recent debates", async () => {
+    mockFetchResponse({
+      ok: true,
+      json: {
+        data: { activeDebate: mockDebate, recentDebates: mockRecent },
+        error: null,
+        meta: {},
+      },
+    });
 
     const result = await getLandingPageData();
     expect(result.activeDebate).toEqual(mockDebate);
     expect(result.recentDebates).toEqual(mockRecent);
   });
 
-  it("given null data from active endpoint, when getLandingPageData is called, then it returns null activeDebate", async () => {
-    mockFetchSequence([
-      { ok: true, json: { data: null, error: null, meta: {} } },
-      { ok: true, json: { data: [], error: null, meta: {} } },
-    ]);
+  it("given null activeDebate in response, when getLandingPageData is called, then it returns null activeDebate", async () => {
+    mockFetchResponse({
+      ok: true,
+      json: {
+        data: { activeDebate: null, recentDebates: [] },
+        error: null,
+        meta: {},
+      },
+    });
 
     const result = await getLandingPageData();
     expect(result.activeDebate).toBeNull();
     expect(result.recentDebates).toEqual([]);
   });
 
-  it("given a network error on active endpoint, when getLandingPageData is called, then it gracefully returns null activeDebate", async () => {
-    mockFetchSequence([
-      { ok: false, error: true },
-      { ok: true, json: { data: mockRecent, error: null, meta: {} } },
-    ]);
-
-    const result = await getLandingPageData();
-    expect(result.activeDebate).toBeNull();
-    expect(result.recentDebates).toEqual(mockRecent);
-  });
-
-  it("given an invalid envelope on active endpoint, when getLandingPageData is called, then it gracefully returns null activeDebate", async () => {
-    mockFetchSequence([
-      { ok: true, json: "not-an-object" },
-      { ok: true, json: { data: [], error: null, meta: {} } },
-    ]);
-
-    const result = await getLandingPageData();
-    expect(result.activeDebate).toBeNull();
-  });
-
-  it("given non-array data for recent debates, when getLandingPageData is called, then it returns empty recentDebates", async () => {
-    mockFetchSequence([
-      { ok: true, json: { data: null, error: null, meta: {} } },
-      { ok: true, json: { data: "not-array", error: null, meta: {} } },
-    ]);
-
-    const result = await getLandingPageData();
-    expect(result.recentDebates).toEqual([]);
-  });
-
-  it("given a network error on recent endpoint, when getLandingPageData is called, then it returns empty recentDebates with active debate intact", async () => {
-    mockFetchSequence([
-      { ok: true, json: { data: mockDebate, error: null, meta: {} } },
-      { ok: false, error: true },
-    ]);
-
-    const result = await getLandingPageData();
-    expect(result.activeDebate).toEqual(mockDebate);
-    expect(result.recentDebates).toEqual([]);
-  });
-
-  it("given both endpoints fail, when getLandingPageData is called, then it returns empty defaults", async () => {
-    mockFetchSequence([
-      { ok: false, error: true },
-      { ok: false, error: true },
-    ]);
+  it("given a network error, when getLandingPageData is called, then it gracefully returns defaults", async () => {
+    mockFetchResponse({ ok: false, error: true });
 
     const result = await getLandingPageData();
     expect(result).toEqual({ activeDebate: null, recentDebates: [] });
+  });
+
+  it("given an invalid envelope, when getLandingPageData is called, then it gracefully returns defaults", async () => {
+    mockFetchResponse({ ok: true, json: "not-an-object" });
+
+    const result = await getLandingPageData();
+    expect(result).toEqual({ activeDebate: null, recentDebates: [] });
+  });
+
+  it("given non-array recentDebates in response, when getLandingPageData is called, then it returns empty recentDebates", async () => {
+    mockFetchResponse({
+      ok: true,
+      json: {
+        data: { activeDebate: null, recentDebates: "not-array" },
+        error: null,
+        meta: {},
+      },
+    });
+
+    const result = await getLandingPageData();
+    expect(result.activeDebate).toBeNull();
+    expect(result.recentDebates).toEqual([]);
+  });
+
+  it("given null data in envelope, when getLandingPageData is called, then it returns defaults", async () => {
+    mockFetchResponse({
+      ok: true,
+      json: { data: null, error: null, meta: {} },
+    });
+
+    const result = await getLandingPageData();
+    expect(result).toEqual({ activeDebate: null, recentDebates: [] });
+  });
+
+  it("given undefined activeDebate in response, when getLandingPageData is called, then it defaults to null", async () => {
+    mockFetchResponse({
+      ok: true,
+      json: {
+        data: { recentDebates: mockRecent },
+        error: null,
+        meta: {},
+      },
+    });
+
+    const result = await getLandingPageData();
+    expect(result.activeDebate).toBeNull();
+    expect(result.recentDebates).toEqual(mockRecent);
   });
 });
