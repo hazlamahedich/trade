@@ -26,11 +26,13 @@ export function generateMetadata(): Metadata {
       type: "website",
       url: "https://ai-trading-debate.lab",
       siteName: "AI Trading Debate Lab",
+      images: [{ url: "/images/og-default.png", width: 1200, height: 630, alt: "AI Trading Debate Lab" }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
+      images: ["/images/og-default.png"],
     },
   };
 }
@@ -77,7 +79,7 @@ export default async function Home() {
                 Enter the Arena
               </Link>
             </div>
-            <p className="mt-4 text-xs text-slate-500">
+            <p className="mt-4 text-xs text-slate-400">
               By entering, you acknowledge our{" "}
               <a href="/risk-disclosure" className="underline hover:text-slate-400">
                 risk disclosure

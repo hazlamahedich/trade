@@ -54,7 +54,7 @@ async def test_active_debate_returned(active_client, db_session, make_running_de
         body = resp.json()
         assert body["data"] is not None
         assert body["data"]["asset"] == "btc"
-        assert body["data"]["status"] == "running"
+        assert body["data"]["status"] == "active"
         assert body["error"] is None
         assert "meta" in body
 
@@ -109,7 +109,7 @@ async def test_response_includes_status_field(
         resp = await active_client.get(ACTIVE_URL)
         body = resp.json()
         assert "status" in body["data"]
-        assert body["data"]["status"] == "running"
+        assert body["data"]["status"] == "active"
 
 
 @pytest.mark.asyncio
@@ -118,8 +118,8 @@ async def test_cached_response_returned(active_client):
         "id": "deb_cached",
         "asset": "eth",
         "status": "running",
-        "started_at": "2026-04-15T10:00:00Z",
-        "viewer_count": None,
+        "startedAt": "2026-04-15T10:00:00Z",
+        "viewerCount": None,
     }
     with patch(
         "app.services.debate.cache.get_cached_active_debate",

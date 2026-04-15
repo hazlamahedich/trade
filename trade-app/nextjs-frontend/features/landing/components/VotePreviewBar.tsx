@@ -1,11 +1,10 @@
 interface VotePreviewBarProps {
   bullPct: number;
   bearPct: number;
+  undecidedPct?: number;
 }
 
-export function VotePreviewBar({ bullPct, bearPct }: VotePreviewBarProps) {
-  const undecidedPct = Math.max(0, 100 - bullPct - bearPct);
-
+export function VotePreviewBar({ bullPct, bearPct, undecidedPct = 0 }: VotePreviewBarProps) {
   return (
     <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-700" data-testid="vote-preview-bar">
       <div

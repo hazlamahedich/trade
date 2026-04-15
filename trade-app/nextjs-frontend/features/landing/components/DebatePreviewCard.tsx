@@ -8,10 +8,13 @@ interface DebatePreviewCardProps {
 
 export function DebatePreviewCard({ debate }: DebatePreviewCardProps) {
   const bullVotes = debate.voteBreakdown.bull ?? 0;
-  const totalVotes = debate.totalVotes || 1;
+  const bearVotes = debate.voteBreakdown.bear ?? 0;
+  const displayVotes = debate.totalVotes ?? 0;
+  const totalVotes = displayVotes || 1;
 
   const bullPct = Math.round((bullVotes / totalVotes) * 100);
-  const bearPct = 100 - bullPct;
+  const bearPct = Math.round((bearVotes / totalVotes) * 100);
+  const undecidedPct = Math.max(0, 100 - bullPct - bearPct);
 
   const winnerLabel =
     debate.winner === "bull"
@@ -43,14 +46,14 @@ export function DebatePreviewCard({ debate }: DebatePreviewCardProps) {
       </div>
 
       <div className="mt-3">
-        <VotePreviewBar bullPct={bullPct} bearPct={bearPct} />
+        <VotePreviewBar bullPct={bullPct} bearPct={bearPct} undecidedPct={undecidedPct} />
       </div>
 
       <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
         <span>
-          {bullPct}% Bull / {bearPct}% Bear
+          {bullPct}% Bull / {bearPct}% Bear{undecidedPct > 0 ? ` / ${undecidedPct}% Undecided` : ""}
         </span>
-        <span>{totalVotes} votes</span>
+        <span>{displayVotes} vote{displayVotes !== 1 ? "s" : ""}</span>
       </div>
     </Link>
   );

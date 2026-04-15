@@ -18,9 +18,9 @@ export function HowItWorksSection() {
               <path d="M8 10h12M8 14h8M8 18h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </div>
-          <h3 className="mt-4 text-lg font-semibold text-white">
+          <p className="mt-4 text-lg font-semibold text-white">
             Bull Argues
-          </h3>
+          </p>
           <p className="mt-2 text-sm text-slate-400">
             The Bull agent makes the case for why this trade makes sense right now.
           </p>
@@ -32,9 +32,9 @@ export function HowItWorksSection() {
               <path d="M8 10l12 8M8 18l12-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </div>
-          <h3 className="mt-4 text-lg font-semibold text-white">
+          <p className="mt-4 text-lg font-semibold text-white">
             Bear Counters
-          </h3>
+          </p>
           <p className="mt-2 text-sm text-slate-400">
             The Bear agent tears the argument apart, exposing risks and flaws.
           </p>
@@ -47,9 +47,9 @@ export function HowItWorksSection() {
               <path d="M14 10v4l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </div>
-          <h3 className="mt-4 text-lg font-semibold text-white">
+          <p className="mt-4 text-lg font-semibold text-white">
             You Decide
-          </h3>
+          </p>
           <p className="mt-2 text-sm text-slate-400">
             You listen, weigh the evidence, and make your own informed decision.
           </p>

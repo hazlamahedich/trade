@@ -15,9 +15,11 @@ export async function getLandingPageData(): Promise<LandingPageData> {
       if (isValidEnvelope(json) && json.data !== null) {
         activeDebate = json.data as ActiveDebateSummary;
       }
-    } catch {
-      // Graceful degradation — hero still renders
+    } catch (err) {
+      console.error("[landing] Failed to parse active debate response:", err);
     }
+  } else {
+    console.error("[landing] Active debate fetch failed:", activeResult.error);
   }
 
   let recentDebates: RecentDebatePreview[] = [];
@@ -32,9 +34,11 @@ export async function getLandingPageData(): Promise<LandingPageData> {
       if (isValidEnvelope(json) && Array.isArray(json.data)) {
         recentDebates = json.data as RecentDebatePreview[];
       }
-    } catch {
-      // Graceful degradation — recent section renders empty
+    } catch (err) {
+      console.error("[landing] Failed to parse recent debates response:", err);
     }
+  } else {
+    console.error("[landing] Recent debates fetch failed:", recentResult.error);
   }
 
   return { activeDebate, recentDebates };

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, field_serializer
 
 
 SUPPORTED_ASSETS = {"bitcoin", "btc", "ethereum", "eth", "solana", "sol"}
@@ -108,6 +108,12 @@ class ActiveDebateSummary(BaseModel):
     status: str
     started_at: datetime = Field(serialization_alias="startedAt")
     viewer_count: int | None = Field(None, serialization_alias="viewerCount")
+
+    @field_serializer("status")
+    @classmethod
+    def serialize_status(cls, v: str) -> str:
+        status_map = {"running": "active"}
+        return status_map.get(v, v)
 
 
 class StandardActiveDebateResponse(BaseModel):

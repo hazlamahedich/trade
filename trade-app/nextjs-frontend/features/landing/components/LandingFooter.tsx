@@ -6,7 +6,7 @@ export function LandingFooter() {
           <p className="text-sm font-semibold text-slate-300">
             AI Trading Debate Lab
           </p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-400">
             Decision-support through adversarial AI
           </p>
         </div>

@@ -19,9 +19,25 @@ describe("[4.4-UNIT-012] generateMetadata", () => {
     expect(meta.openGraph!.title).toBe(meta.title);
   });
 
+  it("includes openGraph images", () => {
+    const meta = generateMetadata();
+    expect(meta.openGraph!.images).toBeDefined();
+    const images = meta.openGraph!.images as Array<{ url: string }>;
+    expect(images.length).toBeGreaterThan(0);
+    expect(images[0].url).toContain("og-default.png");
+  });
+
   it("includes twitter card metadata", () => {
     const meta = generateMetadata();
     expect(meta.twitter).toBeDefined();
     expect(meta.twitter!.card).toBe("summary_large_image");
+  });
+
+  it("includes twitter images", () => {
+    const meta = generateMetadata();
+    expect(meta.twitter!.images).toBeDefined();
+    const images = meta.twitter!.images as string[];
+    expect(images.length).toBeGreaterThan(0);
+    expect(images[0]).toContain("og-default.png");
   });
 });

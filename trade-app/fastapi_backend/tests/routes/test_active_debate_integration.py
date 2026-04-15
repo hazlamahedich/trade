@@ -56,7 +56,7 @@ async def test_full_round_trip_active_debate(integ_client, db_session):
         assert set(data.keys()) == expected_data_keys
         assert data["id"] == "deb_integ_001"
         assert data["asset"] == "btc"
-        assert data["status"] == "running"
+        assert data["status"] == "active"
         assert data["viewerCount"] is None
 
 

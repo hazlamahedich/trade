@@ -191,24 +191,16 @@ async def get_active_debate(
         response.headers["Cache-Control"] = (
             "public, s-maxage=15, stale-while-revalidate=30"
         )
-        from app.services.debate.schemas import ActiveDebateSummary as _ADS
+        try:
+            from app.services.debate.schemas import ActiveDebateSummary as _ADS
 
-        data = _ADS.model_validate(cached) if cached else None
+            data = (
+                _ADS.model_validate(cached) if cached != "__null_sentinel__" else None
+            )
+        except Exception:
+            data = None
         return StandardActiveDebateResponse(
             data=data,
-            error=None,
-            meta=DebateMeta(latency_ms=latency_ms),
-        )
-        from app.services.debate.schemas import ActiveDebateSummary
-
-        data = ActiveDebateSummary(**cached) if cached else None
-        return StandardActiveDebateResponse(
-            data=data,
-            error=None,
-            meta=DebateMeta(latency_ms=latency_ms),
-        )
-        return StandardActiveDebateResponse(
-            data=cached if cached != "null" else None,
             error=None,
             meta=DebateMeta(latency_ms=latency_ms),
         )

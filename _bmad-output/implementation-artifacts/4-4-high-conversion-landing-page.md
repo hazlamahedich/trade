@@ -1,6 +1,6 @@
 # Story 4.4: High-Conversion Landing Page
 
-Status: review
+Status: done
 
 ## Adversarial Review Record
 
@@ -485,3 +485,24 @@ Key learnings from Story 4.3 (Static Debate Page):
 ### Completion Notes List
 
 ### File List
+
+### Review Findings (2026-04-15)
+
+#### Decision-Needed
+
+- [x] [Review][Decision] Status mismatch: backend `"running"` vs frontend `"active"` — Resolved: backend maps `"running"` → `"active"` via `field_serializer` on `ActiveDebateSummary.status`. Frontend unchanged. Tests updated.
+- [x] [Review][Decision] Missing `og:image` and `twitter:image` in generateMetadata() — Resolved: added placeholder `/images/og-default.png` + test assertions. Follow-up task needed for design asset.
+
+#### Patch
+
+- [x] [Review][Patch] Dead code: remove unreachable return statements in cache-hit branch [`debate.py:202-214`]
+- [x] [Review][Patch] Redis null cache sentinel ineffective — replaced with `__null_sentinel__` string sentinel [`cache.py:35`]
+- [x] [Review][Patch] Redis connection leak — module-level connection pool with shared client [`cache.py:14-15`]
+- [x] [Review][Patch] No Redis connection pooling — `_redis_pool` module-level singleton [`cache.py:14-15`]
+- [x] [Review][Patch] Undecided votes absorbed into bearPct — now computed from `voteBreakdown.bear` independently [`DebatePreviewCard.tsx:13-14`]
+- [x] [Review][Patch] Silent error swallowing — added `console.error` logging in all catch blocks [`landing-data-action.ts`]
+- [x] [Review][Patch] `text-slate-500` in CTA risk disclosure link — changed to `text-slate-400` [`page.tsx:80`]
+- [x] [Review][Patch] `text-slate-500` in footer tagline — changed to `text-slate-400` [`LandingFooter.tsx:9`]
+- [x] [Review][Patch] `<h3>` elements in HowItWorksSection — changed to `<p>` with same styling [`HowItWorksSection.tsx:21,35,49`]
+- [x] [Review][Patch] Corrupted Redis cache — wrapped in try/except with graceful fallback to None [`debate.py:196`]
+- [x] [Review][Patch] `totalVotes || 1` falsy coalescing — split into `displayVotes` and `totalVotes` with proper pluralization [`DebatePreviewCard.tsx:11,53`]
