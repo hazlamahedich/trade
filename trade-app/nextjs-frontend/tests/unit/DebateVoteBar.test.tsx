@@ -71,16 +71,14 @@ describe("DebateVoteBar", () => {
     expect(screen.queryByText(/Undecided/)).not.toBeInTheDocument();
   });
 
-  it("[P1] applies transition-none for reduced motion via style", () => {
+  it("[P1] applies motion-reduce:transition-none for reduced motion", () => {
     const { container } = render(
       <DebateVoteBar bullVotes={60} bearVotes={30} undecidedVotes={10} />,
     );
-    const bars = container.querySelectorAll("[style]");
-    const transitionBars = Array.from(bars).filter((el) => {
-      const div = el as HTMLElement;
-      return div.className.includes("transition");
-    });
-    expect(transitionBars.length).toBe(3);
+    const motionBars = container.querySelectorAll(
+      ".motion-reduce\\:transition-none",
+    );
+    expect(motionBars.length).toBe(3);
   });
 
   it("[P2] passes className prop to container", () => {

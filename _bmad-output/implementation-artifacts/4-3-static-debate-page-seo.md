@@ -460,11 +460,14 @@ Claude Sonnet 4 (claude-sonnet-4-20250514) via opencode
 - `trade-app/nextjs-frontend/app/dashboard/debates/[externalId]/page.tsx`
 - `trade-app/nextjs-frontend/tests/unit/factories/debate-detail-factory.ts`
 - `trade-app/nextjs-frontend/tests/unit/DebateDetail.test.tsx`
+- `trade-app/nextjs-frontend/tests/unit/DebateDetail.components.test.tsx`
+- `trade-app/nextjs-frontend/tests/unit/debate-detail-pages.test.tsx`
 
 **Frontend — Modified:**
 - `trade-app/nextjs-frontend/features/debate/components/DebateHistoryCard.tsx`
 - `trade-app/nextjs-frontend/features/debate/components/index.ts`
 - `trade-app/nextjs-frontend/tests/unit/DebateHistoryCard.test.tsx`
+- `trade-app/nextjs-frontend/tests/unit/DebateVoteBar.test.tsx`
 
 ### Review Findings
 
@@ -491,3 +494,4 @@ Claude Sonnet 4 (claude-sonnet-4-20250514) via opencode
 - 2026-04-15: Story 4.3 implementation complete. All tasks 0-13 done. Task 14 (E2E) deferred. Backend: 8 tests passing. Frontend: 19 new tests, 501 total passing. 0 regressions. Status → review.
 - 2026-04-15: Code review — 10 patches applied (2 dismissed), 5 deferred. Backend: 8 tests passing. Frontend: 35 tests passing (story + history card). Status → done.
 - 2026-04-15: Test automation expansion (testarch-automate). +31 new tests: 22 frontend, 9 backend. Total story 4.3 coverage: 66 tests, 100% pass. New files: `debate-detail-pages.test.tsx` (error/not-found/loading/redirect), `test_repository_transcript.py` (repo deserialization edge cases). Expanded `DebateDetail.test.tsx` with guardian roles, accessibility, structured data edge cases. Deferred: server action & generateMetadata tests require E2E (Task 14). Summary at `_bmad-output/test-artifacts/automation-summary-story-4-3.md`.
+- 2026-04-15: Test quality review (testarch-test-review). Score: 95/100 (A+). All 3 medium findings addressed: (1) BDD `given X, produces Y` framing added to all 57 test names + Python docstrings, (2) Test IDs `[4.3-UNIT-NNN]` added to all tests, (3) Reduced motion test fixed to assert on Tailwind utility class, (4) `DebateDetail.test.tsx` split into two files (~130 lines each). Split created `DebateDetail.components.test.tsx` for ArchivedBadge + DebateTranscript tests. Total: 69 tests, 522 frontend suite passing. Review at `_bmad-output/test-artifacts/test-reviews/test-review-story-4-3.md`.

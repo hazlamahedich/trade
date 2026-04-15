@@ -10,6 +10,7 @@ class TestGetDebateResultTranscript:
     @pytest.mark.p0
     @pytest.mark.asyncio
     async def test_result_with_transcript(self):
+        """[4.3-007] BDD: Given a debate with transcript, when GET /result?include_transcript=true, then response includes transcript array and repo called with include_transcript=True."""
         mock_result = DebateResultResponse(
             debate_id="deb_test123",
             asset="bitcoin",
@@ -48,6 +49,7 @@ class TestGetDebateResultTranscript:
     @pytest.mark.p0
     @pytest.mark.asyncio
     async def test_result_without_transcript_param(self):
+        """[4.3-008] BDD: Given a debate result, when GET /result without include_transcript param, then transcript is None and repo called with include_transcript=False."""
         mock_result = DebateResultResponse(
             debate_id="deb_test123",
             asset="bitcoin",

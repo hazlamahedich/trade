@@ -1,24 +1,9 @@
-import { render, screen } from "@testing-library/react";
-import { DebateTranscript } from "@/features/debate/components/DebateTranscript";
-import { ArchivedBadge } from "@/features/debate/components/ArchivedBadge";
 import { generateDebateStructuredData, deriveWinner } from "@/features/debate/utils/structured-data";
 import { getWinnerBadge } from "@/features/debate/utils/winner-badge";
-import { createMockDebateDetail, createMockTranscriptMessage } from "./factories/debate-detail-factory";
-
-jest.mock("next/link", () => {
-  return function MockLink({
-    children,
-    href,
-  }: {
-    children: React.ReactNode;
-    href: string;
-  }) {
-    return <a href={href}>{children}</a>;
-  };
-});
+import { createMockDebateDetail } from "./factories/debate-detail-factory";
 
 describe("generateDebateStructuredData", () => {
-  it("[P0] produces correct DiscussionForumPosting schema shape", () => {
+  it("[P0][4.3-018] given valid debate data, produces DiscussionForumPosting schema", () => {
     const data = createMockDebateDetail();
     const sd = generateDebateStructuredData(data);
 
@@ -30,7 +15,7 @@ describe("generateDebateStructuredData", () => {
     expect(sd.interactionStatistic.userInteractionCount).toBe(100);
   });
 
-  it("[P0] uses ISO 8601 dates with timezone", () => {
+  it("[P0][4.3-019] given dates with timezone, produces ISO 8601 format", () => {
     const data = createMockDebateDetail({
       createdAt: "2026-04-15T12:00:00.000Z",
       completedAt: "2026-04-15T13:00:00.000Z",
@@ -41,14 +26,14 @@ describe("generateDebateStructuredData", () => {
     expect(sd.dateModified).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
   });
 
-  it("[P0] handles null guardian verdict", () => {
+  it("[P0][4.3-020] given null guardian verdict, produces description without undefined", () => {
     const data = createMockDebateDetail({ guardianVerdict: null });
     const sd = generateDebateStructuredData(data);
     expect(sd.description).not.toContain("undefined");
     expect(sd.description).not.toContain("null");
   });
 
-  it("[P0] handles bear winner", () => {
+  it("[P0][4.3-021] given bear-majority votes, derives bear as winner", () => {
     const data = createMockDebateDetail({
       voteBreakdown: { bull: 30, bear: 70, undecided: 0 },
     });
@@ -58,7 +43,7 @@ describe("generateDebateStructuredData", () => {
     expect(sd.description).toContain("Bear");
   });
 
-  it("[P0] handles undecided / tie", () => {
+  it("[P0][4.3-022] given tied votes, derives undecided winner", () => {
     const data = createMockDebateDetail({
       voteBreakdown: { bull: 50, bear: 50, undecided: 0 },
     });
@@ -66,7 +51,7 @@ describe("generateDebateStructuredData", () => {
     expect(winner).toBe("undecided");
   });
 
-  it("[P0] handles zero votes", () => {
+  it("[P0][4.3-023] given zero total votes, derives undecided winner", () => {
     const data = createMockDebateDetail({
       totalVotes: 0,
       voteBreakdown: { bull: 0, bear: 0, undecided: 0 },
@@ -75,19 +60,19 @@ describe("generateDebateStructuredData", () => {
     expect(winner).toBe("undecided");
   });
 
-  it("[P0] handles null completedAt — falls back to createdAt", () => {
+  it("[P0][4.3-024] given null completedAt, falls back to createdAt for dateModified", () => {
     const data = createMockDebateDetail({ completedAt: null });
     const sd = generateDebateStructuredData(data);
     expect(sd.dateModified).toBe(new Date(data.createdAt).toISOString());
   });
 
-  it("[P1] handles invalid date string safely", () => {
+  it("[P1][4.3-025] given invalid date string, handles safely without throwing", () => {
     const data = createMockDebateDetail({ createdAt: "not-a-date" });
     const sd = generateDebateStructuredData(data);
     expect(sd.datePublished).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
-  it("[P1] description does not contain undefined with null verdict", () => {
+  it("[P1][4.3-026] given null guardian verdict, produces clean description with asset name", () => {
     const data = createMockDebateDetail({ guardianVerdict: null });
     const sd = generateDebateStructuredData(data);
     expect(sd.description).not.toContain("undefined");
@@ -95,7 +80,7 @@ describe("generateDebateStructuredData", () => {
     expect(sd.description).toContain("AI debate analysis on BTC");
   });
 
-  it("[P2] interactionStatistic uses LikeAction type", () => {
+  it("[P2][4.3-027] given valid debate, produces interactionStatistic with LikeAction type", () => {
     const data = createMockDebateDetail();
     const sd = generateDebateStructuredData(data);
     expect(sd.interactionStatistic.interactionType).toBe(
@@ -104,7 +89,7 @@ describe("generateDebateStructuredData", () => {
     expect(sd.interactionStatistic["@type"]).toBe("InteractionCounter");
   });
 
-  it("[P2] authors have correct disambiguatingDescription", () => {
+  it("[P2][4.3-028] given valid debate, produces authors with disambiguatingDescription", () => {
     const data = createMockDebateDetail();
     const sd = generateDebateStructuredData(data);
     expect(sd.author[0].disambiguatingDescription).toBe(
@@ -117,143 +102,31 @@ describe("generateDebateStructuredData", () => {
 });
 
 describe("getWinnerBadge (imported from util)", () => {
-  it("[P0] returns bull badge", () => {
+  it("[P0][4.3-029] given 'bull' winner, returns bull badge with icon", () => {
     const badge = getWinnerBadge("bull");
     expect(badge.label).toBe("Bull");
     expect(badge.icon).toBe("▲");
   });
 
-  it("[P0] returns bear badge", () => {
+  it("[P0][4.3-030] given 'bear' winner, returns bear badge", () => {
     const badge = getWinnerBadge("bear");
     expect(badge.label).toBe("Bear");
   });
 
-  it("[P1] handles mixed case", () => {
+  it("[P1][4.3-031] given mixed-case 'BULL', normalizes to bull badge", () => {
     const badge = getWinnerBadge("BULL");
     expect(badge.label).toBe("Bull");
   });
 
-  it("[P1] returns undecided badge", () => {
+  it("[P1][4.3-032] given 'undecided' winner, returns undecided badge with question icon", () => {
     const badge = getWinnerBadge("undecided");
     expect(badge.label).toBe("Undecided");
     expect(badge.icon).toBe("?");
   });
 
-  it("[P2] returns unknown badge for unrecognized winner", () => {
+  it("[P2][4.3-033] given unrecognized winner value, returns unknown badge with dash icon", () => {
     const badge = getWinnerBadge("invalid_value");
     expect(badge.label).toBe("Unknown");
     expect(badge.icon).toBe("—");
-  });
-});
-
-describe("ArchivedBadge", () => {
-  it("[P1] renders Completed Debate text", () => {
-    render(<ArchivedBadge />);
-    expect(screen.getByText("Completed Debate")).toBeInTheDocument();
-  });
-
-  it("[P1] renders with winner context", () => {
-    render(<ArchivedBadge winner="bull" />);
-    expect(screen.getByText(/Completed Debate — Bull Wins/)).toBeInTheDocument();
-  });
-
-  it("[P1] has correct aria-label without winner", () => {
-    render(<ArchivedBadge />);
-    const badge = screen.getByText("Completed Debate").closest("[aria-label]");
-    expect(badge).toHaveAttribute(
-      "aria-label",
-      "This debate has ended. Final verdict available.",
-    );
-  });
-
-  it("[P1] has correct aria-label with winner", () => {
-    render(<ArchivedBadge winner="bear" />);
-    const badge = screen.getByText(/Completed Debate/).closest("[aria-label]");
-    expect(badge?.getAttribute("aria-label")).toContain("Bear Wins");
-  });
-});
-
-describe("DebateTranscript", () => {
-  it("[P1] renders messages with role labels", () => {
-    const messages = [
-      createMockTranscriptMessage("bull", "Rising trend"),
-      createMockTranscriptMessage("bear", "Falling trend"),
-    ];
-    render(<DebateTranscript messages={messages} />);
-    expect(screen.getByText("Rising trend")).toBeInTheDocument();
-    expect(screen.getByText("Falling trend")).toBeInTheDocument();
-    expect(screen.getByText("Bull Agent")).toBeInTheDocument();
-    expect(screen.getByText("Bear Agent")).toBeInTheDocument();
-  });
-
-  it("[P1] shows not available for null transcript", () => {
-    render(<DebateTranscript messages={null} />);
-    expect(screen.getByText("Transcript not available")).toBeInTheDocument();
-  });
-
-  it("[P1] shows not available for empty array", () => {
-    render(<DebateTranscript messages={[]} />);
-    expect(screen.getByText("Transcript not available")).toBeInTheDocument();
-  });
-
-  it("[P1] shows disclosure for >6 messages", () => {
-    const messages = Array.from({ length: 8 }, (_, i) =>
-      createMockTranscriptMessage(i % 2 === 0 ? "bull" : "bear", `Message ${i + 1}`),
-    );
-    render(<DebateTranscript messages={messages} />);
-    expect(screen.getByText("Show full transcript (2 more messages)")).toBeInTheDocument();
-    expect(screen.getByText("Message 1")).toBeInTheDocument();
-  });
-
-  it("[P1] no disclosure for <=6 messages", () => {
-    const messages = Array.from({ length: 6 }, (_, i) =>
-      createMockTranscriptMessage("bull", `Msg ${i}`),
-    );
-    render(<DebateTranscript messages={messages} />);
-    expect(screen.queryByText(/Show full transcript/)).not.toBeInTheDocument();
-  });
-
-  it("[P1] renders guardian role with correct label", () => {
-    const messages = [
-      createMockTranscriptMessage("guardian", "High risk detected"),
-    ];
-    render(<DebateTranscript messages={messages} />);
-    expect(screen.getByText("Risk Guardian")).toBeInTheDocument();
-    expect(screen.getByText("High risk detected")).toBeInTheDocument();
-  });
-
-  it("[P1] renders risk_guardian role variant", () => {
-    const messages = [
-      createMockTranscriptMessage("risk_guardian", "Caution advised"),
-    ];
-    render(<DebateTranscript messages={messages} />);
-    expect(screen.getByText("Risk Guardian")).toBeInTheDocument();
-  });
-
-  it("[P2] renders unknown role as-is", () => {
-    const messages = [
-      createMockTranscriptMessage("analyst", "Custom analysis"),
-    ];
-    render(<DebateTranscript messages={messages} />);
-    expect(screen.getByText("analyst")).toBeInTheDocument();
-    expect(screen.getByText("Custom analysis")).toBeInTheDocument();
-  });
-
-  it("[P2] disclosure shows correct count for 7 messages", () => {
-    const messages = Array.from({ length: 7 }, (_, i) =>
-      createMockTranscriptMessage("bull", `Msg ${i}`),
-    );
-    render(<DebateTranscript messages={messages} />);
-    expect(
-      screen.getByText("Show full transcript (1 more messages)"),
-    ).toBeInTheDocument();
-  });
-
-  it("[P2] section has role=log for accessibility", () => {
-    const messages = [createMockTranscriptMessage("bull", "Test")];
-    const { container } = render(<DebateTranscript messages={messages} />);
-    const section = container.querySelector('[role="log"]');
-    expect(section).toBeInTheDocument();
-    expect(section?.getAttribute("aria-label")).toBe("Debate transcript");
   });
 });

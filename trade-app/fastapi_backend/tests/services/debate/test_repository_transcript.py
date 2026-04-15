@@ -35,6 +35,7 @@ class TestGetResultTranscriptDeserialization:
     @pytest.mark.p0
     @pytest.mark.asyncio
     async def test_include_transcript_true_with_valid_json(self, mock_session):
+        """[4.3-009] BDD: Given debate with valid transcript JSON, when get_result with include_transcript=True, then returns deserialized TranscriptMessage list."""
         transcript_json = json.dumps(
             [
                 {"role": "bull", "content": "BTC rising"},
@@ -63,6 +64,7 @@ class TestGetResultTranscriptDeserialization:
     @pytest.mark.p0
     @pytest.mark.asyncio
     async def test_include_transcript_false_returns_none(self, mock_session):
+        """[4.3-010] BDD: Given debate with transcript data, when get_result with include_transcript=False, then transcript field is None."""
         transcript_json = json.dumps(
             [
                 {"role": "bull", "content": "BTC rising"},
@@ -80,6 +82,7 @@ class TestGetResultTranscriptDeserialization:
     @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_include_transcript_true_with_null_column(self, mock_session):
+        """[4.3-011] BDD: Given debate with NULL transcript column, when get_result with include_transcript=True, then transcript is None without error."""
         debate = _make_debate_row(transcript=None)
 
         repo = DebateRepository(mock_session)
@@ -92,6 +95,7 @@ class TestGetResultTranscriptDeserialization:
     @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_include_transcript_true_with_empty_list(self, mock_session):
+        """[4.3-012] BDD: Given debate with empty JSON array transcript, when get_result with include_transcript=True, then returns empty list."""
         debate = _make_debate_row(transcript="[]")
 
         repo = DebateRepository(mock_session)
@@ -104,6 +108,7 @@ class TestGetResultTranscriptDeserialization:
     @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_corrupt_json_returns_none(self, mock_session):
+        """[4.3-013] BDD: Given debate with corrupt JSON in transcript column, when get_result with include_transcript=True, then transcript is None without throwing."""
         debate = _make_debate_row(transcript="not valid json{")
 
         repo = DebateRepository(mock_session)
@@ -116,6 +121,7 @@ class TestGetResultTranscriptDeserialization:
     @pytest.mark.p1
     @pytest.mark.asyncio
     async def test_missing_content_key_returns_none(self, mock_session):
+        """[4.3-014] BDD: Given transcript JSON with missing content key, when get_result with include_transcript=True, then transcript is None (Pydantic validation failure caught)."""
         debate = _make_debate_row(transcript=json.dumps([{"role": "bull"}]))
 
         repo = DebateRepository(mock_session)
@@ -128,6 +134,7 @@ class TestGetResultTranscriptDeserialization:
     @pytest.mark.p2
     @pytest.mark.asyncio
     async def test_debate_not_found_returns_none(self, mock_session):
+        """[4.3-015] BDD: Given non-existent external_id, when get_result, then returns None."""
         repo = DebateRepository(mock_session)
         with patch.object(repo, "get_by_external_id", return_value=None):
             result = await repo.get_result("nonexistent", include_transcript=True)
@@ -137,6 +144,7 @@ class TestGetResultTranscriptDeserialization:
     @pytest.mark.p2
     @pytest.mark.asyncio
     async def test_transcript_non_list_json_returns_none(self, mock_session):
+        """[4.3-016] BDD: Given transcript JSON that is an object (not array), when get_result with include_transcript=True, then transcript is None."""
         debate = _make_debate_row(
             transcript=json.dumps({"role": "bull", "content": "oops"})
         )
@@ -151,6 +159,7 @@ class TestGetResultTranscriptDeserialization:
     @pytest.mark.p2
     @pytest.mark.asyncio
     async def test_include_transcript_default_is_false(self, mock_session):
+        """[4.3-017] BDD: Given debate with transcript data, when get_result without include_transcript param, then transcript is None (default behavior)."""
         debate = _make_debate_row(
             transcript=json.dumps([{"role": "bull", "content": "hidden"}])
         )

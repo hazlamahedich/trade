@@ -32,25 +32,25 @@ jest.mock("next/navigation", () => ({
 }));
 
 describe("DebateDetailError (error.tsx)", () => {
-  it("[P1] renders error message", () => {
+  it("[P1][4.3-048] given an error, renders 'Something went wrong' heading", () => {
     render(<DebateDetailError error={new Error("test")} reset={jest.fn()} />);
     expect(screen.getByText("Something went wrong")).toBeInTheDocument();
   });
 
-  it("[P1] renders retry CTA button", () => {
+  it("[P1][4.3-049] given an error, renders 'Try Again' button", () => {
     render(<DebateDetailError error={new Error("test")} reset={jest.fn()} />);
     expect(
       screen.getByRole("button", { name: /try again/i }),
     ).toBeInTheDocument();
   });
 
-  it("[P1] retry button has 44px minimum touch target", () => {
+  it("[P1][4.3-050] given retry button, has 44px minimum touch target", () => {
     render(<DebateDetailError error={new Error("test")} reset={jest.fn()} />);
     const button = screen.getByRole("button", { name: /try again/i });
     expect(button.className).toContain("min-h-[44px]");
   });
 
-  it("[P1] retry button calls reset on click", () => {
+  it("[P1][4.3-051] given retry button click, calls reset handler once", () => {
     const reset = jest.fn();
     render(<DebateDetailError error={new Error("test")} reset={reset} />);
     screen.getByRole("button", { name: /try again/i }).click();
@@ -59,12 +59,12 @@ describe("DebateDetailError (error.tsx)", () => {
 });
 
 describe("DebateNotFound (not-found.tsx)", () => {
-  it("[P1] renders Debate Not Found heading", () => {
+  it("[P1][4.3-052] given non-existent debate, renders 'Debate Not Found' heading", () => {
     render(<DebateNotFound />);
     expect(screen.getByText("Debate Not Found")).toBeInTheDocument();
   });
 
-  it("[P1] renders CTA link to debate history", () => {
+  it("[P1][4.3-053] given 404 page, renders CTA link to debate history", () => {
     render(<DebateNotFound />);
     const link = screen.getByRole("link", { name: /view debate history/i });
     expect(link).toBeInTheDocument();
@@ -73,19 +73,19 @@ describe("DebateNotFound (not-found.tsx)", () => {
 });
 
 describe("DebateDetailLoading (loading.tsx)", () => {
-  it("[P1] has aria-busy attribute", () => {
+  it("[P1][4.3-054] given loading state, renders main with aria-busy='true'", () => {
     const { container } = render(<DebateDetailLoading />);
     const main = container.querySelector("main");
     expect(main?.getAttribute("aria-busy")).toBe("true");
   });
 
-  it("[P1] has role=status for screen readers", () => {
+  it("[P1][4.3-055] given loading state, renders main with role='status'", () => {
     const { container } = render(<DebateDetailLoading />);
     const main = container.querySelector("main");
     expect(main?.getAttribute("role")).toBe("status");
   });
 
-  it("[P1] renders skeleton placeholders", () => {
+  it("[P1][4.3-056] given loading state, renders skeleton pulse placeholders", () => {
     const { container } = render(<DebateDetailLoading />);
     const pulses = container.querySelectorAll(".animate-pulse");
     expect(pulses.length).toBeGreaterThan(0);
@@ -93,7 +93,7 @@ describe("DebateDetailLoading (loading.tsx)", () => {
 });
 
 describe("LegacyDebateDetailPage (AC-14 redirect)", () => {
-  it("[P0] issues permanentRedirect to /debates/[externalId]", async () => {
+  it("[P0][4.3-057] given dashboard debate URL, when page loads, then issues permanentRedirect to /debates/[externalId]", async () => {
     const { default: LegacyPage } = await import(
       "@/app/dashboard/debates/[externalId]/page"
     );
