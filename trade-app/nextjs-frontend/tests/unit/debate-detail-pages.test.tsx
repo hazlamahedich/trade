@@ -31,7 +31,13 @@ jest.mock("next/navigation", () => ({
   }),
 }));
 
+const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
 describe("DebateDetailError (error.tsx)", () => {
+  afterEach(() => {
+    consoleErrorSpy.mockClear();
+  });
+
   it("[P1][4.3-048] given an error, renders 'Something went wrong' heading", () => {
     render(<DebateDetailError error={new Error("test")} reset={jest.fn()} />);
     expect(screen.getByText("Something went wrong")).toBeInTheDocument();
@@ -55,6 +61,17 @@ describe("DebateDetailError (error.tsx)", () => {
     render(<DebateDetailError error={new Error("test")} reset={reset} />);
     screen.getByRole("button", { name: /try again/i }).click();
     expect(reset).toHaveBeenCalledTimes(1);
+  });
+
+  it("[P1][4.3-058] given an error, logs error to console with prefix", () => {
+    const error = new Error("fetch failed");
+    error.digest = "abc123";
+    render(<DebateDetailError error={error} reset={jest.fn()} />);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "[DebateDetailError]",
+      "fetch failed",
+      expect.objectContaining({ digest: "abc123" }),
+    );
   });
 });
 

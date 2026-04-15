@@ -130,3 +130,35 @@ describe("getWinnerBadge (imported from util)", () => {
     expect(badge.icon).toBe("—");
   });
 });
+
+describe("JSON-LD sanitization (dangerouslySetInnerHTML)", () => {
+  it("[P1][4.3-059] given structured data containing </script>, when serialized, then script tag is escaped", () => {
+    const data = createMockDebateDetail({
+      guardianVerdict: 'Test</script><script>alert("xss")</script>',
+    });
+    const sd = generateDebateStructuredData(data);
+    const serialized = JSON.stringify(sd).replace(/<\/script/gi, "<\\/script");
+
+    expect(serialized).not.toContain("</script>");
+    expect(serialized).toContain("<\\/script");
+    expect(serialized).toContain("<script>alert");
+  });
+
+  it("[P1][4.3-060] given structured data with normal content, when serialized, then no false-positive escaping", () => {
+    const data = createMockDebateDetail();
+    const sd = generateDebateStructuredData(data);
+    const serialized = JSON.stringify(sd).replace(/<\/script/gi, "<\\/script");
+
+    expect(serialized).not.toContain("<\\/script");
+  });
+
+  it("[P1][4.3-061] given structured data with case-variant SCRIPT tag, when serialized, then still escaped", () => {
+    const data = createMockDebateDetail({
+      guardianVerdict: 'evil</ScRiPt><script>alert(1)</ScRiPt>',
+    });
+    const sd = generateDebateStructuredData(data);
+    const serialized = JSON.stringify(sd).replace(/<\/script/gi, "<\\/script");
+
+    expect(serialized.toLowerCase()).not.toContain("</script>");
+  });
+});

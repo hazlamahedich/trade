@@ -1,11 +1,21 @@
 "use client";
 
+import { useEffect } from "react";
+
 export default function DebateDetailError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    console.error("[DebateDetailError]", error.message, {
+      digest: error.digest,
+      stack: error.stack,
+    });
+  }, [error]);
+
   return (
     <main className="min-h-screen bg-background text-slate-100 flex items-center justify-center">
       <div className="text-center px-4">

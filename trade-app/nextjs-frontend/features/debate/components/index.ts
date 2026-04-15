@@ -21,3 +21,4 @@ export { DebateHistoryError } from "./DebateHistoryError";
 export { DebateHistoryList } from "./DebateHistoryList";
 export { DebateTranscript } from "./DebateTranscript";
 export { ArchivedBadge } from "./ArchivedBadge";
+export { BackToHistoryLink, WatchLiveCTA } from "./DebateDetailClientActions";

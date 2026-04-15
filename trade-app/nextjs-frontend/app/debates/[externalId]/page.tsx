@@ -1,16 +1,18 @@
 import { Metadata } from "next";
-import Link from "next/link";
-import { Shield, ArrowLeft } from "lucide-react";
+import { Shield } from "lucide-react";
 
 import { getDebateDetail } from "@/features/debate/actions/debate-detail-action";
 import { DebateVoteBar } from "@/features/debate/components/DebateVoteBar";
 import { DebateTranscript } from "@/features/debate/components/DebateTranscript";
 import { ArchivedBadge } from "@/features/debate/components/ArchivedBadge";
+import { BackToHistoryLink, WatchLiveCTA } from "@/features/debate/components/DebateDetailClientActions";
 import { extractVotes } from "@/features/debate/api/debate-history";
 import { getWinnerBadge } from "@/features/debate/utils/winner-badge";
 import { generateDebateStructuredData, deriveWinner } from "@/features/debate/utils/structured-data";
 
-export const revalidate = 3600;
+export const DEBATE_DETAIL_ISR_REVALIDATE_SECONDS = 3600;
+
+export const revalidate = DEBATE_DETAIL_ISR_REVALIDATE_SECONDS;
 
 export async function generateStaticParams() {
   return [];
@@ -74,13 +76,7 @@ export default async function DebateDetailPage({
       />
 
       <div className="mx-auto max-w-3xl px-4 py-8">
-        <Link
-          href="/dashboard/debates"
-          className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 mb-6 min-h-[44px] min-w-[44px]"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Back to Debate History
-        </Link>
+        <BackToHistoryLink />
 
         <section aria-label="Debate summary">
           <div className="flex items-center justify-between mb-4">
@@ -110,12 +106,7 @@ export default async function DebateDetailPage({
             />
           </div>
 
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 min-h-[44px]"
-          >
-            Watch Live Debates
-          </Link>
+          <WatchLiveCTA externalId={externalId} />
         </section>
 
         {data.guardianVerdict && (
