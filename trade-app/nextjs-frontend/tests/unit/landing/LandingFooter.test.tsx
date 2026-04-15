@@ -2,12 +2,12 @@ import { render, screen } from "@testing-library/react";
 import { LandingFooter } from "@/features/landing/components/LandingFooter";
 
 describe("[4.4-UNIT-006] LandingFooter", () => {
-  it("renders the brand name", () => {
+  it("given the LandingFooter, when rendered, then it shows the brand name", () => {
     render(<LandingFooter />);
     expect(screen.getByText("AI Trading Debate Lab")).toBeInTheDocument();
   });
 
-  it("renders footer navigation links", () => {
+  it("given the LandingFooter, when rendered, then it shows all navigation links", () => {
     render(<LandingFooter />);
     expect(screen.getByText("Terms of Service")).toBeInTheDocument();
     expect(screen.getByText("Privacy Policy")).toBeInTheDocument();
@@ -15,7 +15,7 @@ describe("[4.4-UNIT-006] LandingFooter", () => {
     expect(screen.getByText("Contact")).toBeInTheDocument();
   });
 
-  it("has footer role", () => {
+  it("given the LandingFooter, when rendered, then it has contentinfo role", () => {
     render(<LandingFooter />);
     const footer = screen.getByRole("contentinfo");
     expect(footer).toBeInTheDocument();

@@ -20,7 +20,7 @@ function getComponentLines(filename: string): number {
 
 describe("[4.4-STYLE] Style guard tests", () => {
   describe("border-white/15 design system compliance", () => {
-    it("DebatePreviewCard uses border-white/15", () => {
+    it("given a DebatePreviewCard, when rendered, then it uses border-white/15 not /10", () => {
       const debate = createRecentDebatePreview();
       const { container } = render(<DebatePreviewCard debate={debate} />);
       const card = container.querySelector("[data-testid='debate-preview-card']");
@@ -28,7 +28,7 @@ describe("[4.4-STYLE] Style guard tests", () => {
       expect(card!.className).not.toContain("border-white/10");
     });
 
-    it("StickyCtaBar uses border-white/15", () => {
+    it("given a StickyCtaBar, when rendered, then it uses border-white/15", () => {
       const { container } = render(<StickyCtaBar />);
       const bar = container.querySelector("[data-testid='sticky-cta-bar']");
       if (bar) {
@@ -38,14 +38,14 @@ describe("[4.4-STYLE] Style guard tests", () => {
   });
 
   describe("text-slate-400 minimum (not text-slate-500)", () => {
-    it("HowItWorksSection step descriptions use text-slate-400 minimum", () => {
+    it("given HowItWorksSection, when rendered, then step descriptions use text-slate-400 minimum", () => {
       const { container } = render(<HowItWorksSection />);
       const slate500s = container.querySelectorAll(".text-slate-500");
       const allowedSlate500 = container.querySelectorAll(".text-xs.text-slate-500");
       expect(slate500s.length - allowedSlate500.length).toBe(0);
     });
 
-    it("ValuePropSection uses text-slate-400 minimum", () => {
+    it("given ValuePropSection, when rendered, then paragraphs use text-slate-400 minimum", () => {
       const { container } = render(<ValuePropSection />);
       const bodyText = container.querySelectorAll("p");
       bodyText.forEach((p) => {
@@ -71,7 +71,7 @@ describe("[4.4-STYLE] Style guard tests", () => {
       "StickyCtaBar.tsx",
     ];
 
-    test.each(files)("%s is <= 300 lines", (filename) => {
+    test.each(files)("given %s, when checked, then it is <= 300 lines", (filename) => {
       const lines = getComponentLines(filename);
       expect(lines).toBeLessThanOrEqual(300);
     });

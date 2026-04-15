@@ -44,7 +44,7 @@ describe("[4.4-UNIT-011-EDGE] getLandingPageData edge cases", () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it("logs error when active endpoint returns non-OK status", async () => {
+  it("given a 500 from active endpoint, when getLandingPageData is called, then it logs an error", async () => {
     mockFetchSequence([
       { ok: false, status: 500, throwError: true },
       { ok: true, json: { data: [], error: null, meta: {} } },
@@ -58,7 +58,7 @@ describe("[4.4-UNIT-011-EDGE] getLandingPageData edge cases", () => {
     );
   });
 
-  it("logs error when active response body is not valid JSON", async () => {
+  it("given a response with invalid JSON body, when getLandingPageData is called, then it logs an error and returns null", async () => {
     mockFetchSequence([
       { ok: true } as { ok: boolean; throwError?: boolean; json?: unknown },
       { ok: true, json: { data: [], error: null, meta: {} } },
@@ -68,7 +68,7 @@ describe("[4.4-UNIT-011-EDGE] getLandingPageData edge cases", () => {
     expect(result.activeDebate).toBeNull();
   });
 
-  it("skips activeDebate when envelope data is null (not undefined)", async () => {
+  it("given envelope with null data (not undefined), when getLandingPageData is called, then it sets activeDebate to null", async () => {
     mockFetchSequence([
       { ok: true, json: { data: null, error: null, meta: {} } },
       { ok: true, json: { data: [], error: null, meta: {} } },
@@ -79,7 +79,7 @@ describe("[4.4-UNIT-011-EDGE] getLandingPageData edge cases", () => {
     expect(result.recentDebates).toEqual([]);
   });
 
-  it("returns recentDebates when active fetch succeeds but recent fetch fails", async () => {
+  it("given active fetch succeeds but recent fetch fails, when getLandingPageData is called, then it returns active debate with empty recent", async () => {
     mockFetchSequence([
       { ok: true, json: { data: mockDebate, error: null, meta: {} } },
       { ok: false, throwError: true },
@@ -90,7 +90,7 @@ describe("[4.4-UNIT-011-EDGE] getLandingPageData edge cases", () => {
     expect(result.recentDebates).toEqual([]);
   });
 
-  it("handles sequential invocations correctly", async () => {
+  it("given successful responses, when getLandingPageData is called sequentially, then it returns consistent results", async () => {
     mockFetchSequence([
       { ok: true, json: { data: mockDebate, error: null, meta: {} } },
       { ok: true, json: { data: mockRecent, error: null, meta: {} } },
@@ -101,7 +101,7 @@ describe("[4.4-UNIT-011-EDGE] getLandingPageData edge cases", () => {
     expect(r1.recentDebates).toEqual(mockRecent);
   });
 
-  it("uses correct endpoint URLs", async () => {
+  it("given API_BASE_URL is set, when getLandingPageData is called, then it uses correct endpoint URLs", async () => {
     mockFetchSequence([
       { ok: true, json: { data: null, error: null, meta: {} } },
       { ok: true, json: { data: [], error: null, meta: {} } },
@@ -114,7 +114,7 @@ describe("[4.4-UNIT-011-EDGE] getLandingPageData edge cases", () => {
     expect(fetchCalls[1][0]).toBe("http://localhost:8000/api/debate/history?status=completed&size=3");
   });
 
-  it("returns empty recentDebates when json.data is not an array", async () => {
+  it("given non-array json.data for recent, when getLandingPageData is called, then it returns empty recentDebates", async () => {
     mockFetchSequence([
       { ok: true, json: { data: null, error: null, meta: {} } },
       { ok: true, json: { data: { not: "array" }, error: null, meta: {} } },

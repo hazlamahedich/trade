@@ -532,3 +532,23 @@ Expanded test coverage from 120 → 177 tests (+57 new). 7 new test files + 1 bu
 - P1: `LiveNowTicker` state machine completeness — unknown status fallback
 - P1: `ActiveDebateSummary` schema — status serializer, camelCase aliases
 - P1: Server action — console.error verification, endpoint URL assertions
+
+### Test Quality Review (2026-04-15)
+
+**Score:** 82/100 (A — Good) | **Recommendation:** Approve with Comments
+
+**Review scope:** 24 files, 177 tests (Frontend Unit, Backend Unit, Integration, E2E)
+
+**Key strengths:**
+- Excellent data factory pattern (`landing-factory.ts`) with spread overrides
+- Comprehensive edge-case files for DebatePreviewCard, VotePreviewBar, LiveNowTicker, server action
+- Strong accessibility testing — jest-axe on every section, aria-live, dual-coding, heading hierarchy
+- Proper test isolation — fetch mock restore, Redis pool reset, DOM cleanup
+- Backend uses real PostgreSQL fixtures (per AGENTS.md lesson #7)
+
+**Follow-up items addressed (this commit):**
+- [x] Adopted BDD Given-When-Then naming across all 19 frontend test files
+- [x] Extracted IntersectionObserver mock to shared fixture (`tests/unit/fixtures/intersection-observer.ts`)
+- [x] Removed confusing `createRecentDebateSummary` wrapper from `LiveNowTicker.edge.test.tsx`
+
+**Full report:** `_bmad-output/test-artifacts/test-review-story-4-4.md`

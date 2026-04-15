@@ -1,37 +1,13 @@
 import { render } from "@testing-library/react";
 import { act } from "react";
 import { StickyCtaBar } from "@/features/landing/components/StickyCtaBar";
-
-function mockIntersectionObserver() {
-  const instances: Array<{
-    callback: IntersectionObserverCallback;
-    observe: jest.Mock;
-    disconnect: jest.Mock;
-  }> = [];
-
-  const MockIO = jest.fn((callback: IntersectionObserverCallback) => ({
-    callback,
-    observe: jest.fn(),
-    disconnect: jest.fn(),
-  }));
-
-  (window.IntersectionObserver as unknown) = MockIO;
-
-  return {
-    MockIO,
-    getInstances: () => instances,
-    getLastInstance: () => {
-      const calls = MockIO.mock.results;
-      return calls.length > 0 ? calls[calls.length - 1].value : null;
-    },
-  };
-}
+import { createIntersectionObserverFixture } from "../fixtures/intersection-observer";
 
 describe("[4.4-UNIT-007] StickyCtaBar", () => {
-  let io: ReturnType<typeof mockIntersectionObserver>;
+  let io: ReturnType<typeof createIntersectionObserverFixture>;
 
   beforeEach(() => {
-    io = mockIntersectionObserver();
+    io = createIntersectionObserverFixture();
     const hero = document.createElement("div");
     hero.setAttribute("data-hero-section", "");
     document.body.appendChild(hero);
@@ -41,7 +17,7 @@ describe("[4.4-UNIT-007] StickyCtaBar", () => {
     document.body.innerHTML = "";
   });
 
-  it("does not render when hero is intersecting", () => {
+  it("given hero is intersecting, when StickyCtaBar renders, then it does not appear", () => {
     const { container } = render(<StickyCtaBar />);
     const instance = io.getLastInstance();
     act(() => {
@@ -50,7 +26,7 @@ describe("[4.4-UNIT-007] StickyCtaBar", () => {
     expect(container.querySelector("[data-testid='sticky-cta-bar']")).toBeNull();
   });
 
-  it("renders after hero exits viewport via IntersectionObserver", () => {
+  it("given hero exits viewport, when IntersectionObserver fires, then the sticky bar appears", () => {
     const { container } = render(<StickyCtaBar />);
     const instance = io.getLastInstance();
     act(() => {
@@ -61,14 +37,14 @@ describe("[4.4-UNIT-007] StickyCtaBar", () => {
     ).toBeInTheDocument();
   });
 
-  it("disconnects observer on unmount", () => {
+  it("given the bar is rendered, when it unmounts, then the observer is disconnected", () => {
     const { unmount } = render(<StickyCtaBar />);
     const instance = io.getLastInstance();
     unmount();
     expect(instance!.disconnect).toHaveBeenCalled();
   });
 
-  it("contains link to /debates", () => {
+  it("given hero exits viewport, when the bar appears, then it contains a link to /debates with 'Enter the Arena' text", () => {
     const { container } = render(<StickyCtaBar />);
     const instance = io.getLastInstance();
     act(() => {
@@ -79,7 +55,7 @@ describe("[4.4-UNIT-007] StickyCtaBar", () => {
     expect(link).toHaveTextContent("Enter the Arena");
   });
 
-  it("has mobile-only visibility class (md:hidden)", () => {
+  it("given hero exits viewport, when the bar appears, then it has mobile-only visibility class (md:hidden)", () => {
     const { container } = render(<StickyCtaBar />);
     const instance = io.getLastInstance();
     act(() => {

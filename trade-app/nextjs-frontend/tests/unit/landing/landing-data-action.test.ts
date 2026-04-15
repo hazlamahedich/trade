@@ -33,7 +33,7 @@ describe("[4.4-UNIT-011] getLandingPageData server action", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("returns active debate and recent debates on success", async () => {
+  it("given successful responses from both endpoints, when getLandingPageData is called, then it returns active debate and recent debates", async () => {
     mockFetchSequence([
       { ok: true, json: { data: mockDebate, error: null, meta: {} } },
       { ok: true, json: { data: mockRecent, error: null, meta: {} } },
@@ -44,7 +44,7 @@ describe("[4.4-UNIT-011] getLandingPageData server action", () => {
     expect(result.recentDebates).toEqual(mockRecent);
   });
 
-  it("returns null activeDebate when API responds with null data", async () => {
+  it("given null data from active endpoint, when getLandingPageData is called, then it returns null activeDebate", async () => {
     mockFetchSequence([
       { ok: true, json: { data: null, error: null, meta: {} } },
       { ok: true, json: { data: [], error: null, meta: {} } },
@@ -55,7 +55,7 @@ describe("[4.4-UNIT-011] getLandingPageData server action", () => {
     expect(result.recentDebates).toEqual([]);
   });
 
-  it("gracefully handles network errors on active endpoint", async () => {
+  it("given a network error on active endpoint, when getLandingPageData is called, then it gracefully returns null activeDebate", async () => {
     mockFetchSequence([
       { ok: false, error: true },
       { ok: true, json: { data: mockRecent, error: null, meta: {} } },
@@ -66,7 +66,7 @@ describe("[4.4-UNIT-011] getLandingPageData server action", () => {
     expect(result.recentDebates).toEqual(mockRecent);
   });
 
-  it("gracefully handles invalid envelope on active endpoint", async () => {
+  it("given an invalid envelope on active endpoint, when getLandingPageData is called, then it gracefully returns null activeDebate", async () => {
     mockFetchSequence([
       { ok: true, json: "not-an-object" },
       { ok: true, json: { data: [], error: null, meta: {} } },
@@ -76,7 +76,7 @@ describe("[4.4-UNIT-011] getLandingPageData server action", () => {
     expect(result.activeDebate).toBeNull();
   });
 
-  it("gracefully handles non-array data for recent debates", async () => {
+  it("given non-array data for recent debates, when getLandingPageData is called, then it returns empty recentDebates", async () => {
     mockFetchSequence([
       { ok: true, json: { data: null, error: null, meta: {} } },
       { ok: true, json: { data: "not-array", error: null, meta: {} } },
@@ -86,7 +86,7 @@ describe("[4.4-UNIT-011] getLandingPageData server action", () => {
     expect(result.recentDebates).toEqual([]);
   });
 
-  it("gracefully handles network errors on recent endpoint", async () => {
+  it("given a network error on recent endpoint, when getLandingPageData is called, then it returns empty recentDebates with active debate intact", async () => {
     mockFetchSequence([
       { ok: true, json: { data: mockDebate, error: null, meta: {} } },
       { ok: false, error: true },
@@ -97,7 +97,7 @@ describe("[4.4-UNIT-011] getLandingPageData server action", () => {
     expect(result.recentDebates).toEqual([]);
   });
 
-  it("returns empty defaults when both endpoints fail", async () => {
+  it("given both endpoints fail, when getLandingPageData is called, then it returns empty defaults", async () => {
     mockFetchSequence([
       { ok: false, error: true },
       { ok: false, error: true },

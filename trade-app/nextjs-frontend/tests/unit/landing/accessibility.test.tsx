@@ -12,7 +12,7 @@ import { createActiveDebateSummary, createRecentDebatePreview } from "../factori
 expect.extend(toHaveNoViolations);
 
 describe("[4.4-A11Y] Accessibility tests", () => {
-  it("skip-to-content link is present", () => {
+  it("given the page shell, when rendered, then a skip-to-content link is present", () => {
     const { container } = render(
       <>
         <a href="#main-content" className="sr-only focus:not-sr-only">
@@ -26,7 +26,7 @@ describe("[4.4-A11Y] Accessibility tests", () => {
     expect(skipLink).toHaveTextContent("Skip to content");
   });
 
-  it("LiveNowTicker has aria-live='polite'", () => {
+  it("given an active debate, when LiveNowTicker renders, then it has aria-live='polite'", () => {
     const debate = createActiveDebateSummary({ status: "active" });
     const { container } = render(<LiveNowTicker activeDebate={debate} />);
     const ticker = container.querySelector("[data-testid='live-now-ticker']");
@@ -34,7 +34,7 @@ describe("[4.4-A11Y] Accessibility tests", () => {
     expect(ticker).toHaveAttribute("role", "status");
   });
 
-  it("LiveNowTicker LIVE badge has both color and text (dual-coding)", () => {
+  it("given an active debate, when LiveNowTicker renders, then the LIVE badge has both color and text (dual-coding)", () => {
     const debate = createActiveDebateSummary({ status: "active" });
     render(<LiveNowTicker activeDebate={debate} />);
     const liveText = screen.getByText("LIVE");
@@ -42,7 +42,7 @@ describe("[4.4-A11Y] Accessibility tests", () => {
     expect(liveText.className).toContain("text-emerald-400");
   });
 
-  it("heading hierarchy — single h1 in HeroSection, h2s in sections", () => {
+  it("given all sections, when rendered, then there is a single h1 in HeroSection and h2s in child sections", () => {
     const { container } = render(
       <>
         <HeroSection />
@@ -57,13 +57,13 @@ describe("[4.4-A11Y] Accessibility tests", () => {
     expect(h2s.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("CTA links have min-h-[44px] for touch targets", () => {
+  it("given the HeroSection, when rendered, then CTA links have min-h-[44px] for touch targets", () => {
     render(<HeroSection />);
     const cta = screen.getByRole("link", { name: /see it in action/i });
     expect(cta.className).toContain("min-h-[44px]");
   });
 
-  it("semantic landmarks — main, section, footer", () => {
+  it("given all page sections, when rendered, then semantic landmarks (main, section, footer) are present", () => {
     const debates = [createRecentDebatePreview()];
     const { container } = render(
       <>
@@ -80,44 +80,44 @@ describe("[4.4-A11Y] Accessibility tests", () => {
     expect(container.querySelector("footer")).toBeInTheDocument();
   });
 
-  it("HeroSection has no axe violations", async () => {
+  it("given the HeroSection, when rendered, then it has no axe violations", async () => {
     const { container } = render(<HeroSection />);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
 
-  it("HowItWorksSection has no axe violations", async () => {
+  it("given the HowItWorksSection, when rendered, then it has no axe violations", async () => {
     const { container } = render(<HowItWorksSection />);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
 
-  it("ValuePropSection has no axe violations", async () => {
+  it("given the ValuePropSection, when rendered, then it has no axe violations", async () => {
     const { container } = render(<ValuePropSection />);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
 
-  it("DisclaimerBanner has no axe violations", async () => {
+  it("given the DisclaimerBanner, when rendered, then it has no axe violations", async () => {
     const { container } = render(<DisclaimerBanner />);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
 
-  it("LandingFooter has no axe violations", async () => {
+  it("given the LandingFooter, when rendered, then it has no axe violations", async () => {
     const { container } = render(<LandingFooter />);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
 
-  it("LiveNowTicker live state has no axe violations", async () => {
+  it("given an active debate, when LiveNowTicker renders in live state, then it has no axe violations", async () => {
     const debate = createActiveDebateSummary({ status: "active" });
     const { container } = render(<LiveNowTicker activeDebate={debate} />);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
 
-  it("RecentDebatesSection has no axe violations", async () => {
+  it("given debate data, when RecentDebatesSection renders, then it has no axe violations", async () => {
     const debates = [createRecentDebatePreview()];
     const { container } = render(<RecentDebatesSection debates={debates} />);
     const results = await axe(container);
