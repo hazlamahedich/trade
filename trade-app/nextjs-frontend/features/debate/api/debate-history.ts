@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getApiBaseUrl } from "@/lib/api/config";
 
 const debateHistoryItemSchema = z.object({
   externalId: z.string(),
@@ -29,14 +30,6 @@ const debateHistoryResponseSchema = z.object({
 export type DebateHistoryResponse = z.infer<
   typeof debateHistoryResponseSchema
 >;
-
-export function getApiBaseUrl(): string {
-  const url = process.env.API_BASE_URL;
-  if (!url) {
-    throw new Error("API_BASE_URL env var is not set");
-  }
-  return url;
-}
 
 export function extractVotes(voteBreakdown: Record<string, number>): {
   bullVotes: number;

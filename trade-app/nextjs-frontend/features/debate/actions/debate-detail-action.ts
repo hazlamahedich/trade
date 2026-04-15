@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { notFound } from "next/navigation";
-import { getApiBaseUrl } from "@/features/debate/api/debate-history";
+import { getApiBaseUrl } from "@/lib/api/config";
 import type { DebateDetailData } from "@/features/debate/types/debate-detail";
 
 const transcriptMessageSchema = z.object({

@@ -98,3 +98,21 @@ class StandardDebateHistoryResponse(BaseModel):
     data: list[DebateHistoryItem]
     error: DebateErrorResponse | None = None
     meta: DebateHistoryMeta
+
+
+class ActiveDebateSummary(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str = Field(serialization_alias="id")
+    asset: str
+    status: str
+    started_at: datetime = Field(serialization_alias="startedAt")
+    viewer_count: int | None = Field(None, serialization_alias="viewerCount")
+
+
+class StandardActiveDebateResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    data: ActiveDebateSummary | None = None
+    error: DebateErrorResponse | None = None
+    meta: DebateMeta | dict[str, Any] = {}

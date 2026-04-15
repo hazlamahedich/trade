@@ -1,0 +1,27 @@
+import { generateMetadata } from "@/app/page";
+
+describe("[4.4-UNIT-012] generateMetadata", () => {
+  it("returns title containing 'AI Trading Debate'", () => {
+    const meta = generateMetadata();
+    expect(meta.title).toContain("AI Trading Debate");
+  });
+
+  it("returns a non-empty description", () => {
+    const meta = generateMetadata();
+    expect(typeof meta.description).toBe("string");
+    expect((meta.description as string).length).toBeGreaterThan(10);
+  });
+
+  it("includes openGraph metadata with type website", () => {
+    const meta = generateMetadata();
+    expect(meta.openGraph).toBeDefined();
+    expect(meta.openGraph!.type).toBe("website");
+    expect(meta.openGraph!.title).toBe(meta.title);
+  });
+
+  it("includes twitter card metadata", () => {
+    const meta = generateMetadata();
+    expect(meta.twitter).toBeDefined();
+    expect(meta.twitter!.card).toBe("summary_large_image");
+  });
+});

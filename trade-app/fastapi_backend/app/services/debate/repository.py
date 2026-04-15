@@ -10,7 +10,7 @@ from app.services.debate.vote_schemas import (
     DebateResultResponse,
     VoteResponse,
 )
-from app.services.debate.schemas import DebateHistoryItem
+from app.services.debate.schemas import DebateHistoryItem, ActiveDebateSummary
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
@@ -158,6 +158,25 @@ class DebateRepository:
             total_votes=total_votes,
             vote_breakdown=vote_breakdown,
             transcript=transcript,
+        )
+
+    async def get_active_debate(self) -> ActiveDebateSummary | None:
+        stmt = (
+            select(Debate)
+            .where(Debate.status == "running")
+            .order_by(Debate.created_at.desc())
+            .limit(1)
+        )
+        result = await self.session.execute(stmt)
+        debate = result.scalar_one_or_none()
+        if debate is None:
+            return None
+        return ActiveDebateSummary(
+            id=debate.external_id,
+            asset=debate.asset,
+            status=debate.status,
+            started_at=debate.created_at,
+            viewer_count=None,
         )
 
     async def has_existing_vote(self, debate_id: UUID, voter_fingerprint: str) -> bool:

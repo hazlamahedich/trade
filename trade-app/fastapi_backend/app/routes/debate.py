@@ -4,7 +4,7 @@ import logging
 import math
 import time
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Response
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +16,7 @@ from app.services.debate.schemas import (
     DebateMeta,
     StandardDebateHistoryResponse,
     DebateHistoryMeta,
+    StandardActiveDebateResponse,
     SUPPORTED_ASSETS,
 )
 from app.services.debate.vote_schemas import (
@@ -169,6 +170,62 @@ async def get_debate_history(
         data=items,
         error=None,
         meta=DebateHistoryMeta(page=page, size=size, total=total, pages=pages),
+    )
+
+
+@router.get("/active", response_model=StandardActiveDebateResponse)
+async def get_active_debate(
+    response: Response,
+    session: AsyncSession = Depends(get_async_session),
+) -> StandardActiveDebateResponse:
+    start_time = time.time()
+
+    from app.services.debate.cache import (
+        get_cached_active_debate,
+        set_cached_active_debate,
+    )
+
+    cached = await get_cached_active_debate()
+    if cached is not None:
+        latency_ms = int((time.time() - start_time) * 1000)
+        response.headers["Cache-Control"] = (
+            "public, s-maxage=15, stale-while-revalidate=30"
+        )
+        from app.services.debate.schemas import ActiveDebateSummary as _ADS
+
+        data = _ADS.model_validate(cached) if cached else None
+        return StandardActiveDebateResponse(
+            data=data,
+            error=None,
+            meta=DebateMeta(latency_ms=latency_ms),
+        )
+        from app.services.debate.schemas import ActiveDebateSummary
+
+        data = ActiveDebateSummary(**cached) if cached else None
+        return StandardActiveDebateResponse(
+            data=data,
+            error=None,
+            meta=DebateMeta(latency_ms=latency_ms),
+        )
+        return StandardActiveDebateResponse(
+            data=cached if cached != "null" else None,
+            error=None,
+            meta=DebateMeta(latency_ms=latency_ms),
+        )
+
+    repo = DebateRepository(session)
+    result = await repo.get_active_debate()
+
+    data_dict = result.model_dump(by_alias=True) if result else None
+    await set_cached_active_debate(data_dict)
+
+    latency_ms = int((time.time() - start_time) * 1000)
+    response.headers["Cache-Control"] = "public, s-maxage=15, stale-while-revalidate=30"
+
+    return StandardActiveDebateResponse(
+        data=result,
+        error=None,
+        meta=DebateMeta(latency_ms=latency_ms),
     )
 
 

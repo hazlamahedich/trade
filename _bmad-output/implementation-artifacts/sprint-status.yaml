@@ -1,4 +1,5 @@
 # generated: 2026-02-18
+# last_updated: 2026-04-15 (story 4-4 review)
 # project: trade
 # project_key: NOKEY
 # tracking_system: file-system
@@ -75,7 +76,7 @@ development_status:
   4-2a-debate-history-backend-api: done
   4-2b-debate-history-frontend-the-archive: done
   4-3-static-debate-page-seo: done
-  4-4-high-conversion-landing-page: backlog
+  4-4-high-conversion-landing-page: review
   epic-4-retrospective: optional
 
   epic-5: backlog

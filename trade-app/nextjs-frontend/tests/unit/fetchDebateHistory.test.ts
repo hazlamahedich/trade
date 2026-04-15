@@ -1,4 +1,5 @@
-import { getApiBaseUrl, fetchDebateHistory, extractVotes } from "@/features/debate/api/debate-history";
+import { fetchDebateHistory, extractVotes } from "@/features/debate/api/debate-history";
+import { getApiBaseUrl } from "@/lib/api/config";
 
 const originalEnv = process.env;
 
