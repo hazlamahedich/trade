@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 export default async function LegacyDebateDetailPage({
   params,
@@ -6,5 +6,5 @@ export default async function LegacyDebateDetailPage({
   params: Promise<{ externalId: string }>;
 }) {
   const { externalId } = await params;
-  redirect(`/debates/${externalId}`);
+  permanentRedirect(`/debates/${externalId}`);
 }

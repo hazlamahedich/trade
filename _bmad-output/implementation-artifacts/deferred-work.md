@@ -1,5 +1,13 @@
 # Deferred Work
 
+## Deferred from: code review of 4-3-static-debate-page-seo (2026-04-15)
+
+- Error boundary doesn't log the error — `error.tsx` receives `error` prop but never logs it. Pre-existing pattern from other error boundaries.
+- Array index as React key in transcript — Harmless for static archived data but anti-pattern if messages ever reorder.
+- TranscriptMessage schema allows empty strings — Both backend and frontend accept empty `role`/`content`, producing blank cards. Pre-existing pattern.
+- Corrupt transcript silently discarded — Parse errors return `transcript=None` with no distinction from absent data. Would aid debugging.
+- generateMetadata swallows all errors as "Not Found" — Network errors produce misleading page title. Not user-facing for ISR pages.
+
 ## Deferred from: code review of 2-3-guardian-ui-overlay-the-freeze (2026-04-10)
 
 - handleDebatePaused is a typed no-op still wired to socket [DebateStream.tsx:260] — pre-existing from Story 2.2 cleanup, not caused by this change

@@ -37,6 +37,12 @@ interface StructuredData {
   };
 }
 
+function safeToISOString(value: string | null | undefined): string {
+  if (!value) return new Date().toISOString();
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+}
+
 export function generateDebateStructuredData(
   data: DebateDetailData,
 ): StructuredData {
@@ -49,8 +55,8 @@ export function generateDebateStructuredData(
     "@context": "https://schema.org",
     "@type": "DiscussionForumPosting",
     headline: `Bull vs Bear on ${asset}`,
-    datePublished: new Date(data.createdAt).toISOString(),
-    dateModified: new Date(data.completedAt ?? data.createdAt).toISOString(),
+    datePublished: safeToISOString(data.createdAt),
+    dateModified: safeToISOString(data.completedAt ?? data.createdAt),
     author: [
       {
         "@type": "Person",

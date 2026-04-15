@@ -1,6 +1,6 @@
 # Story 4.3: Static Debate Page (SEO)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -466,6 +466,27 @@ Claude Sonnet 4 (claude-sonnet-4-20250514) via opencode
 - `trade-app/nextjs-frontend/features/debate/components/index.ts`
 - `trade-app/nextjs-frontend/tests/unit/DebateHistoryCard.test.tsx`
 
+### Review Findings
+
+- [x] [Review][Decision] AC-13 Violation: Transcript always fetched unconditionally — **Dismissed.** Server action is the authorized consumer; backend gating is correct. Dashboard consumers don't pass the param.
+- [x] [Review][Patch] XSS via `dangerouslySetInnerHTML` with unsanitized JSON-LD — **Fixed.** Added `.replace(/<\/script/gi, "<\\/script")` to prevent script tag breakout. [page.tsx:71]
+- [x] [Review][Patch] AC-14 Violation: `redirect()` produces 307 (Temporary), not 301 (Permanent) — **Fixed.** Changed to `permanentRedirect()`. [app/dashboard/debates/[externalId]/page.tsx]
+- [x] [Review][Patch] `DebateVoteBar` rounds two percentages independently, can produce negative third — **Fixed.** Now rounds `bullPct` and `undecidedPct`, derives `bearPct = 100 - bullPct - undecidedPct`. [DebateVoteBar.tsx:36-38]
+- [x] [Review][Patch] Non-bull transcript roles silently rendered as bear avatar — **Fixed.** Added explicit handling for guardian and other roles with distinct labels and styling. [DebateTranscript.tsx]
+- [x] [Review][Patch] `new Date(invalidString).toISOString()` throws RangeError — **Fixed.** Added `safeToISOString()` helper with `isNaN()` guard. [structured-data.ts]
+- [x] [Review][Patch] Pydantic `ValidationError` not caught in transcript deserialization — **Fixed.** Added `ValueError` to exception tuple (catches Pydantic validation failures). [repository.py:141]
+- [x] [Review][Patch] Duplicate type definitions will drift — **Dismissed.** `types/debate-detail.ts` IS the source of truth. The Zod schema is runtime validation only. No drift exists.
+- [x] [Review][Patch] Unsafe type assertion without runtime check — **Fixed.** Combined with falsy check fix: now validates `typeof json === "object" && json !== null && "data" in json`. [debate-detail-action.ts:67-68]
+- [x] [Review][Patch] `!envelope.data` is falsy check not existence check — **Fixed.** Replaced with `"data" in json` check. [debate-detail-action.ts:83]
+- [x] [Review][Patch] Loading skeleton missing `aria-busy` — **Fixed.** Added `aria-busy="true"` and `role="status"`. [loading.tsx]
+- [x] [Review][Patch] Server action fetch has no timeout/abort signal — **Fixed.** Added `AbortController` with 10s timeout. [debate-detail-action.ts:44]
+- [x] [Review][Defer] Error boundary doesn't log the error — `error.tsx` receives `error` prop but never logs it. Pre-existing pattern from other error boundaries. [error.tsx:8]
+- [x] [Review][Defer] Array index as React key in transcript — Harmless for static archived data but anti-pattern if messages ever reorder. [DebateTranscript.tsx:52,60]
+- [x] [Review][Defer] TranscriptMessage schema allows empty strings — Both backend and frontend accept empty `role`/`content`, producing blank cards. Pre-existing pattern, not specific to this story. [vote_schemas.py:11-12, debate-detail-action.ts:9]
+- [x] [Review][Defer] Corrupt transcript silently discarded — Parse errors return `transcript=None` with no distinction from absent data. Would aid debugging but not user-facing. [repository.py:133-141]
+- [x] [Review][Defer] generateMetadata swallows all errors as "Not Found" — Network errors produce misleading page title. Not user-facing for ISR pages. [page.tsx:26-30]
+
 ### Change Log
 
 - 2026-04-15: Story 4.3 implementation complete. All tasks 0-13 done. Task 14 (E2E) deferred. Backend: 8 tests passing. Frontend: 19 new tests, 501 total passing. 0 regressions. Status → review.
+- 2026-04-15: Code review — 10 patches applied (2 dismissed), 5 deferred. Backend: 8 tests passing. Frontend: 35 tests passing (story + history card). Status → done.

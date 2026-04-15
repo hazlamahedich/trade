@@ -1,6 +1,6 @@
 export default function DebateDetailLoading() {
   return (
-    <main className="min-h-screen bg-background text-slate-100">
+    <main className="min-h-screen bg-background text-slate-100" aria-busy="true" role="status">
       <div className="mx-auto max-w-3xl px-4 py-8">
         <div className="h-4 w-32 animate-pulse rounded bg-white/10 mb-6" />
         <div className="flex items-center justify-between mb-4">

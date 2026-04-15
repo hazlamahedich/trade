@@ -69,7 +69,7 @@ export default async function DebateDetailPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData),
+          __html: JSON.stringify(structuredData).replace(/<\/script/gi, "<\\/script"),
         }}
       />
 

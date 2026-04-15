@@ -41,10 +41,23 @@ export async function getDebateDetail(
   );
   url.searchParams.set("include_transcript", "true");
 
-  const response = await fetch(url.toString(), {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+    });
+  } catch (err) {
+    throw new Error(
+      `Network failure fetching debate ${externalId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (response.status === 404) {
     notFound();
@@ -67,12 +80,11 @@ export async function getDebateDetail(
 
   const json: unknown = await response.json();
 
-  let parsed: z.SafeParseReturnType<unknown, { data: DebateDetailData }>;
-  try {
-    parsed = debateDetailResponseSchema.safeParse(json);
-  } catch {
-    throw new Error("Invalid response shape from debate detail API");
+  if (typeof json !== "object" || json === null || !("data" in json)) {
+    throw new Error("Missing data envelope in response from debate detail API");
   }
+
+  const parsed = debateDetailResponseSchema.safeParse(json);
 
   if (!parsed.success) {
     throw new Error("Invalid response shape from debate detail API");

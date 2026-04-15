@@ -48,22 +48,29 @@ export function DebateTranscript({ messages }: DebateTranscriptProps) {
 }
 
 function TranscriptMessageCard({ message }: { message: TranscriptMessage }) {
-  const isBull = message.role.toLowerCase() === "bull";
+  const role = message.role.toLowerCase();
+  const isBull = role === "bull";
+  const isBear = role === "bear";
+  const isGuardian = role === "guardian" || role === "risk_guardian";
+  const displayRole = isBull ? "bull" : isBear ? "bear" : isGuardian ? "guardian" : role;
+  const label = isBull ? "Bull Agent" : isBear ? "Bear Agent" : isGuardian ? "Risk Guardian" : role;
+
+  const avatarAgent = isBull ? "bull" as const : "bear" as const;
 
   return (
     <div
       className={`flex gap-3 ${isBull ? "" : "flex-row-reverse"}`}
     >
       <div className="shrink-0 pt-1">
-        <AgentAvatar agent={isBull ? "bull" : "bear"} size="sm" />
+        <AgentAvatar agent={avatarAgent} size="sm" />
       </div>
       <div
         className={`rounded-lg border border-white/15 bg-white/5 p-3 max-w-[80%] ${
-          isBull ? "border-l-emerald-500/30 border-l-2" : "border-r-rose-500/30 border-r-2"
+          isBull ? "border-l-emerald-500/30 border-l-2" : isBear ? "border-r-rose-500/30 border-r-2" : "border-l-amber-500/30 border-l-2"
         }`}
       >
         <p className="text-xs font-semibold text-slate-400 mb-1">
-          {isBull ? "Bull Agent" : "Bear Agent"}
+          {label}
         </p>
         <p className="text-sm text-slate-200">{message.content}</p>
       </div>

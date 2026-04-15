@@ -138,7 +138,7 @@ class DebateRepository:
                 transcript = [
                     {"role": msg["role"], "content": msg["content"]} for msg in raw
                 ]
-            except (json.JSONDecodeError, KeyError, TypeError):
+            except (json.JSONDecodeError, KeyError, TypeError, ValueError):
                 logger.warning(
                     "Failed to deserialize transcript for debate %s",
                     external_id,
