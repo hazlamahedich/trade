@@ -84,7 +84,7 @@ describe("DebateHistoryCard", () => {
   it("[P0] navigates to debate detail page", () => {
     render(<DebateHistoryCard debate={createDebateHistoryItem()} />);
     const link = screen.getByRole("link");
-    expect(link).toHaveAttribute("href", "/dashboard/debates/test-123");
+    expect(link).toHaveAttribute("href", "/debates/test-123");
   });
 
   it("[P0] renders with 0 votes without crashing", () => {

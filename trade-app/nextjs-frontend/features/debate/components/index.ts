@@ -19,3 +19,5 @@ export { DebateHistoryEmpty } from "./DebateHistoryEmpty";
 export { DebateHistorySkeleton } from "./DebateHistorySkeleton";
 export { DebateHistoryError } from "./DebateHistoryError";
 export { DebateHistoryList } from "./DebateHistoryList";
+export { DebateTranscript } from "./DebateTranscript";
+export { ArchivedBadge } from "./ArchivedBadge";

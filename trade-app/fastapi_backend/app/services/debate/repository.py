@@ -1,3 +1,4 @@
+import json
 import logging
 from uuid import UUID
 
@@ -114,7 +115,9 @@ class DebateRepository:
         await self.session.refresh(debate)
         return debate
 
-    async def get_result(self, external_id: str) -> DebateResultResponse | None:
+    async def get_result(
+        self, external_id: str, include_transcript: bool = False
+    ) -> DebateResultResponse | None:
         debate = await self.get_by_external_id(external_id)
         if debate is None:
             return None
@@ -128,6 +131,20 @@ class DebateRepository:
         vote_breakdown = {row[0]: row[1] for row in vote_result}
         total_votes = sum(vote_breakdown.values())
 
+        transcript = None
+        if include_transcript and debate.transcript:
+            try:
+                raw: list[dict[str, str]] = json.loads(debate.transcript)
+                transcript = [
+                    {"role": msg["role"], "content": msg["content"]} for msg in raw
+                ]
+            except (json.JSONDecodeError, KeyError, TypeError):
+                logger.warning(
+                    "Failed to deserialize transcript for debate %s",
+                    external_id,
+                )
+                transcript = None
+
         return DebateResultResponse(
             debate_id=debate.external_id,
             asset=debate.asset,
@@ -140,6 +157,7 @@ class DebateRepository:
             completed_at=debate.completed_at,
             total_votes=total_votes,
             vote_breakdown=vote_breakdown,
+            transcript=transcript,
         )
 
     async def has_existing_vote(self, debate_id: UUID, voter_fingerprint: str) -> bool:

@@ -5,6 +5,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 VALID_VOTE_CHOICES = {"bull", "bear", "undecided"}
 
 
+class TranscriptMessage(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    role: str
+    content: str
+
+
 class VoteRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -56,6 +63,9 @@ class DebateResultResponse(BaseModel):
     total_votes: int = Field(0, serialization_alias="totalVotes")
     vote_breakdown: dict[str, int] = Field(
         default_factory=dict, serialization_alias="voteBreakdown"
+    )
+    transcript: list[TranscriptMessage] | None = Field(
+        default=None, serialization_alias="transcript"
     )
 
 

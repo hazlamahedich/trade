@@ -175,11 +175,12 @@ async def get_debate_history(
 @router.get("/{debate_id}/result", response_model=StandardDebateResultResponse)
 async def get_debate_result(
     debate_id: str,
+    include_transcript: bool = Query(False),
     session: AsyncSession = Depends(get_async_session),
 ) -> StandardDebateResultResponse:
     start_time = time.time()
     repo = DebateRepository(session)
-    result = await repo.get_result(debate_id)
+    result = await repo.get_result(debate_id, include_transcript=include_transcript)
     if result is None:
         raise HTTPException(
             status_code=404,

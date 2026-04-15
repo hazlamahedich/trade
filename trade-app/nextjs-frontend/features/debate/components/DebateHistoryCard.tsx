@@ -4,45 +4,8 @@ import { Shield } from "lucide-react";
 import { DebateVoteBar } from "./DebateVoteBar";
 import { extractVotes } from "@/features/debate/api/debate-history";
 import { formatRelativeTime } from "@/features/debate/utils/format-time";
+import { getWinnerBadge } from "@/features/debate/utils/winner-badge";
 import type { DebateHistoryItem } from "@/features/debate/types/debate-history";
-
-type WinnerBadge = {
-  label: string;
-  icon: string;
-  colorClass: string;
-};
-
-function getWinnerBadge(winner: string): WinnerBadge {
-  switch (winner.toLowerCase()) {
-    case "bull":
-      return {
-        label: "Bull",
-        icon: "▲",
-        colorClass:
-          "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-      };
-    case "bear":
-      return {
-        label: "Bear",
-        icon: "▼",
-        colorClass: "bg-rose-500/20 text-rose-400 border-rose-500/30",
-      };
-    case "undecided":
-      return {
-        label: "Undecided",
-        icon: "?",
-        colorClass:
-          "bg-slate-500/20 text-slate-400 border-slate-500/30",
-      };
-    default:
-      return {
-        label: "Unknown",
-        icon: "—",
-        colorClass:
-          "bg-slate-500/20 text-slate-400 border-slate-500/30",
-      };
-  }
-}
 
 interface DebateHistoryCardProps {
   debate: DebateHistoryItem;
@@ -58,7 +21,7 @@ export function DebateHistoryCard({
 
   return (
     <article aria-label={`Debate for ${debate.asset}`}>
-      <Link href={`/dashboard/debates/${debate.externalId}`}>
+      <Link href={`/debates/${debate.externalId}`}>
         <div className="rounded-lg border border-white/15 bg-white/5 p-4 hover:bg-white/[0.08] transition-colors">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xl font-bold text-slate-100">
