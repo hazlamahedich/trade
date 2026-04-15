@@ -490,3 +490,4 @@ Claude Sonnet 4 (claude-sonnet-4-20250514) via opencode
 
 - 2026-04-15: Story 4.3 implementation complete. All tasks 0-13 done. Task 14 (E2E) deferred. Backend: 8 tests passing. Frontend: 19 new tests, 501 total passing. 0 regressions. Status → review.
 - 2026-04-15: Code review — 10 patches applied (2 dismissed), 5 deferred. Backend: 8 tests passing. Frontend: 35 tests passing (story + history card). Status → done.
+- 2026-04-15: Test automation expansion (testarch-automate). +31 new tests: 22 frontend, 9 backend. Total story 4.3 coverage: 66 tests, 100% pass. New files: `debate-detail-pages.test.tsx` (error/not-found/loading/redirect), `test_repository_transcript.py` (repo deserialization edge cases). Expanded `DebateDetail.test.tsx` with guardian roles, accessibility, structured data edge cases. Deferred: server action & generateMetadata tests require E2E (Task 14). Summary at `_bmad-output/test-artifacts/automation-summary-story-4-3.md`.

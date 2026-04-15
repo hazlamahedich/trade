@@ -80,6 +80,40 @@ describe("generateDebateStructuredData", () => {
     const sd = generateDebateStructuredData(data);
     expect(sd.dateModified).toBe(new Date(data.createdAt).toISOString());
   });
+
+  it("[P1] handles invalid date string safely", () => {
+    const data = createMockDebateDetail({ createdAt: "not-a-date" });
+    const sd = generateDebateStructuredData(data);
+    expect(sd.datePublished).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it("[P1] description does not contain undefined with null verdict", () => {
+    const data = createMockDebateDetail({ guardianVerdict: null });
+    const sd = generateDebateStructuredData(data);
+    expect(sd.description).not.toContain("undefined");
+    expect(sd.description).not.toContain("null");
+    expect(sd.description).toContain("AI debate analysis on BTC");
+  });
+
+  it("[P2] interactionStatistic uses LikeAction type", () => {
+    const data = createMockDebateDetail();
+    const sd = generateDebateStructuredData(data);
+    expect(sd.interactionStatistic.interactionType).toBe(
+      "https://schema.org/LikeAction",
+    );
+    expect(sd.interactionStatistic["@type"]).toBe("InteractionCounter");
+  });
+
+  it("[P2] authors have correct disambiguatingDescription", () => {
+    const data = createMockDebateDetail();
+    const sd = generateDebateStructuredData(data);
+    expect(sd.author[0].disambiguatingDescription).toBe(
+      "AI trading analysis agent",
+    );
+    expect(sd.author[1].disambiguatingDescription).toBe(
+      "AI trading analysis agent",
+    );
+  });
 });
 
 describe("getWinnerBadge (imported from util)", () => {
@@ -97,6 +131,18 @@ describe("getWinnerBadge (imported from util)", () => {
   it("[P1] handles mixed case", () => {
     const badge = getWinnerBadge("BULL");
     expect(badge.label).toBe("Bull");
+  });
+
+  it("[P1] returns undecided badge", () => {
+    const badge = getWinnerBadge("undecided");
+    expect(badge.label).toBe("Undecided");
+    expect(badge.icon).toBe("?");
+  });
+
+  it("[P2] returns unknown badge for unrecognized winner", () => {
+    const badge = getWinnerBadge("invalid_value");
+    expect(badge.label).toBe("Unknown");
+    expect(badge.icon).toBe("—");
   });
 });
 
@@ -165,5 +211,49 @@ describe("DebateTranscript", () => {
     );
     render(<DebateTranscript messages={messages} />);
     expect(screen.queryByText(/Show full transcript/)).not.toBeInTheDocument();
+  });
+
+  it("[P1] renders guardian role with correct label", () => {
+    const messages = [
+      createMockTranscriptMessage("guardian", "High risk detected"),
+    ];
+    render(<DebateTranscript messages={messages} />);
+    expect(screen.getByText("Risk Guardian")).toBeInTheDocument();
+    expect(screen.getByText("High risk detected")).toBeInTheDocument();
+  });
+
+  it("[P1] renders risk_guardian role variant", () => {
+    const messages = [
+      createMockTranscriptMessage("risk_guardian", "Caution advised"),
+    ];
+    render(<DebateTranscript messages={messages} />);
+    expect(screen.getByText("Risk Guardian")).toBeInTheDocument();
+  });
+
+  it("[P2] renders unknown role as-is", () => {
+    const messages = [
+      createMockTranscriptMessage("analyst", "Custom analysis"),
+    ];
+    render(<DebateTranscript messages={messages} />);
+    expect(screen.getByText("analyst")).toBeInTheDocument();
+    expect(screen.getByText("Custom analysis")).toBeInTheDocument();
+  });
+
+  it("[P2] disclosure shows correct count for 7 messages", () => {
+    const messages = Array.from({ length: 7 }, (_, i) =>
+      createMockTranscriptMessage("bull", `Msg ${i}`),
+    );
+    render(<DebateTranscript messages={messages} />);
+    expect(
+      screen.getByText("Show full transcript (1 more messages)"),
+    ).toBeInTheDocument();
+  });
+
+  it("[P2] section has role=log for accessibility", () => {
+    const messages = [createMockTranscriptMessage("bull", "Test")];
+    const { container } = render(<DebateTranscript messages={messages} />);
+    const section = container.querySelector('[role="log"]');
+    expect(section).toBeInTheDocument();
+    expect(section?.getAttribute("aria-label")).toBe("Debate transcript");
   });
 });
