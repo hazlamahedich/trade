@@ -506,3 +506,29 @@ Key learnings from Story 4.3 (Static Debate Page):
 - [x] [Review][Patch] `<h3>` elements in HowItWorksSection — changed to `<p>` with same styling [`HowItWorksSection.tsx:21,35,49`]
 - [x] [Review][Patch] Corrupted Redis cache — wrapped in try/except with graceful fallback to None [`debate.py:196`]
 - [x] [Review][Patch] `totalVotes || 1` falsy coalescing — split into `displayVotes` and `totalVotes` with proper pluralization [`DebatePreviewCard.tsx:11,53`]
+
+### Test Automation Expansion (2026-04-15)
+
+Expanded test coverage from 120 → 177 tests (+57 new). 7 new test files + 1 bug fix.
+
+**New test files:**
+
+| File | Tests | Target |
+|------|-------|--------|
+| `tests/unit/landing/server-action-helpers.test.ts` | 17 | `fetchWithTimeout` + `isValidEnvelope` — shared utilities with 0 prior tests |
+| `tests/unit/landing/DebatePreviewCard.edge.test.tsx` | 11 | Zero-votes, rounding, winner colors, touch targets |
+| `tests/unit/landing/VotePreviewBar.edge.test.tsx` | 7 | Extremes (0/100%), undecided prop, styling classes |
+| `tests/unit/landing/LiveNowTicker.edge.test.tsx` | 9 | Unknown status → empty, state exclusion, aria-hidden, asset uppercase |
+| `tests/unit/landing/landing-data-action.edge.test.ts` | 7 | Error logging, URL verification, non-array data guard |
+| `tests/services/debate/test_active_debate_cache.py` | 11 | Redis get/set/null sentinel/error paths/singleton/TTL |
+| `tests/services/debate/test_active_debate_schema.py` | 8 | Status mapping (`running`→`active`), camelCase aliases, null viewerCount |
+
+**Bug fixed:** `VotePreviewBar.test.tsx` — existing test expected 3 children without passing `undecidedPct` prop (component doesn't auto-calculate undecided from bull+bear). Fixed to pass explicit prop.
+
+**Coverage gaps addressed:**
+- P0: `fetchWithTimeout` and `isValidEnvelope` (shared utilities used across features)
+- P0: Redis cache module (`cache.py`) — null sentinel, error handling, singleton pattern
+- P1: `DebatePreviewCard` computation edge cases — zero-votes, percentage rounding (AGENTS.md lesson #10)
+- P1: `LiveNowTicker` state machine completeness — unknown status fallback
+- P1: `ActiveDebateSummary` schema — status serializer, camelCase aliases
+- P1: Server action — console.error verification, endpoint URL assertions
