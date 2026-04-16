@@ -1,17 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useDebateMessages, type ArgumentMessage } from "../hooks/useDebateMessages";
 import { useVote } from "../hooks/useVote";
 import { useVotingStatus } from "../hooks/useVotingStatus";
 import { useFirstVoter } from "../hooks/useFirstVoter";
+import { useSnapshot, SNAPSHOT_HIDDEN_STATUSES } from "../hooks/useSnapshot";
 import { ArgumentBubble } from "./ArgumentBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { StaleDataWarning } from "./StaleDataWarning";
 import { GuardianOverlay } from "./GuardianOverlay";
 import { VoteControls } from "./VoteControls";
+import { SnapshotButton } from "./SnapshotButton";
+import { SnapshotOverlay } from "./SnapshotOverlay";
 import { DebateMessageList } from "./DebateMessageList";
 import type { OptimisticSegment, OptimisticStatus } from "./SentimentReveal";
 import { cn } from "@/lib/utils";
@@ -32,10 +35,12 @@ export type { AgentType } from "./ArgumentBubble";
 
 interface DebateStreamProps {
   debateId: string;
+  assetName?: string;
+  externalId?: string;
   className?: string;
 }
 
-export function DebateStream({ debateId, className }: DebateStreamProps) {
+export function DebateStream({ debateId, assetName: assetNameProp, externalId: externalIdProp, className }: DebateStreamProps) {
   const [userScrolled, setUserScrolled] = useState(false);
   const parentRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion() ?? false;
@@ -111,6 +116,23 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
 
   const isEmpty = messages.length === 0 && !isStreaming;
 
+  const snapshotInput = useMemo(() => ({
+    debateId,
+    assetName: assetNameProp ?? debateId,
+    externalId: externalIdProp ?? debateId,
+    messages,
+    voteData: {
+      bullVotes: voteCounts?.bull ?? 0,
+      bearVotes: voteCounts?.bear ?? 0,
+    },
+  }), [debateId, assetNameProp, externalIdProp, messages, voteCounts]);
+
+  const { generateSnapshot, state: snapshotState, overlayVisible, overlayRef } = useSnapshot(snapshotInput);
+  const showSnapshot = !isEmpty && !SNAPSHOT_HIDDEN_STATUSES.has(debateStatus);
+
+  const handleSnapshotResetError = useCallback(() => {
+  }, []);
+
   return (
     <>
       {isDataStale && stalePayload && (
@@ -146,6 +168,9 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
           transition: shouldReduceMotion ? "none" : "filter 0.3s ease",
         }}
       >
+        <div hidden={!showSnapshot} className="absolute top-2 right-2 z-10">
+          <SnapshotButton onClick={generateSnapshot} state={snapshotState} onResetError={handleSnapshotResetError} />
+        </div>
         {isEmpty && (
           <div
             data-testid="debate-stream-empty"
@@ -221,6 +246,12 @@ export function DebateStream({ debateId, className }: DebateStreamProps) {
           voteStatus={voteStatus}
           disabled={wsStatus !== "connected" || debateStatus !== "running"}
           isFrozen={isFrozen}
+        />
+      )}
+      {overlayVisible && (
+        <SnapshotOverlay
+          {...snapshotInput}
+          overlayRef={overlayRef}
         />
       )}
     </>

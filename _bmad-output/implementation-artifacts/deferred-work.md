@@ -90,3 +90,7 @@
 - ISR caches fallback image for 1 hour on transient API error — expected ISR behavior, not a bug. Transient errors self-heal on next revalidation.
 - twitter.images uses relative path — depends on metadataBase being configured at app level. Verify in E2E testing.
 - Bull-undecided tie (e.g. bull=40, undecided=40) breaks in bull's favor due to `>=` comparison — matches shared deriveWinner behavior, consistent but semantically debatable.
+
+## Deferred from: code review of 5-2-debate-snapshot-tool (2026-04-16)
+
+- objectUrl revocation timing (1s delay may be insufficient for slow browsers) — File constructor holds blob reference independently, 1s delay is per spec, low risk of download failure in practice.

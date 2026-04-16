@@ -6,9 +6,11 @@ export { useFirstVoter } from "./useFirstVoter";
 export { useVotingStatus } from "./useVotingStatus";
 export type { UseVotingStatusOptions } from "./useVotingStatus";
 export { queryKeys } from "./queryKeys";
+export { useSnapshot, SNAPSHOT_HIDDEN_STATUSES } from "./useSnapshot";
 export type { GuardianFreezeState } from "./useGuardianFreeze";
 export type { VoteStatus } from "./useVote";
 export type { VoteChoice } from "./storedVote";
+export type { SnapshotState, SnapshotInput, SnapshotVoteData } from "../types/snapshot";
 export type {
   TokenPayload,
   ArgumentPayload,

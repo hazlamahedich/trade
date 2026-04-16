@@ -22,3 +22,7 @@ export { DebateHistoryList } from "./DebateHistoryList";
 export { DebateTranscript } from "./DebateTranscript";
 export { ArchivedBadge } from "./ArchivedBadge";
 export { BackToHistoryLink, WatchLiveCTA } from "./DebateDetailClientActions";
+export { SnapshotButton } from "./SnapshotButton";
+export { SnapshotOverlay } from "./SnapshotOverlay";
+export { SnapshotTemplate } from "./SnapshotTemplate";
+export { SnapshotArgumentBubble } from "./SnapshotArgumentBubble";
