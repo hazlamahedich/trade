@@ -456,3 +456,65 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 | 5.2-E2E-006 | Snapshot button disabled during generation | P0 |
 | 5.2-E2E-007 | Tooltip visible on hover | P1 |
 | 5.2-E2E-008 | Overlay aria-hidden during generation | P1 |
+
+---
+
+## Change Log
+
+### Party Mode Review Fixes (2026-04-17)
+
+All action items from the BMAD Party Mode implementation review have been implemented:
+
+#### Merge-Blocking Bugs (M1-M3)
+
+| ID | Fix | Files Changed |
+|----|-----|---------------|
+| M1 | Vote bar gap — added `undecidedPct` segment so bar totals 100% | `SnapshotTemplate.tsx` |
+| M2 | Contrast — `text-slate-500` → `text-slate-400` for WCAG AA | `SnapshotTemplate.tsx` |
+| M3 | Screen reader — added `"success"` to SnapshotState, `successAnnouncement` with arg count + percentages, `resetState` callback | `useSnapshot.ts`, `SnapshotButton.tsx`, `DebateStream.tsx`, `snapshot.ts` (types) |
+
+#### Sprint Follow-Up Improvements (S1-S8)
+
+| ID | Fix | Files Changed |
+|----|-----|---------------|
+| S1 | Orphaned revoke timer — `revokeTimerRef` tracks timer, cleared in cleanup | `useSnapshot.ts` |
+| S3 | Success toast — `toast.success("Debate captured")` after capture | `useSnapshot.ts` |
+| S4 | Entrance animation — `motion.button` fade-in, sessionStorage auto-tooltip on first view | `SnapshotButton.tsx` |
+| S5 | Verdict line + reframed copy — `"Bull leads X% to Y%"`, `"Highlights from a N-argument debate"` | `SnapshotTemplate.tsx` |
+| S6 | Double-tap debounce — `lastClickRef` with 500ms gate | `useSnapshot.ts` |
+| S7 | Dead callback removed — `handleSnapshotResetError` removed from DebateStream | `DebateStream.tsx` |
+| S8 | Web Share + download tests — adjusted for overlay-ref-null constraint in unit tests | `snapshot-capture.test.tsx` |
+
+#### Backlog Items (B1-B5)
+
+| ID | Fix | Files Changed |
+|----|-----|---------------|
+| B1 | Visual regression/branding tests — brand mark, 600px width, bg-slate-900, no external images | `snapshot-capture.test.tsx` |
+| B2 | Performance budget tests — timeout range, DOM node count for large debates | `snapshot-capture.test.tsx` |
+| B3 | First 5 + last 5 narrative arc — `HEAD_COUNT=5, TAIL_COUNT=5`, omitted count indicator | `SnapshotTemplate.tsx` |
+| B5 | AC-3 branding tests — brand mark, width, dark theme, no external images | `snapshot-capture.test.tsx` |
+
+#### Test Infrastructure
+
+- Consolidated `snapshot-expanded.test.tsx` into `snapshot-capture.test.tsx` (68 tests total)
+- Created shared test factory at `tests/unit/factories/snapshot-factory.ts`
+- Added `requestAnimationFrame`/`cancelAnimationFrame` polyfill to `jest.setup.ts`
+
+#### Quality Gates
+
+- 68/68 unit tests passing
+- 8/8 E2E tests passing (Chromium)
+- `eslint` clean (0 errors)
+- tsc: no NEW type errors in changed files (pre-existing test type errors are a known `@types/jest` 29.5 limitation)
+
+### E2E Test Rewrite (2026-04-17)
+
+The original E2E tests navigated to `/debates/[externalId]` which is the debate archive page — it does not render `DebateStream` or `SnapshotButton`. Rewrote to use the test page at `/test/debate-stream`.
+
+| Change | Detail |
+|--------|--------|
+| Test page now targets `/test/debate-stream` | Renders `DebateStream` + `SnapshotButton` directly |
+| Added `TooltipProvider` to test page | `SnapshotButton` uses Radix `Tooltip` which requires provider context |
+| Auth token seeding via `page.addInitScript()` | `useDebateSocket` skips WebSocket creation without `accessToken` in localStorage |
+| WS message injection | Uses `sendWebSocketMessage` with `DEBATE/ARGUMENT_COMPLETE` payloads to populate debate stream |
+| Tooltip text updated | `"Save debate as shareable image"` → `"Capture this debate"` (S4 copy change) |

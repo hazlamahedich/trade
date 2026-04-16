@@ -127,11 +127,8 @@ export function DebateStream({ debateId, assetName: assetNameProp, externalId: e
     },
   }), [debateId, assetNameProp, externalIdProp, messages, voteCounts]);
 
-  const { generateSnapshot, state: snapshotState, overlayVisible, overlayRef } = useSnapshot(snapshotInput);
+  const { generateSnapshot, state: snapshotState, overlayVisible, overlayRef, resetState, successAnnouncement } = useSnapshot(snapshotInput);
   const showSnapshot = !isEmpty && !SNAPSHOT_HIDDEN_STATUSES.has(debateStatus);
-
-  const handleSnapshotResetError = useCallback(() => {
-  }, []);
 
   return (
     <>
@@ -169,7 +166,7 @@ export function DebateStream({ debateId, assetName: assetNameProp, externalId: e
         }}
       >
         <div hidden={!showSnapshot} className="absolute top-2 right-2 z-10">
-          <SnapshotButton onClick={generateSnapshot} state={snapshotState} onResetError={handleSnapshotResetError} />
+          <SnapshotButton onClick={generateSnapshot} state={snapshotState} onResetState={resetState} successAnnouncement={successAnnouncement} />
         </div>
         {isEmpty && (
           <div

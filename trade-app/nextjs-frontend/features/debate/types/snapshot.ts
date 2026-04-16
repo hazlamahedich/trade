@@ -15,4 +15,4 @@ export interface SnapshotInput {
   timestamp?: string;
 }
 
-export type SnapshotState = "idle" | "generating" | "error";
+export type SnapshotState = "idle" | "generating" | "error" | "success";

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DebateStream } from "@/features/debate/components";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function TestDebateStreamPage() {
   const [debateId] = useState(() => {
@@ -13,13 +14,15 @@ export default function TestDebateStreamPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-900 p-4">
-      <h1 className="text-white text-xl mb-4" data-testid="test-page-heading">
-        Test: DebateStream
-      </h1>
-      <div className="max-w-3xl mx-auto">
-        <DebateStream debateId={debateId} />
+    <TooltipProvider delayDuration={200}>
+      <div className="min-h-screen bg-gray-900 p-4">
+        <h1 className="text-white text-xl mb-4" data-testid="test-page-heading">
+          Test: DebateStream
+        </h1>
+        <div className="max-w-3xl mx-auto">
+          <DebateStream debateId={debateId} />
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
