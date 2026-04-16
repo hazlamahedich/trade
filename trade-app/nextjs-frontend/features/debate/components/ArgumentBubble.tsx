@@ -99,7 +99,7 @@ export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedac
           </span>
           <span
             data-testid="argument-timestamp"
-            className="text-xs text-slate-500"
+            className="text-xs text-secondary-safe"
           >
             {formatTime(timestamp)}
           </span>

@@ -1,5 +1,5 @@
 # generated: 2026-02-18
-# last_updated: 2026-04-15 (story 4-4 done)
+# last_updated: 2026-04-16 (epic-4 retro done)
 # project: trade
 # project_key: NOKEY
 # tracking_system: file-system
@@ -59,7 +59,7 @@ development_status:
   2-5-moderation-transparency-the-badge: done
   epic-2-retrospective: done
 
-  epic-3: in-progress
+  epic-3: done
   3-1-voting-api-data-model: done
   3-2-voting-ui-components: done
   3-3-sentiment-aggregation-service: done
@@ -68,16 +68,16 @@ development_status:
   3-5-2-ws-poll-consistency: done
   3-5-3-empty-state-optimistic-update: done
   3-6-first-voter-celebration: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
 
-  epic-4: in-progress
+  epic-4: done
   4-1-debate-archival-service: done
   4-2-debate-history-page-the-archive: superseded-by-split
   4-2a-debate-history-backend-api: done
   4-2b-debate-history-frontend-the-archive: done
   4-3-static-debate-page-seo: done
   4-4-high-conversion-landing-page: done
-  epic-4-retrospective: optional
+  epic-4-retrospective: done
 
   epic-5: backlog
   5-1-dynamic-og-image-generation: backlog

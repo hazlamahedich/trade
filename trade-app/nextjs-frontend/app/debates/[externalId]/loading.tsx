@@ -13,7 +13,7 @@ export default function DebateDetailLoading() {
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="h-20 animate-pulse rounded-lg bg-white/5 border border-white/15"
+              className="h-20 animate-pulse rounded-lg bg-white/5 border border-glass"
             />
           ))}
         </div>

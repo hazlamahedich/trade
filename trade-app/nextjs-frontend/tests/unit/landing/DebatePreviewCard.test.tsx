@@ -50,10 +50,10 @@ describe("[4.4-UNIT-009] DebatePreviewCard", () => {
     expect(screen.getByText("250 votes")).toBeInTheDocument();
   });
 
-  it("given a debate card, when rendered, then it has border-white/15 for design system compliance", () => {
+  it("given a debate card, when rendered, then it uses border-glass design token", () => {
     const debate = createRecentDebatePreview();
     const { container } = render(<DebatePreviewCard debate={debate} />);
     const card = container.querySelector("[data-testid='debate-preview-card']");
-    expect(card!.className).toContain("border-white/15");
+    expect(card!.className).toContain("border-glass");
   });
 });

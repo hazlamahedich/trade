@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { VotePreviewBar } from "./VotePreviewBar";
+import { computePercentages } from "../../debate/utils/percentages";
 import type { RecentDebatePreview } from "../types";
 
 interface DebatePreviewCardProps {
@@ -8,13 +9,11 @@ interface DebatePreviewCardProps {
 
 export function DebatePreviewCard({ debate }: DebatePreviewCardProps) {
   const bullVotes = debate.voteBreakdown.bull ?? 0;
-  const displayVotes = debate.totalVotes ?? 0;
-  const totalVotes = displayVotes || 1;
-
+  const bearVotes = debate.voteBreakdown.bear ?? 0;
   const undecidedVotes = debate.voteBreakdown.undecided ?? 0;
-  const undecidedPct = Math.round((undecidedVotes / totalVotes) * 100);
-  const bullPct = Math.round((bullVotes / totalVotes) * 100);
-  const bearPct = Math.max(0, 100 - bullPct - undecidedPct);
+  const displayVotes = debate.totalVotes ?? 0;
+
+  const { bullPct, bearPct, undecidedPct } = computePercentages(bullVotes, bearVotes, undecidedVotes);
 
   const winnerLabel =
     debate.winner === "bull"
@@ -33,7 +32,7 @@ export function DebatePreviewCard({ debate }: DebatePreviewCardProps) {
   return (
     <Link
       href={`/debates/${debate.externalId}`}
-      className="block rounded-lg bg-slate-800 border border-white/15 p-5 transition-colors hover:border-white/25 min-h-[44px]"
+      className="block rounded-lg bg-slate-800 border border-glass p-5 transition-colors hover:border-glass-hover min-h-[44px]"
       data-testid="debate-preview-card"
     >
       <div className="flex items-center justify-between">

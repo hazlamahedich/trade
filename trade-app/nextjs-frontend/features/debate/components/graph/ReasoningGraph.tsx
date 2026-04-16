@@ -35,7 +35,7 @@ function ReasoningGraphInner({
 }: ReasoningGraphInnerProps) {
   return (
     <div
-      className="h-[250px] md:h-[350px] w-full rounded-lg border border-white/10 bg-slate-900/50"
+      className="h-[250px] md:h-[350px] w-full rounded-lg border border-glass bg-slate-900/50"
       data-testid="reasoning-graph-container"
     >
       <ReactFlow

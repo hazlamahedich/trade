@@ -26,7 +26,7 @@ export function DebateHistoryError({
       {reset && (
         <button
           onClick={reset}
-          className="mt-4 rounded-md bg-white/10 border border-white/15 px-4 py-2 text-sm text-slate-300 hover:bg-white/15 transition-colors min-h-[44px]"
+          className="mt-4 rounded-md bg-white/10 border border-glass px-4 py-2 text-sm text-slate-300 hover:bg-white/15 transition-colors min-h-[44px]"
           type="button"
         >
           Try again

@@ -17,7 +17,7 @@ export default function ContactPage() {
             </p>
           </section>
 
-          <section className="rounded-lg border border-white/15 bg-slate-800 p-5">
+          <section className="rounded-lg border border-glass bg-slate-800 p-5">
             <h2 className="text-lg font-semibold text-white">General Inquiries</h2>
             <p className="mt-2 text-slate-400">
               For questions about the platform, features, or service, please reach out to us at:
@@ -25,7 +25,7 @@ export default function ContactPage() {
             <p className="mt-2 text-emerald-400">contact@ai-trading-debate.lab</p>
           </section>
 
-          <section className="rounded-lg border border-white/15 bg-slate-800 p-5">
+          <section className="rounded-lg border border-glass bg-slate-800 p-5">
             <h2 className="text-lg font-semibold text-white">Report an Issue</h2>
             <p className="mt-2 text-slate-400">
               Found a bug or have a suggestion? Please include details about what you observed and how to reproduce it.

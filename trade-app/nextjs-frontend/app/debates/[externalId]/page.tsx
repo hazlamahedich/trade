@@ -111,7 +111,7 @@ export default async function DebateDetailPage({
 
         {data.guardianVerdict && (
           <section
-            className="mt-8 rounded-lg border border-white/15 bg-white/5 p-4"
+            className="mt-8 rounded-lg border border-glass bg-white/5 p-4"
             aria-label="Guardian verdict"
           >
             <div className="flex items-center gap-2 mb-2">
@@ -131,7 +131,7 @@ export default async function DebateDetailPage({
           <DebateTranscript messages={data.transcript} />
         </section>
 
-        <footer className="mt-8 pt-6 border-t border-white/15 text-sm text-slate-400">
+        <footer className="mt-8 pt-6 border-t border-glass text-sm text-slate-400">
           <div className="flex flex-wrap justify-between gap-4">
             <div>
               <p>

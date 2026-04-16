@@ -30,6 +30,7 @@ from app.services.debate.repository import DebateRepository
 from app.services.debate.exceptions import StaleDataError, LLMProviderError
 from app.services.rate_limiter import (
     RateLimiter,
+    UniqueVoterCapacityLimiter,
     create_vote_rate_limiter,
     create_vote_capacity_limiter,
 )
@@ -44,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 _debate_service: DebateService | None = None
 _vote_limiter: RateLimiter | None = None
-_capacity_limiter: RateLimiter | None = None
+_capacity_limiter: UniqueVoterCapacityLimiter | None = None
 
 
 def get_debate_service() -> DebateService:
@@ -61,7 +62,7 @@ def _get_vote_limiter() -> RateLimiter:
     return _vote_limiter
 
 
-def _get_capacity_limiter() -> RateLimiter:
+def _get_capacity_limiter() -> UniqueVoterCapacityLimiter:
     global _capacity_limiter
     if _capacity_limiter is None:
         _capacity_limiter = create_vote_capacity_limiter()
@@ -368,7 +369,7 @@ async def cast_vote(
             voter_fingerprint=request.voter_fingerprint,
         )
     except IntegrityError:
-        await _get_capacity_limiter().release("global")
+        await _get_capacity_limiter().release("global", capacity_result.capacity_member)
         raise HTTPException(
             status_code=409,
             detail={
@@ -381,7 +382,7 @@ async def cast_vote(
             },
         )
     except Exception as e:
-        await _get_capacity_limiter().release("global")
+        await _get_capacity_limiter().release("global", capacity_result.capacity_member)
         logger.error(f"Vote write failed for debate {request.debate_id}: {e}")
         raise HTTPException(
             status_code=503,

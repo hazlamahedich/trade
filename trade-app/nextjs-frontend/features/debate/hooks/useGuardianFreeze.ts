@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { GuardianInterruptPayload } from "./useDebateSocket";
-import type { ArgumentMessage } from "../components/DebateStream";
+import type { ArgumentMessage } from "./useDebateMessages";
 
 export type GuardianFreezeState =
   | { status: "active" }

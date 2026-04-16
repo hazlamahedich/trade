@@ -345,6 +345,33 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 
 <step n="6" goal="Update sprint status and finalize">
   <action>Validate the newly created story file {default_output_file} against `./checklist.md` and apply any required fixes before finalizing</action>
+
+  <!-- Subtask count gate — Epic 4 retro action #8 -->
+  <check if="story file contains Tasks / Subtasks section">
+    <action>Count all subtask checkboxes (lines matching `- [ ]` or `- [x]`) in the story file</action>
+    <check if="subtask count > 30">
+      <output>⚠️ **SUBTASK COUNT GATE: This story has {count} subtasks (threshold: 30).**
+
+      Per Epic 4 retrospective action #8, stories exceeding 30 subtasks should be flagged for splitting.
+      Consider splitting along natural boundaries:
+      - Backend / Frontend
+      - Core logic / Edge cases
+      - Data layer / UI layer
+      - Different acceptance criteria groups
+
+      Story 4-2 had 45 subtasks and was successfully split into 4-2a + 4-2b during execution.
+      Splitting is a healthy process pattern, not a planning failure.
+
+      **Options:**
+      1. Proceed as-is (user acknowledges the risk)
+      2. Split the story now into 2 smaller stories
+      3. Reduce scope and defer items to a follow-up story</output>
+      <check if="user chooses to split">
+        <action>Abort this workflow. Run create-story twice with split scope.</action>
+      </check>
+    </check>
+  </check>
+
   <action>Save story document unconditionally</action>
 
   <!-- Update sprint status -->

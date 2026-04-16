@@ -191,7 +191,7 @@ create-story → validate → dev-story → code-review → testarch-automate �
 
 ---
 
-## Lessons Learned (Prep Sprint — Epic 2→3)
+## Lessons Learned (Prep Sprint — Epic 2→4)
 
 These issues caused real bugs or wasted significant debugging time. **Read before writing any test or touching the engine.**
 
@@ -321,6 +321,48 @@ with patch("app.config.settings") as mock_settings:
 **Pattern:** Magic numbers like `5000` in `refetchInterval` are hard to test and maintain.
 
 **Rule:** Extract polling intervals to named constants (e.g., `export const VOTE_POLL_INTERVAL_MS = 5000`). Export for test assertions.
+
+### 18. Shared Percentage Utility — Never Reimplement Rounding
+
+**Bug (recurring in 4 stories):** Lesson #10 was documented in AGENTS.md after Epic 3, yet `Math.round()` on multiple percentages appeared in 4-1, 4-2b, 4-3, and 4-4 — each component reimplemented the math differently before review caught it.
+
+**Rule:** ALL percentage calculations MUST use the shared `computePercentages()` utility from `features/debate/utils/`. NEVER reimplement rounding logic in individual components. If a new bar component needs percentages, it calls the shared utility.
+
+### 19. ISR Over Full SSR for Mostly-Static Pages
+
+**Bug (4-4 adversarial review):** Full SSR on every request for a mostly-static page (landing page, debate detail) causes LCP budget blowout. Waterfall analysis: DNS + TLS + TTFB + SSR fetch + HTML generation + font download = 750-1300ms.
+
+**Rule:** For pages that are ~90% static content with periodic data freshness needs, use ISR (`revalidate = N`). Use `force-dynamic` ONLY for pages with per-request data (e.g., filtered history list). Full SSR is reserved for authenticated, per-request pages only.
+
+### 20. Client Component Islands in Server Components
+
+**Pattern (4-3, 4-4):** `"use client"` components (DebateVoteBar, LiveNowTicker, StickyCtaBar) are imported into Server Component pages. This is the CORRECT Next.js App Router pattern — no wrapper needed.
+
+**Rule:** When a Server Component page needs interactivity, import `"use client"` components directly. Next.js handles the client boundary automatically. Pass pre-fetched data as props — the client component must NOT fetch its own data.
+
+### 21. Bundle Isolation — Public Pages Must Be Lean
+
+**Bug (4-4 adversarial review):** Importing `DebateHistoryCard` or `DebateVoteBar` into the landing page transitively pulls in React Query, WebSocket hooks, Zustand stores, and Framer Motion — defeating performance goals.
+
+**Rule:** Public-facing pages (landing, SEO detail pages) MUST NOT import from `features/debate/` components that transitively depend on React Query, Zustand, WebSocket hooks, or `@xyflow/react`. Create static preview variants in `features/landing/components/` instead.
+
+### 22. XSS in JSON-LD — Sanitize `</script>` in dangerouslySetInnerHTML
+
+**Bug (4-3 party-mode review):** JSON-LD injected via `dangerouslySetInnerHTML` can contain `</script>` in data values, allowing script tag breakout and XSS.
+
+**Rule:** When injecting JSON-LD via `dangerouslySetInnerHTML`, ALWAYS sanitize: `.replace(/<\/script/gi, "<\\/script")`. Test explicitly — this is a security-critical pattern.
+
+### 23. Story Splitting Threshold — 30+ Subtasks
+
+**Pattern (4-2 → 4-2a + 4-2b):** Story 4-2 had 45 subtasks and was split mid-execution during party-mode review. Both halves shipped successfully with higher quality than the monolith would have.
+
+**Rule:** Any story exceeding 30 subtasks should be flagged for splitting during create-story review. Split along natural boundaries (backend/frontend, data/UI, core/edge). Splitting is a healthy process pattern, not a planning failure.
+
+### 24. Dark Mode Contrast — Design Token Enforcement
+
+**Bug (every frontend story in Epic 4):** `border-white/10` and `text-slate-500` appeared in every Epic 4 frontend story review despite being documented in AGENTS.md.
+
+**Rule:** Use `border-white/15` minimum (NOT `/10` — fails WCAG AA contrast). Use `text-slate-400` minimum (NOT `text-slate-500`). Prefer Tailwind theme extension or CSS custom properties to enforce these values automatically.
 
 ---
 

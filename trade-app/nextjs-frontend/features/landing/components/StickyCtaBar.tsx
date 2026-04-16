@@ -29,7 +29,7 @@ export function StickyCtaBar() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/15 bg-slate-900/95 backdrop-blur-md px-6 py-3 md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-glass bg-slate-900/95 backdrop-blur-md px-6 py-3 md:hidden"
       data-testid="sticky-cta-bar"
     >
       <Link

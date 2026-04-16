@@ -19,30 +19,29 @@ function getComponentLines(filename: string): number {
 }
 
 describe("[4.4-STYLE] Style guard tests", () => {
-  describe("border-white/15 design system compliance", () => {
-    it("given a DebatePreviewCard, when rendered, then it uses border-white/15 not /10", () => {
+  describe("border-glass design token compliance", () => {
+    it("given a DebatePreviewCard, when rendered, then it uses border-glass token", () => {
       const debate = createRecentDebatePreview();
       const { container } = render(<DebatePreviewCard debate={debate} />);
       const card = container.querySelector("[data-testid='debate-preview-card']");
-      expect(card!.className).toContain("border-white/15");
+      expect(card!.className).toContain("border-glass");
       expect(card!.className).not.toContain("border-white/10");
     });
 
-    it("given a StickyCtaBar, when rendered, then it uses border-white/15", () => {
+    it("given a StickyCtaBar, when rendered, then it uses border-glass token", () => {
       const { container } = render(<StickyCtaBar />);
       const bar = container.querySelector("[data-testid='sticky-cta-bar']");
       if (bar) {
-        expect(bar.className).toContain("border-white/15");
+        expect(bar.className).toContain("border-glass");
       }
     });
   });
 
-  describe("text-slate-400 minimum (not text-slate-500)", () => {
-    it("given HowItWorksSection, when rendered, then step descriptions use text-slate-400 minimum", () => {
+  describe("text-secondary-safe token compliance (not text-slate-500)", () => {
+    it("given HowItWorksSection, when rendered, then step descriptions use text-secondary-safe minimum", () => {
       const { container } = render(<HowItWorksSection />);
       const slate500s = container.querySelectorAll(".text-slate-500");
-      const allowedSlate500 = container.querySelectorAll(".text-xs.text-slate-500");
-      expect(slate500s.length - allowedSlate500.length).toBe(0);
+      expect(slate500s.length).toBe(0);
     });
 
     it("given ValuePropSection, when rendered, then paragraphs use text-slate-400 minimum", () => {

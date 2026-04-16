@@ -1,10 +1,10 @@
 ---
 project_name: 'trade'
 user_name: 'team mantis a'
-date: '2026-04-13'
+date: '2026-04-16'
 sections_completed: ['technology_stack', 'implementation_rules', 'testing_rules', 'workflow_rules', 'usage_guidelines']
 status: 'complete'
-rule_count: 42
+rule_count: 50
 optimized_for_llm: true
 ---
 
@@ -85,10 +85,21 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **WS/Poll Single Writer Pattern:** Gate HTTP polling on WebSocket connection state: `refetchInterval: hasVoted && !wsConnected ? interval : false`. Only one data source writes to React Query cache at a time — prevents stale poll overwriting fresher WS update.
 - **Component Size Limit (300 Lines):** Any component exceeding 300 lines MUST be decomposed. Extract hooks for state logic, sub-components for rendering sections. The "just a few lines" per story pattern compounds dangerously.
 - **Framer Motion Animation Rules:** Use `animate` prop interpolation — Framer Motion handles animation interruption natively. Use `isFirstRender` ref for stagger-on-mount-only effects. NEVER use `key` prop changes to re-trigger animations (causes unmount/remount flashing).
-- **Percentage Bars Must Sum to 100:** Only round ONE percentage independently. Derive the last bar as the complement (`bearPct = 100 - bullPct - otherPct`). NEVER round all percentages independently.
+- **Percentage Bars Must Sum to 100:** Only round ONE percentage independently. Derive the last bar as the complement (`bearPct = 100 - bullPct - otherPct`). NEVER round all percentages independently. Use shared `computePercentages()` utility — NEVER reimplement in individual components.
 - **Broadcast After Commit:** WebSocket broadcasts MUST be placed AFTER all guard chain exits AND the DB commit. Wrap in try/except — write must succeed even if broadcast fails. NEVER broadcast on rejected operations.
 - **Polling Constants:** Extract all polling intervals to named constants (e.g., `export const VOTE_POLL_INTERVAL_MS = 5000`). Export for test assertions. NEVER use magic numbers.
 - **sessionStorage Persistence:** For per-session UI state (first voter, celebration), use `sessionStorage` keyed by `debateId`. Guard SSR with `typeof window !== "undefined"` check. Use `useState` (NOT `useRef`) for values that must trigger re-renders.
+
+### Architecture Patterns (Proven in Epic 4)
+
+- **ISR Over Full SSR for Mostly-Static Pages:** Use `revalidate = N` with Server Components for pages that are ~90% static content with periodic data freshness needs (debate detail, landing page). Use `force-dynamic` ONLY for pages with per-request data. ISR gives CDN-cacheable HTML with ~0ms TTFB on repeat visits.
+- **Client Component Islands:** `"use client"` components (DebateVoteBar, LiveNowTicker, StickyCtaBar) import directly into Server Component pages — this is the correct Next.js App Router pattern. No wrapper needed. Pass pre-fetched data as props; client components must NOT fetch their own data.
+- **Bundle Isolation for Public Pages:** Public-facing pages (landing, SEO detail pages) MUST NOT import from `features/debate/` components that transitively depend on React Query, Zustand, WebSocket hooks, or `@xyflow/react`. Create static preview variants in `features/landing/components/` instead.
+- **Composite API Endpoints:** When a page needs multiple data sources (e.g., active debate + recent debates), create a single composite endpoint (`/api/landing`) instead of sequential fetches. Reduces TTFB and simplifies server action logic.
+- **Server Actions Calling FastAPI:** Extract `getApiBaseUrl()` to `lib/api/config.ts` (not feature-specific). Use `fetchWithTimeout()` from `lib/api/server-action-helpers.ts` with AbortController and response envelope validation. Server actions are `"use server"` directives — NO React Query or client hooks.
+- **JSON-LD Structured Data:** Use `DiscussionForumPosting` schema for debate pages. Generate via pure function in `features/debate/utils/structured-data.ts`. Inject via `dangerouslySetInnerHTML` with mandatory `.replace(/<\/script/gi, "<\\/script")` XSS sanitization. All dates MUST use `.toISOString()` for ISO 8601 compliance.
+- **Query Parameter Gating:** When an endpoint returns heavy optional data (e.g., transcript), gate it behind a query parameter (`?include_transcript=true`). Default response omits the field. Server action passes the flag explicitly. Backward compatible.
+- **Redis Cache Singleton:** For module-level Redis connections, use `asyncio.Lock` double-checked locking pattern to prevent race conditions during initialization. Wrap all cache operations in try/except with graceful fallback to None.
 
 ### Radix UI / Shadcn Component Patterns
 
@@ -144,4 +155,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review quarterly for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-04-13 (Epic 3 — added voting patterns, WS/poll single writer, React Query updater function, component size limit, Framer Motion animation rules, accessibility checklist)
+Last Updated: 2026-04-16 (Epic 4 — added ISR, bundle isolation, composite endpoints, server/client islands, JSON-LD, query param gating, Redis singleton, shared percentage utility)

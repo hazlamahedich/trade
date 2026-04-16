@@ -39,7 +39,7 @@ export function VoteControls({
       aria-live="polite"
       role="region"
       aria-label="Vote on debate outcome"
-      className="sticky bottom-0 bg-slate-900/80 backdrop-blur-md border-t border-white/10 p-4"
+      className="sticky bottom-0 bg-slate-900/80 backdrop-blur-md border-t border-glass p-4"
     >
       {isFrozen && (
         <p className="text-center text-xs text-slate-300 mb-2" role="status">

@@ -11,7 +11,7 @@ export function DebateHistorySkeleton() {
         <div
           key={i}
           data-testid="skeleton-card"
-          className="rounded-lg border border-white/15 bg-white/5 p-4"
+          className="rounded-lg border border-glass bg-white/5 p-4"
         >
           <div className="flex items-center justify-between mb-3">
             <Skeleton className="h-6 w-16 bg-white/10" />

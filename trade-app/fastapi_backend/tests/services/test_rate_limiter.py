@@ -214,9 +214,9 @@ class TestRateLimiterFactories:
         ):
             with patch("app.config.settings", mock_settings):
                 limiter = create_vote_capacity_limiter()
-                assert limiter.prefix == "capacity:active_voters"
-                assert limiter.max_requests == 5000
-                assert limiter.window_seconds == 60
+                assert limiter.prefix == "capacity:unique_voters"
+                assert limiter.max_voters == 5000
+                assert limiter.ttl_seconds == 300
 
 
 class TestRateLimitResult:

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { computePercentages } from "../utils/percentages";
 
 export type OptimisticSegment = "bull" | "bear" | null;
 export type OptimisticStatus = "pending" | "confirmed" | "failed" | "timeout";
@@ -161,7 +162,7 @@ export function SentimentReveal({
         role="region"
         tabIndex={-1}
         aria-label="Debate sentiment results"
-        className="bg-slate-900/80 backdrop-blur-md border-t border-white/10 p-4"
+        className="bg-slate-900/80 backdrop-blur-md border-t border-glass p-4"
       >
         <style>{`@keyframes optimism-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }`}</style>
         <p data-testid="sentiment-empty-state" className="text-center text-sm text-slate-400">
@@ -171,10 +172,11 @@ export function SentimentReveal({
     );
   }
 
-  const bullPct = totalVotes > 0 ? Math.round((bullVotes / totalVotes) * 100) : 0;
-  const otherVotes = totalVotes - bullVotes - bearVotes;
-  const otherPct = otherVotes > 0 ? Math.round((otherVotes / totalVotes) * 100) : 0;
-  const bearPct = 100 - bullPct - otherPct;
+  const { bullPct, bearPct, undecidedPct: otherPct } = computePercentages(
+    bullVotes,
+    bearVotes,
+    totalVotes - bullVotes - bearVotes
+  );
 
   const staggerDelay = (shouldReduceMotion || !isFirstRender.current) ? 0 : 0.15;
 
@@ -195,7 +197,7 @@ export function SentimentReveal({
       role="region"
       tabIndex={-1}
       aria-label={ariaLabel}
-      className="bg-slate-900/80 backdrop-blur-md border-t border-white/10 p-4 outline-none"
+      className="bg-slate-900/80 backdrop-blur-md border-t border-glass p-4 outline-none"
     >
       <style>{`@keyframes optimism-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }`}</style>
       <div className="flex justify-between text-xs mb-1">

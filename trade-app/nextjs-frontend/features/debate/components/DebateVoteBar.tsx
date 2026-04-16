@@ -1,5 +1,7 @@
 "use client";
 
+import { computePercentages } from "../utils/percentages";
+
 interface DebateVoteBarProps {
   bullVotes: number;
   bearVotes: number;
@@ -33,9 +35,7 @@ export function DebateVoteBar({
     );
   }
 
-  const bullPct = Math.round((bullVotes / total) * 100);
-  const undecidedPct = Math.round((undecidedVotes / total) * 100);
-  const bearPct = 100 - bullPct - undecidedPct;
+  const { bullPct, bearPct, undecidedPct } = computePercentages(bullVotes, bearVotes, undecidedVotes);
 
   return (
     <div

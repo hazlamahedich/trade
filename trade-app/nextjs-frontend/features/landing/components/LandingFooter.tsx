@@ -1,6 +1,6 @@
 export function LandingFooter() {
   return (
-    <footer className="border-t border-white/15 bg-slate-950 px-6 py-8" role="contentinfo">
+    <footer className="border-t border-glass bg-slate-950 px-6 py-8" role="contentinfo">
       <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 sm:flex-row sm:justify-between">
         <div className="text-center sm:text-left">
           <p className="text-sm font-semibold text-slate-300">

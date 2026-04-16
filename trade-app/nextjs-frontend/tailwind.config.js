@@ -18,6 +18,14 @@ module.exports = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      borderColor: {
+        "glass": "rgba(255, 255, 255, 0.15)",
+        "glass-hover": "rgba(255, 255, 255, 0.25)",
+      },
+      textColor: {
+        "secondary-safe": "rgb(148, 163, 184)",
+        "tertiary-safe": "rgb(203, 213, 225)",
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
@@ -64,3 +72,18 @@ module.exports = {
   },
   plugins: [require("tailwindcss-animate")],
 };
+
+/*
+
+DESIGN TOKENS — Contrast-Safe Dark Mode Values (WCAG AA)
+
+These tokens enforce AGENTS.md Lesson #24 rules. Prefer these over raw values:
+
+  border-glass       → border-white/15 minimum (NOT /10 — fails contrast)
+  border-glass-hover → border-white/25 for interactive states
+  text-secondary-safe → text-slate-400 (NOT text-slate-500 — fails contrast)
+  text-tertiary-safe  → text-slate-300 for higher-emphasis secondary text
+
+Usage: className="border border-glass text-secondary-safe"
+
+*/

@@ -65,7 +65,7 @@ function TranscriptMessageCard({ message }: { message: TranscriptMessage }) {
         <AgentAvatar agent={avatarAgent} size="sm" />
       </div>
       <div
-        className={`rounded-lg border border-white/15 bg-white/5 p-3 max-w-[80%] ${
+        className={`rounded-lg border border-glass bg-white/5 p-3 max-w-[80%] ${
           isBull ? "border-l-emerald-500/30 border-l-2" : isBear ? "border-r-rose-500/30 border-r-2" : "border-l-amber-500/30 border-l-2"
         }`}
       >

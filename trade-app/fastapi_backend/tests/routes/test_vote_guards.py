@@ -188,7 +188,7 @@ class TestGuardOrderingIntegration:
             async with await make_client() as client:
                 response = await post_vote(client)
                 assert response.status_code == 503
-                capacity_limiter.release.assert_called_once_with("global")
+                capacity_limiter.release.assert_called_once_with("global", None)
 
     @pytest.mark.p0
     @pytest.mark.asyncio
@@ -219,4 +219,4 @@ class TestGuardOrderingIntegration:
                 response = await post_vote(client)
                 assert response.status_code == 409
                 assert response.json()["error"]["code"] == "DUPLICATE_VOTE"
-                capacity_limiter.release.assert_called_once_with("global")
+                capacity_limiter.release.assert_called_once_with("global", None)

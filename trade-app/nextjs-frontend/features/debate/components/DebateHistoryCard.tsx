@@ -22,7 +22,7 @@ export function DebateHistoryCard({
   return (
     <article aria-label={`Debate for ${debate.asset}`}>
       <Link href={`/debates/${debate.externalId}`}>
-        <div className="rounded-lg border border-white/15 bg-white/5 p-4 hover:bg-white/[0.08] transition-colors">
+        <div className="rounded-lg border border-glass bg-white/5 p-4 hover:bg-white/[0.08] transition-colors">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xl font-bold text-slate-100">
               {debate.asset.toUpperCase()}
