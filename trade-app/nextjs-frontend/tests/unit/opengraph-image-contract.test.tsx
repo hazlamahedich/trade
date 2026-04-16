@@ -28,6 +28,14 @@ function inlineComputePercentages(
   return { bullPct, bearPct, undecidedPct };
 }
 
+function inlineComputeBarPercentages(bullVotes: number, bearVotes: number) {
+  const committedTotal = bullVotes + bearVotes;
+  if (committedTotal === 0) return { barBullPct: 50, barBearPct: 50 };
+  const barBullPct = Math.round((bullVotes / committedTotal) * 100);
+  const barBearPct = 100 - barBullPct;
+  return { barBullPct, barBearPct };
+}
+
 function inlineDeriveWinner(data: {
   voteBreakdown: Record<string, number> | null | undefined;
 }): string {
@@ -189,5 +197,28 @@ describe("[P0][5.1] inline extractVotes edge cases", () => {
     const shared = computePercentages(0, 0, 0);
     expect(pcts).toEqual(shared);
     expect(pcts).toEqual({ bullPct: 0, bearPct: 0, undecidedPct: 0 });
+  });
+});
+
+describe("[P0][5.1] inlineComputeBarPercentages sums to 100", () => {
+  const barCases = [
+    { bull: 60, bear: 40, label: "simple majority" },
+    { bull: 50, bear: 50, label: "tie" },
+    { bull: 99, bear: 1, label: "landslide" },
+    { bull: 0, bear: 0, label: "zero committed" },
+    { bull: 1, bear: 0, label: "only bull" },
+    { bull: 0, bear: 1, label: "only bear" },
+    { bull: 33, bear: 67, label: "bear majority" },
+  ];
+
+  barCases.forEach(({ bull, bear, label }) => {
+    it(`[P0][5.1-BAR] bar sums to 100 for: ${label}`, () => {
+      const result = inlineComputeBarPercentages(bull, bear);
+      expect(result.barBullPct + result.barBearPct).toBe(100);
+    });
+  });
+
+  it("[P0][5.1-BAR] zero committed returns 50/50", () => {
+    expect(inlineComputeBarPercentages(0, 0)).toEqual({ barBullPct: 50, barBearPct: 50 });
   });
 });

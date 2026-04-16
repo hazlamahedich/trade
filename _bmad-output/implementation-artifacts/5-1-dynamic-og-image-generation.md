@@ -257,6 +257,8 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 | Inter-Bold.ttf | STAGED (git add) | `trade-app/nextjs-frontend/app/fonts/Inter-Bold.ttf` |
 | OG image tests | CREATED/MODIFIED | `trade-app/nextjs-frontend/tests/unit/opengraph-image.test.tsx` |
 | OG image contract tests | CREATED | `trade-app/nextjs-frontend/tests/unit/opengraph-image-contract.test.tsx` |
+| ISR config | CREATED | `trade-app/nextjs-frontend/lib/config/isr.ts` |
+| Canonical percentage tests | CREATED | `trade-app/nextjs-frontend/tests/unit/percentages-canonical.test.ts` |
 
 ### Test Quality Review
 
@@ -296,3 +298,13 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - 2026-04-16: Implemented dynamic OG image generation for debate pages (Story 5.1)
 - 2026-04-16: Expanded test automation — 19 new tests (018-035) covering fetchDebateForOG URL construction, AbortSignal, URL encoding, null guards, module exports, bull-undecided tie edge case. Total: 46 tests.
 - 2026-04-16: Test quality review (78/100 B). Addressed all 6 actions: split file (517→276+193), removed 7 scaffolding tests, added content assertions (isFallbackImage), fixed locale-dependent test, cleaned mock lifecycle. 39 tests across 2 files.
+- 2026-04-16: Party mode implementation review (Winston, Amelia, Murat, Sally). Addressed all action items:
+  - Extracted `DEBATE_DETAIL_ISR_REVALIDATE_SECONDS` to shared config `lib/config/isr.ts` — eliminates drift risk between page.tsx and opengraph-image.tsx (Winston/Amelia recommendation)
+  - Sentiment bar now binary: `inlineComputeBarPercentages()` computes bull/bear from committed votes only, always sums to 100. Undecided count surfaced as separate text line when > 0 (Sally recommendation)
+  - Asset name truncation uses ellipsis (`…`) instead of silent clip — `rawAsset.slice(0, 9) + "…"` when > 10 chars (Sally recommendation)
+  - Zero-votes placeholder state: bar shows "No votes yet" centered text instead of empty bar (Sally recommendation)
+  - `isFallbackImage()` test heuristic changed from `alignItems === "center"` to text-based discriminator (`serialized.includes("Watch Bulls")`) — robust against layout changes (Murat recommendation)
+  - Added canonical percentage tests (`percentages-canonical.test.ts`) with sum-to-100 invariant — tests correctness, not just consistency (Murat recommendation)
+  - Added bar percentage contract tests to `opengraph-image-contract.test.tsx`
+  - Added 4 new integration tests (036-039): zero-votes placeholder, ellipsis truncation, undecided text, no-undecided case
+  - Full suite: 752/752 pass, 0 new lint/type errors

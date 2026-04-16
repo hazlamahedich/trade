@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { Shield } from "lucide-react";
 
+import { DEBATE_DETAIL_ISR_REVALIDATE_SECONDS } from "@/lib/config/isr";
 import { getDebateDetail } from "@/features/debate/actions/debate-detail-action";
 import { DebateVoteBar } from "@/features/debate/components/DebateVoteBar";
 import { DebateTranscript } from "@/features/debate/components/DebateTranscript";
@@ -9,8 +10,6 @@ import { BackToHistoryLink, WatchLiveCTA } from "@/features/debate/components/De
 import { extractVotes } from "@/features/debate/api/debate-history";
 import { getWinnerBadge } from "@/features/debate/utils/winner-badge";
 import { generateDebateStructuredData, deriveWinner } from "@/features/debate/utils/structured-data";
-
-export const DEBATE_DETAIL_ISR_REVALIDATE_SECONDS = 3600;
 
 export const revalidate = DEBATE_DETAIL_ISR_REVALIDATE_SECONDS;
 

@@ -3,7 +3,7 @@ import { createMockDebateDetail } from "./factories/debate-detail-factory";
 describe("[P0][5.1] revalidate export", () => {
   it("[P0][5.1-015] revalidate equals DEBATE_DETAIL_ISR_REVALIDATE_SECONDS", async () => {
     const { DEBATE_DETAIL_ISR_REVALIDATE_SECONDS } = await import(
-      "@/app/debates/[externalId]/page"
+      "@/lib/config/isr"
     );
     expect(DEBATE_DETAIL_ISR_REVALIDATE_SECONDS).toBe(3600);
   });
@@ -87,10 +87,8 @@ describe("[P0][5.1] OGImage default export", () => {
   }
 
   function isFallbackImage(jsx: unknown): boolean {
-    const element = jsx as {
-      props?: { style?: Record<string, string> };
-    };
-    return element?.props?.style?.alignItems === "center";
+    const serialized = JSON.stringify(jsx);
+    return serialized.includes("Watch Bulls");
   }
 
   it("[P0][5.1-018] fetches with correct URL and AbortSignal", async () => {
@@ -239,6 +237,95 @@ describe("[P0][5.1] OGImage default export", () => {
 
     expect(ogCalls).toHaveLength(1);
     expect(isFallbackImage(ogCalls[0].jsx)).toBe(false);
+  });
+
+  it("[P0][5.1-036] zero votes shows placeholder bar with 'No votes yet'", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: createMockDebateDetail({
+          totalVotes: 0,
+          voteBreakdown: { bull: 0, bear: 0, undecided: 0 },
+        }),
+      }),
+    });
+
+    const mod = await loadOGModule();
+    await mod.default({
+      params: Promise.resolve({ externalId: "test-123" }),
+    });
+
+    expect(ogCalls).toHaveLength(1);
+    expect(isFallbackImage(ogCalls[0].jsx)).toBe(false);
+    const serialized = JSON.stringify(ogCalls[0].jsx);
+    expect(serialized).toContain("No votes yet");
+  });
+
+  it("[P0][5.1-037] long asset name truncates with ellipsis", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: createMockDebateDetail({
+          asset: "VERYLONGASSETNAME12345",
+        }),
+      }),
+    });
+
+    const mod = await loadOGModule();
+    await mod.default({
+      params: Promise.resolve({ externalId: "test-123" }),
+    });
+
+    expect(ogCalls).toHaveLength(1);
+    const serialized = JSON.stringify(ogCalls[0].jsx);
+    expect(serialized).toContain("VERYLONGA\u2026");
+    expect(serialized).not.toContain("VERYLONGASSETNAME");
+  });
+
+  it("[P0][5.1-038] undecided votes show 'undecided' text in debate image", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: createMockDebateDetail({
+          totalVotes: 100,
+          voteBreakdown: { bull: 40, bear: 30, undecided: 30 },
+        }),
+      }),
+    });
+
+    const mod = await loadOGModule();
+    await mod.default({
+      params: Promise.resolve({ externalId: "test-123" }),
+    });
+
+    expect(ogCalls).toHaveLength(1);
+    expect(isFallbackImage(ogCalls[0].jsx)).toBe(false);
+    const serialized = JSON.stringify(ogCalls[0].jsx);
+    expect(serialized).toContain("undecided");
+    expect(serialized).toMatch(/30/);
+  });
+
+  it("[P0][5.1-039] no undecided votes does not show undecided text", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: createMockDebateDetail({
+          totalVotes: 100,
+          voteBreakdown: { bull: 60, bear: 40, undecided: 0 },
+        }),
+      }),
+    });
+
+    const mod = await loadOGModule();
+    await mod.default({
+      params: Promise.resolve({ externalId: "test-123" }),
+    });
+
+    expect(ogCalls).toHaveLength(1);
+    const serialized = JSON.stringify(ogCalls[0].jsx);
+    expect(serialized).not.toContain("undecided");
+    expect(serialized).toContain("Bull");
+    expect(serialized).toContain("Bear");
   });
 });
 

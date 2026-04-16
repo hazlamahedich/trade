@@ -4,11 +4,12 @@ import { join } from "path";
 
 import type { DebateDetailData } from "@/features/debate/types/debate-detail";
 import { getApiBaseUrl } from "@/lib/api/config";
+import { DEBATE_DETAIL_ISR_REVALIDATE_SECONDS } from "@/lib/config/isr";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const alt = "Debate preview image \u2014 AI Trading Debate Lab";
-export const revalidate = 3600; // keep in sync with DEBATE_DETAIL_ISR_REVALIDATE_SECONDS in page.tsx
+export const revalidate = DEBATE_DETAIL_ISR_REVALIDATE_SECONDS;
 
 async function fetchDebateForOG(
   externalId: string,
@@ -49,6 +50,14 @@ function inlineComputePercentages(
   return { bullPct, bearPct, undecidedPct };
 }
 
+function inlineComputeBarPercentages(bullVotes: number, bearVotes: number) {
+  const committedTotal = bullVotes + bearVotes;
+  if (committedTotal === 0) return { barBullPct: 50, barBearPct: 50 };
+  const barBullPct = Math.round((bullVotes / committedTotal) * 100);
+  const barBearPct = 100 - barBullPct;
+  return { barBullPct, barBearPct };
+}
+
 function inlineDeriveWinner(data: DebateDetailData): string {
   const { bullVotes, bearVotes, undecidedVotes } = inlineExtractVotes(
     data.voteBreakdown,
@@ -61,7 +70,8 @@ function inlineDeriveWinner(data: DebateDetailData): string {
 }
 
 function buildDebateImage(data: DebateDetailData, fonts: FontConfig[]) {
-  const asset = (data.asset ?? "UNKNOWN").toUpperCase().slice(0, 10);
+  const rawAsset = (data.asset ?? "UNKNOWN").toUpperCase();
+  const asset = rawAsset.length > 10 ? rawAsset.slice(0, 9) + "\u2026" : rawAsset;
   const winner = inlineDeriveWinner(data);
   const { bullVotes, bearVotes, undecidedVotes } = inlineExtractVotes(
     data.voteBreakdown,
@@ -71,6 +81,7 @@ function buildDebateImage(data: DebateDetailData, fonts: FontConfig[]) {
     bearVotes,
     undecidedVotes,
   );
+  const { barBullPct, barBearPct } = inlineComputeBarPercentages(bullVotes, bearVotes);
   const totalVotes = data.totalVotes ?? 0;
 
   const winnerColors: Record<string, { bg: string; text: string }> = {
@@ -81,6 +92,79 @@ function buildDebateImage(data: DebateDetailData, fonts: FontConfig[]) {
   const wc = winnerColors[winner] ?? winnerColors.undecided;
   const winnerLabel =
     winner.charAt(0).toUpperCase() + winner.slice(1);
+
+  const barSection = totalVotes === 0 ? (
+    <div
+      style={{
+        display: "flex",
+        width: "100%",
+        height: "28px",
+        borderRadius: "14px",
+        backgroundColor: "#1e293b",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <span style={{ fontSize: "14px", color: "#64748b" }}>
+        No votes yet
+      </span>
+    </div>
+  ) : (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+      <div
+        style={{
+          display: "flex",
+          width: "100%",
+          height: "28px",
+          borderRadius: "14px",
+          overflow: "hidden",
+          backgroundColor: "#1e293b",
+        }}
+      >
+        <div
+          style={{
+            width: `${barBullPct}%`,
+            height: "100%",
+            backgroundColor: "#22c55e",
+          }}
+        />
+        <div
+          style={{
+            width: `${barBearPct}%`,
+            height: "100%",
+            backgroundColor: "#ef4444",
+          }}
+        />
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginTop: "12px",
+          fontSize: "18px",
+          color: "#94a3b8",
+        }}
+      >
+        <span>
+          Bull {bullPct}%
+        </span>
+        <span>
+          Bear {bearPct}%
+        </span>
+      </div>
+
+      {undecidedVotes > 0 && (
+        <div style={{ marginTop: "8px", fontSize: "16px", color: "#64748b" }}>
+          {undecidedVotes.toLocaleString()} undecided
+        </div>
+      )}
+
+      <div style={{ marginTop: "8px", fontSize: "22px", color: "#cbd5e1" }}>
+        {totalVotes.toLocaleString()} votes
+      </div>
+    </div>
+  );
 
   return new ImageResponse(
     (
@@ -130,54 +214,7 @@ function buildDebateImage(data: DebateDetailData, fonts: FontConfig[]) {
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-          <div
-            style={{
-              display: "flex",
-              width: "100%",
-              height: "28px",
-              borderRadius: "14px",
-              overflow: "hidden",
-              backgroundColor: "#1e293b",
-            }}
-          >
-            <div
-              style={{
-                width: `${bullPct}%`,
-                height: "100%",
-                backgroundColor: "#22c55e",
-              }}
-            />
-            <div
-              style={{
-                width: `${bearPct}%`,
-                height: "100%",
-                backgroundColor: "#ef4444",
-              }}
-            />
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginTop: "12px",
-              fontSize: "18px",
-              color: "#94a3b8",
-            }}
-          >
-            <span>
-              Bull {bullPct}%
-            </span>
-            <span>
-              Bear {bearPct}%
-            </span>
-          </div>
-
-          <div style={{ marginTop: "16px", fontSize: "22px", color: "#cbd5e1" }}>
-            {totalVotes.toLocaleString()} votes
-          </div>
-        </div>
+        {barSection}
 
         <div
           style={{
@@ -228,7 +265,7 @@ function buildFallbackImage(fonts: FontConfig[]) {
           AI Trading Debate Lab
         </span>
         <span style={{ fontSize: "24px", color: "#64748b" }}>
-          Watch Bulls &amp; Bears Argue Your Next Trade
+          {"Watch Bulls & Bears Argue Your Next Trade"}
         </span>
       </div>
     ),
