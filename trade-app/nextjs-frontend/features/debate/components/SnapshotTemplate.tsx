@@ -29,6 +29,7 @@ export function SnapshotTemplate({
   externalId,
   messages,
   voteData,
+  timestamp,
 }: SnapshotInput) {
   const argumentMessages = messages.filter((m) => m.type === "argument");
   const totalArgs = argumentMessages.length;
@@ -44,6 +45,7 @@ export function SnapshotTemplate({
   const totalVotes = voteData.bullVotes + voteData.bearVotes + (voteData.undecidedVotes ?? 0);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   const debateUrl = siteUrl ? `${siteUrl}/debates/${externalId}` : null;
+  const now = timestamp ?? new Date().toISOString();
 
   return (
     <div
@@ -53,8 +55,8 @@ export function SnapshotTemplate({
     >
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/15">
         <BrandMark />
-        <time className="text-[10px] text-slate-500" dateTime={new Date().toISOString()}>
-          {new Date().toISOString().replace("T", " ").slice(0, 19)} UTC
+        <time className="text-[10px] text-slate-500" dateTime={now}>
+          {now.replace("T", " ").slice(0, 19)} UTC
         </time>
       </div>
 

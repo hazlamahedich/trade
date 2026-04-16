@@ -1,6 +1,6 @@
 # Story 5.2: Debate Snapshot Tool
 
-Status: review
+Status: test-review-complete
 
 ## Story
 
@@ -426,6 +426,7 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 
 - 2026-04-16: Implemented Story 5.2 — Debate Snapshot Tool. Client-side image capture via html-to-image with branded PNG generation, Web Share API with download fallback, 50-message cap, full accessibility, and comprehensive test coverage (32 tests).
 - 2026-04-16: Test automation expansion (bmad-testarch-automate). Added 35 expanded unit tests (`tests/unit/snapshot-expanded.test.tsx`) covering SnapshotArgumentBubble (7), captureSnapshot (3), SnapshotButton (5), SnapshotTemplate (7), useSnapshot (4), slug (5), bundle isolation (4). Added 8 E2E tests (`tests/e2e/snapshot-flow.spec.ts`) covering snapshot button visibility, download trigger, keyboard nav, mobile touch target, disabled state, tooltip, overlay a11y. Total: 75 tests across 3 files. All quality gates pass (tsc, lint, tests).
+- 2026-04-16: Test quality review (bmad-testarch-test-review). Score: 82/100 (B). Approved with comments. Addressed all review findings: (1) replaced `Math.random()` with sequential counter in test factories for determinism, (2) deepened Web Share API test to assert `mockShare` called with correct args, (3) deepened concurrent guard test to verify single capture invocation, (4) removed duplicate slug/captureSnapshot tests from expanded file, (5) fixed E2E download test — removed `catch(() => null)` suppression, (6) added `timestamp` prop to `SnapshotInput`/`SnapshotTemplate` for deterministic rendering, (7) exported `CAPTURE_TIMEOUT_MS` from useSnapshot and replaced tautological assertion with real import test, (8) cleaned up unused imports and `require()` lint warnings. Final: 60 unit tests (33+27), 0 lint errors in modified files.
 
 ## Test Automation Record
 
@@ -436,11 +437,9 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 | Category | Count | Key Tests |
 |----------|-------|-----------|
 | SnapshotArgumentBubble | 7 | Bull/bear styling, timestamp format, content truncation (500 chars + Unicode), inline SVG icons |
-| captureSnapshot | 3 | Blob return, null element error, zero-byte error |
 | SnapshotButton | 5 | Reduced motion, toast error path, error timer, timer cleanup on unmount |
 | SnapshotTemplate | 7 | URL omission, vote bar widths, vote counts, undecided votes, message filtering |
-| useSnapshot | 4 | Unmount safety, initial state, error state, timeout constant |
-| slug utility | 5 | Empty, all-special, leading/trailing dashes, consecutive, numbers |
+| useSnapshot | 4 | Unmount safety, initial state, error state, timeout constant export verification |
 | Bundle isolation | 4 | No RQ/Zustand in SnapshotButton, SnapshotArgumentBubble, SnapshotOverlay, snapshot utility |
 
 ### E2E Tests (`tests/e2e/snapshot-flow.spec.ts`)

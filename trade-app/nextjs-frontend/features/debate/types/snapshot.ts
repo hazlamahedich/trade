@@ -12,6 +12,7 @@ export interface SnapshotInput {
   externalId: string;
   messages: import("../hooks/useDebateMessages").DebateMessage[];
   voteData: SnapshotVoteData;
+  timestamp?: string;
 }
 
 export type SnapshotState = "idle" | "generating" | "error";

@@ -7,7 +7,7 @@ const REVOKE_DELAY_MS = 1_000;
 const RENDER_SETTLE_MS = 200;
 const SNAPSHOT_HIDDEN_STATUSES = new Set(["idle", "error"]);
 
-export { SNAPSHOT_HIDDEN_STATUSES };
+export { SNAPSHOT_HIDDEN_STATUSES, CAPTURE_TIMEOUT_MS };
 
 export function useSnapshot(input: SnapshotInput) {
   const [state, setState] = useState<SnapshotState>("idle");

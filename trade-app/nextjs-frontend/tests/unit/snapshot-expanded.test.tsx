@@ -2,7 +2,6 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
 import { jest } from "@jest/globals";
 import { SnapshotArgumentBubble } from "../../features/debate/components/SnapshotArgumentBubble";
-import { slug } from "../../features/debate/utils/snapshot";
 import { SnapshotButton } from "../../features/debate/components/SnapshotButton";
 import { SnapshotTemplate } from "../../features/debate/components/SnapshotTemplate";
 import { useSnapshot } from "../../features/debate/hooks/useSnapshot";
@@ -12,6 +11,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 if (typeof globalThis.SVGImageElement === "undefined") {
   (globalThis as Record<string, unknown>).SVGImageElement = class SVGImageElement extends HTMLElement {};
 }
+
+beforeEach(() => {
+  _idCounter = 0;
+});
 
 jest.mock("html-to-image", () => ({
   toBlob: jest.fn(),
@@ -33,9 +36,11 @@ jest.mock("framer-motion", () => {
   };
 });
 
+let _idCounter = 0;
+
 function makeArgMessage(overrides: Partial<ArgumentMessage> = {}): ArgumentMessage {
   return {
-    id: `msg-${Math.random().toString(36).slice(2, 8)}`,
+    id: `msg-${++_idCounter}`,
     type: "argument",
     agent: "bull",
     content: "Test argument content",
@@ -108,38 +113,6 @@ describe("[P0][5.2-AUTO] SnapshotArgumentBubble", () => {
     const msg = makeArgMessage({ content: surrogateContent });
     render(<SnapshotArgumentBubble message={msg} />);
     expect(screen.getByText(/…$/)).toBeInTheDocument();
-  });
-});
-
-describe("[P0][5.2-AUTO] captureSnapshot backdrop override cleanup", () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mockCapture = jest.fn() as any;
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  jest.mock("../../features/debate/utils/snapshot", () => ({
-    captureSnapshot: (...args: unknown[]) => mockCapture(...args),
-    slug: (input: string) =>
-      input.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
-  }));
-
-  it("captureSnapshot is callable and returns blob", async () => {
-    const fakeBlob = new Blob(["img"], { type: "image/png" });
-    mockCapture.mockResolvedValue(fakeBlob);
-    const result = await mockCapture(document.createElement("div"));
-    expect(result).toBe(fakeBlob);
-  });
-
-  it("captureSnapshot throws on null element", async () => {
-    mockCapture.mockRejectedValue(new Error("Snapshot generation produced an empty result"));
-    await expect(mockCapture(null)).rejects.toThrow("empty result");
-  });
-
-  it("captureSnapshot throws on zero-byte blob", async () => {
-    mockCapture.mockRejectedValue(new Error("Snapshot generation produced an empty result"));
-    await expect(mockCapture(document.createElement("div"))).rejects.toThrow();
   });
 });
 
@@ -316,30 +289,9 @@ describe("[P0][5.2-AUTO] useSnapshot — cleanup and state", () => {
     expect(result.current.error).toBeNull();
   });
 
-  it("CAPTURE_TIMEOUT_MS constant is 10 seconds", () => {
-    expect(10_000).toBe(10000);
-  });
-});
-
-describe("[P0][5.2-AUTO] slug utility — edge cases", () => {
-  it("handles empty string", () => {
-    expect(slug("")).toBe("");
-  });
-
-  it("handles all special characters", () => {
-    expect(slug("!@#$%^&*()")).toBe("");
-  });
-
-  it("handles leading/trailing dashes from special chars", () => {
-    expect(slug("-test-")).toBe("test");
-  });
-
-  it("handles consecutive special characters", () => {
-    expect(slug("a   b")).toBe("a-b");
-  });
-
-  it("preserves numbers", () => {
-    expect(slug("BTC2024")).toBe("btc2024");
+  it("CAPTURE_TIMEOUT_MS is exported and equals 10 seconds", async () => {
+    const mod = await import("../../features/debate/hooks/useSnapshot");
+    expect(mod.CAPTURE_TIMEOUT_MS).toBe(10_000);
   });
 });
 

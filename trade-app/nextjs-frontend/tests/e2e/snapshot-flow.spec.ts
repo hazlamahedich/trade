@@ -94,7 +94,7 @@ test.describe('[5.2] Debate Snapshot Tool — E2E (P0)', () => {
       });
     });
 
-    const downloadPromise = page.waitForEvent('download', { timeout: 20000 }).catch(() => null);
+    const downloadPromise = page.waitForEvent('download', { timeout: 20000 });
 
     await page.goto('/debates/snap-dl-test');
 
@@ -104,9 +104,7 @@ test.describe('[5.2] Debate Snapshot Tool — E2E (P0)', () => {
     await snapshotBtn.click();
 
     const download = await downloadPromise;
-    if (download) {
-      expect(download.suggestedFilename()).toContain('debate-');
-    }
+    expect(download.suggestedFilename()).toContain('debate-');
   });
 
   test('[5.2-E2E-004] Snapshot button is keyboard accessible @p0', async ({ page }) => {
