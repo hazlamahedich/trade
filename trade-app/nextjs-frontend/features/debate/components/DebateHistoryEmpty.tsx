@@ -41,7 +41,7 @@ export function DebateHistoryEmpty({
         No debates yet
       </h3>
       <p className="mt-2 text-sm text-slate-400">
-        Start a debate to see it here.
+        Debates will appear here once they start.
       </p>
     </div>
   );

@@ -12,6 +12,7 @@ interface DebateHistoryListProps {
   size: number;
   asset: string;
   outcome: OutcomeFilter;
+  basePath?: string;
 }
 
 export async function DebateHistoryList({
@@ -19,6 +20,7 @@ export async function DebateHistoryList({
   size,
   asset,
   outcome,
+  basePath = "/dashboard/debates",
 }: DebateHistoryListProps) {
   const response = await getDebateHistory({
     page,
@@ -45,7 +47,7 @@ export async function DebateHistoryList({
           <DebateHistoryFilters initialAsset={asset} initialOutcome={outcome} />
           <PageSizeSelector
             currentSize={size}
-            basePath="/dashboard/debates"
+            basePath={basePath}
             extraParams={extraParams}
           />
         </div>
@@ -67,7 +69,7 @@ export async function DebateHistoryList({
         totalPages={response.meta.pages}
         pageSize={response.meta.size}
         totalItems={response.meta.total}
-        basePath="/dashboard/debates"
+        basePath={basePath}
         extraParams={extraParams}
       />
     </div>
