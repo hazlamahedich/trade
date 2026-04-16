@@ -373,6 +373,8 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - features/debate/components/SnapshotButton.tsx
 - features/debate/hooks/useSnapshot.ts
 - tests/unit/snapshot-capture.test.tsx
+- tests/unit/snapshot-expanded.test.tsx
+- tests/e2e/snapshot-flow.spec.ts
 
 **Modified:**
 - features/debate/components/DebateStream.tsx — added useSnapshot, SnapshotButton, SnapshotOverlay
@@ -423,3 +425,35 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 ### Change Log
 
 - 2026-04-16: Implemented Story 5.2 — Debate Snapshot Tool. Client-side image capture via html-to-image with branded PNG generation, Web Share API with download fallback, 50-message cap, full accessibility, and comprehensive test coverage (32 tests).
+- 2026-04-16: Test automation expansion (bmad-testarch-automate). Added 35 expanded unit tests (`tests/unit/snapshot-expanded.test.tsx`) covering SnapshotArgumentBubble (7), captureSnapshot (3), SnapshotButton (5), SnapshotTemplate (7), useSnapshot (4), slug (5), bundle isolation (4). Added 8 E2E tests (`tests/e2e/snapshot-flow.spec.ts`) covering snapshot button visibility, download trigger, keyboard nav, mobile touch target, disabled state, tooltip, overlay a11y. Total: 75 tests across 3 files. All quality gates pass (tsc, lint, tests).
+
+## Test Automation Record
+
+### Expanded Unit Tests (`tests/unit/snapshot-expanded.test.tsx`)
+
+35 tests covering previously uncovered ACs:
+
+| Category | Count | Key Tests |
+|----------|-------|-----------|
+| SnapshotArgumentBubble | 7 | Bull/bear styling, timestamp format, content truncation (500 chars + Unicode), inline SVG icons |
+| captureSnapshot | 3 | Blob return, null element error, zero-byte error |
+| SnapshotButton | 5 | Reduced motion, toast error path, error timer, timer cleanup on unmount |
+| SnapshotTemplate | 7 | URL omission, vote bar widths, vote counts, undecided votes, message filtering |
+| useSnapshot | 4 | Unmount safety, initial state, error state, timeout constant |
+| slug utility | 5 | Empty, all-special, leading/trailing dashes, consecutive, numbers |
+| Bundle isolation | 4 | No RQ/Zustand in SnapshotButton, SnapshotArgumentBubble, SnapshotOverlay, snapshot utility |
+
+### E2E Tests (`tests/e2e/snapshot-flow.spec.ts`)
+
+8 Playwright tests:
+
+| Test ID | Description | Priority |
+|---------|-------------|----------|
+| 5.2-E2E-001 | Snapshot button visible on running debate with messages | P0 |
+| 5.2-E2E-002 | Snapshot button hidden on empty debate | P0 |
+| 5.2-E2E-003 | Snapshot button click triggers download | P0 |
+| 5.2-E2E-004 | Snapshot button keyboard accessible (Enter) | P0 |
+| 5.2-E2E-005 | Mobile touch target (44×44px) | P1 |
+| 5.2-E2E-006 | Snapshot button disabled during generation | P0 |
+| 5.2-E2E-007 | Tooltip visible on hover | P1 |
+| 5.2-E2E-008 | Overlay aria-hidden during generation | P1 |
