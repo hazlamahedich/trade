@@ -256,6 +256,24 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 | Inter-Regular.ttf | STAGED (git add) | `trade-app/nextjs-frontend/app/fonts/Inter-Regular.ttf` |
 | Inter-Bold.ttf | STAGED (git add) | `trade-app/nextjs-frontend/app/fonts/Inter-Bold.ttf` |
 | OG image tests | CREATED/MODIFIED | `trade-app/nextjs-frontend/tests/unit/opengraph-image.test.tsx` |
+| OG image contract tests | CREATED | `trade-app/nextjs-frontend/tests/unit/opengraph-image-contract.test.tsx` |
+
+### Test Quality Review
+
+**Score**: 78/100 (B - Acceptable) → improved after actions
+**Reviewer**: TEA Agent
+**Report**: `_bmad-output/test-artifacts/test-review-story-5.1.md`
+
+**Actions Taken:**
+
+- [x] [P0] Split test file — extracted contract tests to `opengraph-image-contract.test.tsx` (193 lines). Main file now 276 lines (under 300 threshold)
+- [x] [P1] Removed tests 001-004 — tested raw `global.fetch` mock, not production `fetchDebateForOG`. Already covered by tests 018-026 which import real module
+- [x] [P1] Removed inline function copies + tests 010-013 — tested local copies of production functions, not actual code. Contract tests in separate file properly test both inline and shared versions
+- [x] [P2] Added `isFallbackImage()` content assertions to tests 018-026 — now differentiates debate vs fallback ImageResponse via `alignItems === "center"` check
+- [x] [P2] Removed locale-dependent test 013 — tested `toLocaleString("en-US")` locally, not production code
+- [x] [P2] Added `afterEach` to restore `AbortSignal.timeout` — test 024 no longer restores global manually in-body
+
+**Result**: 39 tests (was 46). Removed 7 tests that provided false confidence. No coverage gap — removed tests duplicated coverage from stronger tests that import real production code. Full suite: 720/720 pass.
 
 ### Review Findings
 
@@ -277,3 +295,4 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 
 - 2026-04-16: Implemented dynamic OG image generation for debate pages (Story 5.1)
 - 2026-04-16: Expanded test automation — 19 new tests (018-035) covering fetchDebateForOG URL construction, AbortSignal, URL encoding, null guards, module exports, bull-undecided tie edge case. Total: 46 tests.
+- 2026-04-16: Test quality review (78/100 B). Addressed all 6 actions: split file (517→276+193), removed 7 scaffolding tests, added content assertions (isFallbackImage), fixed locale-dependent test, cleaned mock lifecycle. 39 tests across 2 files.
