@@ -244,8 +244,8 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - JSX layout: dark theme (#0f172a), asset name (uppercase, 10-char max), winner badge, sentiment bar, vote count, branding
 - Updated page.tsx: added `siteName` to openGraph, added `twitter` card with `summary_large_image`, removed TODO comment
 - Font loading via static Inter TTF (NOT variable fonts which crash Satori)
-- 27 unit tests pass: fetch logic, fallback path, contract tests (inline vs shared utilities), edge cases, metadata twitter card
-- Full suite: 708/708 tests pass, no new lint/type errors
+- 46 unit tests pass (27 original + 19 expanded coverage): fetch logic via dynamic import, URL encoding, AbortSignal polyfill, fallback paths, null guards, module exports, contract tests, edge cases, metadata twitter card
+- Full suite: 727/727 tests pass, no new lint/type errors
 
 ### File List
 
@@ -255,7 +255,7 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 | Debate detail page | MODIFIED | `trade-app/nextjs-frontend/app/debates/[externalId]/page.tsx` |
 | Inter-Regular.ttf | STAGED (git add) | `trade-app/nextjs-frontend/app/fonts/Inter-Regular.ttf` |
 | Inter-Bold.ttf | STAGED (git add) | `trade-app/nextjs-frontend/app/fonts/Inter-Bold.ttf` |
-| OG image tests | CREATED | `trade-app/nextjs-frontend/tests/unit/opengraph-image.test.tsx` |
+| OG image tests | CREATED/MODIFIED | `trade-app/nextjs-frontend/tests/unit/opengraph-image.test.tsx` |
 
 ### Review Findings
 
@@ -276,3 +276,4 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 ### Change Log
 
 - 2026-04-16: Implemented dynamic OG image generation for debate pages (Story 5.1)
+- 2026-04-16: Expanded test automation — 19 new tests (018-035) covering fetchDebateForOG URL construction, AbortSignal, URL encoding, null guards, module exports, bull-undecided tie edge case. Total: 46 tests.
