@@ -82,3 +82,11 @@
 ## Deferred from: code review of 4-2b-debate-history-frontend-the-archive (2026-04-14)
 
 - Missing P0/P1 test files for DebateHistoryFilters, DebateHistoryFilterChips, URL sync tests, and reduced-motion vote bar test. Story claims "42 new tests" but several spec-mandated P0/P1 test tasks (12.1, 12.2, 12.4, 12.6) have no corresponding test artifacts. Needs verification and test creation in a follow-up task.
+
+## Deferred from: code review of 5-1-dynamic-og-image-generation (2026-04-16)
+
+- Undecided votes not shown in sentiment bar — spec says "bull vs bear" only, but bar visually gaps when undecidedPct > 0. Spec-aligned design, not a bug.
+- Duplicate inline utilities risk drift from shared versions — intentional by spec design ("DO NOT import") with contract tests as mitigation.
+- ISR caches fallback image for 1 hour on transient API error — expected ISR behavior, not a bug. Transient errors self-heal on next revalidation.
+- twitter.images uses relative path — depends on metadataBase being configured at app level. Verify in E2E testing.
+- Bull-undecided tie (e.g. bull=40, undecided=40) breaks in bull's favor due to `>=` comparison — matches shared deriveWinner behavior, consistent but semantically debatable.

@@ -39,8 +39,6 @@ export async function generateMetadata({
   const title = `Bull vs Bear on ${asset} — AI Trading Debate Lab`;
   const description = `AI debate analysis on ${asset}. ${winnerLabel} won with ${data.totalVotes} votes. ${data.guardianVerdict ?? ""}`.trim();
 
-  // TODO: og:image — Story 5.1
-
   return {
     title,
     description,
@@ -49,6 +47,13 @@ export async function generateMetadata({
       description,
       type: "article",
       url: `/debates/${externalId}`,
+      siteName: "AI Trading Debate Lab",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [`/debates/${externalId}/opengraph-image`],
     },
   };
 }
