@@ -23,6 +23,21 @@ const debateDetailSchema = z.object({
   totalVotes: z.number(),
   voteBreakdown: z.record(z.string(), z.number()),
   transcript: z.array(transcriptMessageSchema).nullable().optional(),
+  tradingAnalysis: z.object({
+    bullScore: z.number(),
+    bearScore: z.number(),
+    direction: z.enum(["bullish", "bearish", "neutral"]),
+    confidence: z.number(),
+    summary: z.string(),
+    keySupport: z.array(z.number()),
+    keyResistance: z.array(z.number()),
+    buyZone: z.object({ low: z.number(), high: z.number(), rationale: z.string() }).nullable(),
+    stopLoss: z.object({ price: z.number(), rationale: z.string() }).nullable(),
+    takeProfit: z.object({ price: z.number(), rationale: z.string() }).nullable(),
+    riskRewardRatio: z.string(),
+    watchlist: z.array(z.string()),
+    verdict: z.string(),
+  }).nullable().optional(),
 });
 
 const debateDetailResponseSchema = z.object({
@@ -93,5 +108,6 @@ export async function getDebateDetail(
   return {
     ...parsed.data.data,
     transcript: parsed.data.data.transcript ?? null,
+    tradingAnalysis: parsed.data.data.tradingAnalysis ?? null,
   };
 }

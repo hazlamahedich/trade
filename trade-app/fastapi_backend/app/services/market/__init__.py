@@ -30,12 +30,14 @@ class MarketDataService:
         start_time = time.time()
 
         cached_data = (
-            None
-            if mock_no_cache
-            else await self.cache.get_cached_market_data(asset)
+            None if mock_no_cache else await self.cache.get_cached_market_data(asset)
         )
 
-        if cached_data and self.cache.is_cache_valid(cached_data) and not mock_providers_down:
+        if (
+            cached_data
+            and self.cache.is_cache_valid(cached_data)
+            and not mock_providers_down
+        ):
             latency_ms = int((time.time() - start_time) * 1000)
             return cached_data, MarketMeta(latency_ms=latency_ms, provider="cache")
 
@@ -81,9 +83,35 @@ class MarketDataService:
         data, _ = await self.get_data(asset)
         if data is None:
             return None
+
+        tech_data = await self.provider.fetch_technical(asset)
+
+        extra_parts = []
+        if tech_data:
+            if tech_data.get("change24h") is not None:
+                extra_parts.append(f"24h change: {tech_data['change24h']}%")
+            if tech_data.get("change7d") is not None:
+                extra_parts.append(f"7d change: {tech_data['change7d']}%")
+            if tech_data.get("rsi14") is not None:
+                extra_parts.append(f"RSI(14): {tech_data['rsi14']}")
+            if tech_data.get("sma20"):
+                extra_parts.append(f"SMA20: ${tech_data['sma20']:,.2f}")
+            if tech_data.get("supportLevels"):
+                supports = ", ".join(f"${s:,.2f}" for s in tech_data["supportLevels"])
+                extra_parts.append(f"Support levels: {supports}")
+            if tech_data.get("resistanceLevels"):
+                resistances = ", ".join(
+                    f"${r:,.2f}" for r in tech_data["resistanceLevels"]
+                )
+                extra_parts.append(f"Resistance levels: {resistances}")
+            if tech_data.get("volumeRatio"):
+                extra_parts.append(
+                    f"Volume ratio vs 20d avg: {tech_data['volumeRatio']}x"
+                )
+
         return MarketContext(
             asset=data.asset,
             price=data.price,
-            news_summary=[n.title for n in data.news[:3]],
+            news_summary=[n.title for n in data.news[:3]] + extra_parts,
             is_stale=data.is_stale,
         )

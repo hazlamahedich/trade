@@ -95,6 +95,7 @@ class DebateRepository:
         vote_bull: int | None = None,
         vote_bear: int | None = None,
         vote_undecided: int | None = None,
+        trading_analysis: dict | None = None,
     ) -> Debate | None:
         debate = await self.get_by_external_id(external_id)
         if debate is None:
@@ -111,6 +112,8 @@ class DebateRepository:
             debate.vote_bear = vote_bear
         if vote_undecided is not None:
             debate.vote_undecided = vote_undecided
+        if trading_analysis is not None:
+            debate.trading_analysis = trading_analysis
         await self.session.commit()
         await self.session.refresh(debate)
         return debate
@@ -158,6 +161,7 @@ class DebateRepository:
             total_votes=total_votes,
             vote_breakdown=vote_breakdown,
             transcript=transcript,
+            trading_analysis=debate.trading_analysis,
         )
 
     async def get_active_debate(self) -> ActiveDebateSummary | None:

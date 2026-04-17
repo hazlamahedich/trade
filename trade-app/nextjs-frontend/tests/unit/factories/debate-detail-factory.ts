@@ -18,6 +18,7 @@ export function createMockDebateDetail(
     totalVotes: 100,
     voteBreakdown: { bull: 60, bear: 40, undecided: 0 },
     transcript: null,
+    tradingAnalysis: null,
     ...overrides,
   };
 }

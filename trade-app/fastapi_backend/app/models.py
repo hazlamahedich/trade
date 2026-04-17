@@ -49,6 +49,7 @@ class Debate(Base):
     vote_bull = Column(Integer, nullable=True, default=None)
     vote_bear = Column(Integer, nullable=True, default=None)
     vote_undecided = Column(Integer, nullable=True, default=None)
+    trading_analysis = Column(JSONB, nullable=True)
 
     votes = relationship("Vote", back_populates="debate", cascade="all, delete-orphan")
 

@@ -65,6 +65,7 @@ async def archive_debate(debate_id: str, state: dict[str, Any] | None = None) ->
             len(interrupts) if isinstance(interrupts, list) else 0
         )
         current_turn = state.get("current_turn", 0)
+        trading_analysis = state.get("trading_analysis")
 
         await repo.complete_debate(
             external_id=debate_id,
@@ -75,6 +76,7 @@ async def archive_debate(debate_id: str, state: dict[str, Any] | None = None) ->
             vote_bull=vote_bull,
             vote_bear=vote_bear,
             vote_undecided=vote_undecided,
+            trading_analysis=trading_analysis,
         )
 
         try:

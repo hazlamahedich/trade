@@ -67,6 +67,9 @@ class DebateResultResponse(BaseModel):
     transcript: list[TranscriptMessage] | None = Field(
         default=None, serialization_alias="transcript"
     )
+    trading_analysis: dict[str, Any] | None = Field(
+        None, serialization_alias="tradingAnalysis"
+    )
 
 
 class DebateResultMeta(BaseModel):

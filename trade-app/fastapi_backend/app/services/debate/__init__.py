@@ -4,11 +4,13 @@ import time
 
 from app.database import async_session_maker
 from app.services.market import MarketDataService
+from app.services.market.provider import YFinanceProvider
 from app.services.debate.engine import create_debate_graph
 from app.services.debate.schemas import DebateResponse, DebateMessage
 from app.services.debate.exceptions import StaleDataError
 from app.services.debate.repository import DebateRepository
 from app.services.debate.archival import archive_with_retry
+from app.services.debate.agents.trading_analyst import generate_trading_analysis
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -18,10 +20,12 @@ class DebateService:
     def __init__(self, redis_url: str | None = None):
         settings.validate_llm_config()
         self.market_service = MarketDataService(redis_url or settings.REDIS_URL)
+        self.yfinance = YFinanceProvider()
         self.graph = create_debate_graph()
 
     async def close(self) -> None:
         await self.market_service.close()
+        await self.yfinance.close()
 
     async def start_debate(self, asset: str) -> DebateResponse:
         start_time = time.time()
@@ -67,6 +71,25 @@ class DebateService:
             for msg in result["messages"]
         ]
 
+        trading_analysis = None
+        try:
+            tech_data = await self.yfinance.fetch_technical(asset)
+            debate_messages = [
+                {"role": m["role"], "content": m["content"]}
+                for m in result["messages"]
+                if m["role"] in ("bull", "bear")
+            ]
+            trading_analysis = await generate_trading_analysis(
+                asset=asset,
+                messages=debate_messages,
+                technical_data=tech_data,
+            )
+            logger.info(
+                f"Trading analysis generated for {debate_id}: {trading_analysis.get('direction', 'unknown')}"
+            )
+        except Exception as e:
+            logger.error(f"Trading analysis failed for {debate_id}: {e}")
+
         archive_state = {
             "messages": [
                 {"role": m["role"], "content": m["content"]} for m in result["messages"]
@@ -74,6 +97,7 @@ class DebateService:
             "current_turn": result["current_turn"],
             "guardian_verdict": result.get("guardian_verdict"),
             "guardian_interrupts": result.get("guardian_interrupts", []),
+            "trading_analysis": trading_analysis,
         }
         archived = await archive_with_retry(debate_id, archive_state)
         if not archived:

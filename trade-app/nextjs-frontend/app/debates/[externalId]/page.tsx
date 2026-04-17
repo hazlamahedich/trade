@@ -10,6 +10,7 @@ import { BackToHistoryLink, DebateDetailActions } from "@/features/debate/compon
 import { extractVotes } from "@/features/debate/api/debate-history";
 import { getWinnerBadge } from "@/features/debate/utils/winner-badge";
 import { generateDebateStructuredData, deriveWinner } from "@/features/debate/utils/structured-data";
+import { DebateChartAndAnalysis } from "@/features/debate/components/DebateChartAndAnalysis";
 
 export const revalidate = DEBATE_DETAIL_ISR_REVALIDATE_SECONDS;
 
@@ -127,6 +128,10 @@ export default async function DebateDetailPage({
             <p className="text-sm text-slate-200">{data.guardianVerdict}</p>
           </section>
         )}
+
+        <section className="mt-8" aria-label="Chart and trading analysis">
+          <DebateChartAndAnalysis asset={data.asset} analysis={data.tradingAnalysis} />
+        </section>
 
         <section className="mt-8" aria-label="Debate transcript">
           <h2 className="text-lg font-semibold text-slate-200 mb-4">
