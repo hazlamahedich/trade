@@ -15,8 +15,7 @@ export function DebateChartAndAnalysis({ asset, analysis }: DebateChartAndAnalys
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL;
-    if (!apiBase) return;
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
     fetch(`${apiBase}/api/market/${asset}/candles?period=30d&interval=1d`)
       .then((res) => res.json())

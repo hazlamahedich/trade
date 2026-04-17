@@ -8,6 +8,8 @@ export interface TradingAnalysis {
   bearScore: number;
   direction: "bullish" | "bearish" | "neutral";
   confidence: number;
+  winner: "bull" | "bear" | "tie";
+  winnerRationale: string;
   summary: string;
   keySupport: number[];
   keyResistance: number[];

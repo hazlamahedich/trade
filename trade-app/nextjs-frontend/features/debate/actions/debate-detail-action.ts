@@ -28,6 +28,8 @@ const debateDetailSchema = z.object({
     bearScore: z.number(),
     direction: z.enum(["bullish", "bearish", "neutral"]),
     confidence: z.number(),
+    winner: z.enum(["bull", "bear", "tie"]),
+    winnerRationale: z.string(),
     summary: z.string(),
     keySupport: z.array(z.number()),
     keyResistance: z.array(z.number()),

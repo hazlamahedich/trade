@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendingUp, TrendingDown, Minus, Target, AlertTriangle, ChevronUp, ChevronDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Target, AlertTriangle, ChevronUp, ChevronDown, Trophy } from "lucide-react";
 import type { TradingAnalysis } from "@/features/debate/types/debate-detail";
 
 interface TradingSignalCardProps {
@@ -20,7 +20,7 @@ function PriceLevel({ label, price, color }: { label: string; price: number; col
 }
 
 export function TradingSignalCard({ analysis, asset }: TradingSignalCardProps) {
-  const { bullScore, direction, confidence, buyZone, stopLoss, takeProfit, riskRewardRatio, keySupport, keyResistance, verdict, watchlist } = analysis;
+  const { bullScore, direction, confidence, winner, winnerRationale, buyZone, stopLoss, takeProfit, riskRewardRatio, keySupport, keyResistance, verdict, watchlist } = analysis;
 
   const bullPct = Math.round(bullScore);
   const bearPct = 100 - bullPct;
@@ -33,6 +33,14 @@ export function TradingSignalCard({ analysis, asset }: TradingSignalCardProps) {
 
   const config = directionConfig[direction] || directionConfig.neutral;
   const DirectionIcon = config.icon;
+
+  const winnerConfig = {
+    bull: { label: "Bull Agent Wins", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30", iconColor: "text-emerald-400" },
+    bear: { label: "Bear Agent Wins", color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/30", iconColor: "text-rose-400" },
+    tie: { label: "It's a Tie", color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30", iconColor: "text-amber-400" },
+  };
+
+  const wConfig = winnerConfig[winner] || winnerConfig.tie;
 
   return (
     <section aria-label="Trading signal analysis" className="rounded-lg border border-white/15 bg-white/5 overflow-hidden">
@@ -49,6 +57,15 @@ export function TradingSignalCard({ analysis, asset }: TradingSignalCardProps) {
       </div>
 
       <div className="p-4 space-y-5">
+        {/* Debate Winner Section */}
+        <div className={`rounded-lg border ${wConfig.border} ${wConfig.bg} p-4`} aria-label="Debate winner">
+          <div className="flex items-center gap-2 mb-2">
+            <Trophy className={`h-5 w-5 ${wConfig.iconColor}`} aria-hidden="true" />
+            <h3 className={`text-base font-bold ${wConfig.color}`}>{wConfig.label}</h3>
+          </div>
+          <p className="text-sm text-slate-200 leading-relaxed">{winnerRationale}</p>
+        </div>
+
         <div aria-label="Bull vs Bear probability">
           <div className="flex items-center justify-between mb-2">
             <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-400">
