@@ -1,6 +1,6 @@
 import { slug } from "./snapshot";
 import { truncateUnicode } from "./truncate";
-import type { TweetIntentParams } from "../types/quote-share";
+import type { QuoteCardData, TweetIntentParams } from "../types/quote-share";
 
 const T_CO_URL_LENGTH = 23;
 const TWEET_MAX_LENGTH = 280;
@@ -17,6 +17,8 @@ export function validateTweetLength(text: string, url?: string): string {
   const urlLen = url ? T_CO_URL_LENGTH : 0;
   const nonTextLen = urlLen + hashtagLen + (url ? 1 : 0);
   const maxTextLen = TWEET_MAX_LENGTH - nonTextLen;
+
+  if (maxTextLen <= 0) return "";
 
   const textChars = Array.from(text);
   if (textChars.length <= maxTextLen) return text;
@@ -35,7 +37,7 @@ export function buildTweetIntentUrl(params: TweetIntentParams): string {
   return `https://twitter.com/intent/tweet?${query.toString()}`;
 }
 
-export function buildQuoteShareFilename(agent: string, assetName: string): string {
+export function buildQuoteShareFilename(agent: QuoteCardData["agent"], assetName: string): string {
   const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   return `quote-${agent}-${slug(assetName)}-${ts}.png`;
 }

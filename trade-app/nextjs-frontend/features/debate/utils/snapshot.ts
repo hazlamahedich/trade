@@ -1,9 +1,12 @@
-import { toBlob } from "html-to-image";
-
 export interface SnapshotOptions {
   pixelRatio?: number;
   backgroundColor?: string;
   cacheBust?: boolean;
+}
+
+async function getToBlob() {
+  const mod = await import("html-to-image");
+  return mod.toBlob;
 }
 
 function getDefaultOptions(): SnapshotOptions {
@@ -44,6 +47,7 @@ export async function captureSnapshot(
   });
 
   try {
+    const toBlob = await getToBlob();
     const blob = await toBlob(element, {
       pixelRatio: merged.pixelRatio,
       backgroundColor: merged.backgroundColor,

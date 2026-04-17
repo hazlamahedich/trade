@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useReducedMotion, motion } from "framer-motion";
 import { Share, Loader2 } from "lucide-react";
 import {
@@ -15,6 +15,8 @@ interface ShareButtonProps {
   onShare: () => void;
   isStreaming?: boolean;
   isRedacted?: boolean;
+  showHint?: boolean;
+  onDismissHint?: () => void;
 }
 
 const TOOLTIP_LABEL = "Share this argument";
@@ -24,9 +26,25 @@ export function ShareButton({
   onShare,
   isStreaming,
   isRedacted,
+  showHint,
+  onDismissHint,
 }: ShareButtonProps) {
   const shouldReduceMotion = useReducedMotion() ?? false;
   const isGenerating = shareState === "generating";
+  const [hintVisible, setHintVisible] = useState(false);
+
+  useEffect(() => {
+    if (!showHint || hintVisible) return;
+    let dismissTimer: ReturnType<typeof setTimeout>;
+    const timer = setTimeout(() => {
+      setHintVisible(true);
+      dismissTimer = setTimeout(() => {
+        setHintVisible(false);
+        onDismissHint?.();
+      }, 3000);
+    }, 500);
+    return () => { clearTimeout(timer); clearTimeout(dismissTimer); };
+  }, [showHint, hintVisible, onDismissHint]);
 
   const handleClick = useCallback(() => {
     if (isGenerating) return;
@@ -61,7 +79,9 @@ export function ShareButton({
             "rounded-md bg-white/5 hover:bg-white/10 border border-white/15 " +
             "text-slate-400 hover:text-slate-200 transition-colors " +
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 " +
-            "disabled:opacity-50 disabled:cursor-not-allowed"
+            "disabled:opacity-50 disabled:cursor-not-allowed" +
+            (isGenerating ? " pointer-events-none" : "") +
+            (hintVisible ? " ring-2 ring-white/40 animate-pulse" : "")
           }
         >
           {isGenerating ? (
@@ -80,7 +100,7 @@ export function ShareButton({
           )}
         </motion.button>
       </TooltipTrigger>
-      <TooltipContent>{TOOLTIP_LABEL}</TooltipContent>
+      <TooltipContent>{hintVisible ? "Hover any argument to share it" : TOOLTIP_LABEL}</TooltipContent>
       <span className="sr-only" aria-live="polite">
         {ariaStatus}
       </span>

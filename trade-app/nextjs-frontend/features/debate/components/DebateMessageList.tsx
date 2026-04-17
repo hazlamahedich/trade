@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArgumentBubble } from "./ArgumentBubble";
 import type { AgentType } from "./ArgumentBubble";
@@ -26,10 +26,18 @@ function getArgumentIndices(messages: DebateMessage[]): number[] {
   }, []);
 }
 
+const SHARE_HINT_KEY = "quote-share-hint-shown";
+
 export function DebateMessageList({ messages, parentRef, onShareMessage, activeShareId, shareState }: DebateMessageListProps) {
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [hintShown, setHintShown] = useState(true);
   const argumentIndices = useRef(getArgumentIndices(messages));
   argumentIndices.current = getArgumentIndices(messages);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setHintShown(sessionStorage.getItem(SHARE_HINT_KEY) === "1");
+  }, []);
 
   const rowVirtualizer = useVirtualizer({
     count: messages.length,
@@ -62,6 +70,15 @@ export function DebateMessageList({ messages, parentRef, onShareMessage, activeS
     [focusedIndex, rowVirtualizer],
   );
 
+  const lastArgIdx = argumentIndices.current[argumentIndices.current.length - 1] ?? -1;
+
+  const dismissHint = useCallback(() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(SHARE_HINT_KEY, "1");
+    }
+    setHintShown(true);
+  }, []);
+
   return (
     <div
       style={{
@@ -82,7 +99,6 @@ export function DebateMessageList({ messages, parentRef, onShareMessage, activeS
     >
       {rowVirtualizer.getVirtualItems().map((virtualRow) => {
         const message = messages[virtualRow.index];
-        const isArgument = message.type !== "guardian";
         const isFocused = virtualRow.index === focusedIndex;
 
         return (
@@ -123,6 +139,8 @@ export function DebateMessageList({ messages, parentRef, onShareMessage, activeS
                 shareState={activeShareId === message.id ? shareState : undefined}
                 isFocused={isFocused}
                 onFocusRequest={() => setFocusedIndex(virtualRow.index)}
+                showShareHint={!hintShown && onShareMessage !== undefined && virtualRow.index === lastArgIdx}
+                onDismissHint={dismissHint}
               />
             )}
           </div>

@@ -98,3 +98,8 @@
 ## Deferred from: code review of 5-3-quote-sharing-flow (2026-04-17)
 
 - Object URL revoke timer may fire before browser reads blob — pre-existing pattern from Story 5.2 snapshot feature, 1s delay matches existing behavior
+- Web Share API abort/success paths untested — browser-dependent async behavior, low probability × medium impact
+- 10s timeout (Promise.race) path untested — defense mechanism, low probability × high impact
+- Popup blocker fallback untested — common mobile failure mode, medium probability × medium impact
+- React 18 + fakeTimers flaky test risk in 26 hook tests — one React version bump away from flaking
+- Roving tabindex + virtualizer desync — focus may fire before node re-materializes after scrollToIndex

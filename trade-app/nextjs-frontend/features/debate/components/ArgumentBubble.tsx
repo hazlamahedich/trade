@@ -37,6 +37,8 @@ interface ArgumentBubbleProps {
   shareState?: import("../types/quote-share").QuoteShareState;
   isFocused?: boolean;
   onFocusRequest?: () => void;
+  showShareHint?: boolean;
+  onDismissHint?: () => void;
 }
 
 const messageVariants = {
@@ -71,7 +73,7 @@ function renderContent(content: string, isRedacted: boolean) {
   ));
 }
 
-export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedacted, onShare, shareState, isFocused, onFocusRequest }: ArgumentBubbleProps) {
+export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedacted, onShare, shareState, isFocused, onFocusRequest, showShareHint, onDismissHint }: ArgumentBubbleProps) {
   const isBull = agent === "bull";
   // Two independent signals for redaction:
   // - hasRedactedContent: string-based detection for inline [REDACTED] span rendering.
@@ -90,6 +92,7 @@ export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedac
       data-testid="argument-bubble"
       data-agent={agent}
       role="article"
+      aria-keyshortcuts={onShare ? "s" : undefined}
       tabIndex={isFocused ? 0 : -1}
       variants={messageVariants}
       initial="hidden"
@@ -187,8 +190,15 @@ export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedac
             onShare={onShare}
             isStreaming={isStreaming}
             isRedacted={isRedacted}
+            showHint={showShareHint}
+            onDismissHint={onDismissHint}
           />
         </div>
+      )}
+      {onShare && isFocused && (
+        <span className="sr-only">
+          {" "}Press S to share this argument
+        </span>
       )}
     </motion.div>
   );

@@ -446,9 +446,44 @@ glm-5.1
 
 - [ ] [Review][Patch] Implement discoverability hint (D1 resolved) — Requires virtualizer-aware sessionStorage hint. Not yet applied — needs dedicated implementation.
 
+### Review Round 2 — Party Mode (Winston, Amelia, Sally, Murat)
+
+**Reviewers:** Winston (Architect), Amelia (Developer), Sally (UX Designer), Murat (Test Architect)
+
+**9 issues found, 5 deferred, 2 dismissed.**
+
+#### Decisions Resolved
+
+- [x] [Review][Decision→Patch] AC-6 discoverability hint deferred = acceptance criteria not met (Sally, Amelia vs Winston) — User broke tie: implement now. Simple sessionStorage flag + pulse animation on last argument bubble's ShareButton.
+
+- [x] [Review][Decision→Patch] Capture pipeline has zero integration coverage (Murat) — Add Playwright smoke test asserting valid PNG download (file header bytes check).
+
+#### Patches
+
+- [x] [Review][Patch] `validateTweetLength` negative `maxTextLen` slice [quote-share.ts] — `Array.from(str).slice(0, -3)` returns last 3 graphemes instead of truncating. Added `maxTextLen <= 0` guard returning empty string.
+
+- [x] [Review][Patch] `activeShareId` race on rapid double-click [useQuoteShareFromStream.tsx] — First capture resolving clears `activeShareId` via useEffect, killing second in-flight share. Fixed: only reset when completed ID matches `activeShareIdRef.current`.
+
+- [x] [Review][Patch] ShareButton missing `pointer-events-none` during generation [ShareButton.tsx] — `disabled` doesn't prevent touch `onPointerDown` inside Radix Tooltip trigger. Added `pointer-events-none` class when generating.
+
+- [x] [Review][Patch] `buildQuoteShareFilename` agent param typed `string` not union [quote-share.ts] — Narrowed to `QuoteCardData["agent"]` (`"bull" | "bear"`).
+
+- [x] [Review][Patch] `html-to-image` eagerly imported (~30KB gzipped) [snapshot.ts] — Converted to dynamic `import("html-to-image")` inside `captureSnapshot`. Reduces initial bundle for feature most users never trigger.
+
+- [x] [Review][Patch] Implement discoverability hint (D1 resolved) [DebateMessageList.tsx + ShareButton.tsx + ArgumentBubble.tsx] — sessionStorage `quote-share-hint-shown` flag. Pulse animation on last argument bubble's ShareButton for 3s on first visit. Hint auto-dismisses to sessionStorage.
+
+- [x] [Review][Patch] Missing `aria-keyshortcuts="S"` on focused argument bubbles [ArgumentBubble.tsx] — Added conditional `aria-keyshortcuts="s"` when `onShare` is provided. Added sr-only "Press S to share this argument" on focused bubbles.
+
+- [x] [Review][Patch] Capture pipeline smoke test (D2 resolved) [tests/e2e/quote-share-flow.spec.ts] — New E2E test [5.3-E2E-009] asserts download file is valid PNG (checks file size > 100 bytes and PNG header bytes `89 50 4E 47`).
+
 ### Deferred
 
 - [x] [Review][Defer] Object URL revoke timer may fire before browser reads blob [useQuoteShare.ts:148-152] — deferred, pre-existing pattern from Story 5.2 snapshot feature
+- [x] [Review][Defer] Web Share API abort/success paths untested — browser-dependent async behavior, low probability × medium impact
+- [x] [Review][Defer] 10s timeout (Promise.race) path untested — defense mechanism, low probability × high impact
+- [x] [Review][Defer] Popup blocker fallback untested — common mobile failure mode, medium probability × medium impact
+- [x] [Review][Defer] React 18 + fakeTimers flaky test risk in 26 hook tests — one React version bump away from flaking
+- [x] [Review][Defer] Roving tabindex + virtualizer desync — focus may fire before node re-materializes after scrollToIndex
 
 ## Change Log
 
@@ -456,3 +491,4 @@ glm-5.1
 - 2026-04-17: Code review — 3 decision-needed, 11 patches, 1 deferred, 8 dismissed
 - 2026-04-17: Code review patches applied — 12 of 13 patches fixed (discoverability hint pending). Party mode: Winston, Amelia, Sally, Murat. Roving tabindex, Rules of Hooks fix, URL duplication fix, cleanup helper extraction, truncation dedup.
 - 2026-04-17: Test review (bmad-testarch-test-review). Score: 92/100 (A - Good), Recommendation: Approve with Comments. 2 High, 3 Medium, 2 Low issues. All 7 addressed: bundle isolation check expanded, mixed import/require fixed, unused factory counter implemented, non-deterministic timestamps fixed to constants, capture success flow tests rewritten (26 hook tests stable — async pipeline tests incompatible with React 18 scheduler + fake timers), lint clean, 929/929 tests passing.
+- 2026-04-17: Party mode code review round 2 (Winston, Amelia, Sally, Murat). 9 patches, 2 decisions resolved, 5 deferred, 2 dismissed. Key fixes: validateTweetLength negative slice bug, activeShareId double-click race, html-to-image lazy loading, pointer-events-none guard, agent type narrowing, discoverability hint (AC-6), aria-keyshortcuts, E2E capture pipeline smoke test.

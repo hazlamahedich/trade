@@ -203,4 +203,40 @@ test.describe('[5.3] Quote Sharing Flow — E2E (P0)', () => {
       await expect(overlay).toHaveAttribute('role', 'presentation');
     }
   });
+
+  test('[5.3-E2E-009] Capture pipeline produces valid PNG file @p0', async ({ page }) => {
+    await setupApiMocks(page);
+    await injectWebSocketInterceptor(page);
+
+    await page.addInitScript(() => {
+      localStorage.setItem('accessToken', 'test-token');
+      localStorage.setItem('tokenExpiry', String(Date.now() + 3600000));
+    });
+
+    await page.goto('/test/debate-stream');
+    await waitForWebSocketConnection(page);
+
+    await sendWebSocketMessage(page, BULL_ARG);
+
+    const shareBtn = page.getByTestId('share-button').first();
+    await expect(shareBtn).toBeVisible({ timeout: 15000 });
+
+    const downloadPromise = page.waitForEvent('download', { timeout: 30000 });
+    await shareBtn.click();
+
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^quote-/);
+    expect(download.suggestedFilename()).toMatch(/\.png$/);
+
+    const filePath = await download.path();
+    if (filePath) {
+      const { readFileSync } = await import('fs');
+      const buffer = readFileSync(filePath);
+      expect(buffer.length).toBeGreaterThan(100);
+      expect(buffer[0]).toBe(0x89);
+      expect(buffer[1]).toBe(0x50);
+      expect(buffer[2]).toBe(0x4e);
+      expect(buffer[3]).toBe(0x47);
+    }
+  });
 });

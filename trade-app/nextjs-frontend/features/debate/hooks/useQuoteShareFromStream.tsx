@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ArgumentMessage } from "./useDebateMessages";
 import type { QuoteCardData } from "../types/quote-share";
 import { useQuoteShare } from "./useQuoteShare";
@@ -25,12 +25,19 @@ export function useQuoteShareFromStream({
   } = useQuoteShare({ assetName, externalId });
 
   const [activeShareId, setActiveShareId] = useState<string | null>(null);
+  const activeShareIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (quoteShareState === "idle" || quoteShareState === "error" || quoteShareState === "success") {
-      if (activeShareId !== null) setActiveShareId(null);
+      setActiveShareId((prev) => {
+        if (prev !== null && prev === activeShareIdRef.current) {
+          activeShareIdRef.current = null;
+          return null;
+        }
+        return prev;
+      });
     }
-  }, [quoteShareState, activeShareId]);
+  }, [quoteShareState]);
 
   const handleShareMessage = useCallback(
     (message: ArgumentMessage) => {
@@ -44,6 +51,7 @@ export function useQuoteShareFromStream({
       });
 
       setActiveShareId(message.id);
+      activeShareIdRef.current = message.id;
       generate(frozen);
     },
     [snapshotState, quoteShareState, generate],
