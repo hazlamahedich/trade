@@ -18,6 +18,14 @@ interface CandlestickChartProps {
   height?: number;
 }
 
+function epochToDateStr(epoch: number): string {
+  const d = new Date(epoch * 1000);
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export function CandlestickChart({
   candles,
   supportLevels = [],
@@ -69,7 +77,7 @@ export function CandlestickChart({
     });
 
     const chartData = candles.map((c) => ({
-      time: c.time as import("lightweight-charts").UTCTimestamp,
+      time: epochToDateStr(c.time),
       open: c.open,
       high: c.high,
       low: c.low,
@@ -92,7 +100,7 @@ export function CandlestickChart({
 
       volumeSeries.setData(
         candles.map((c) => ({
-          time: c.time as import("lightweight-charts").UTCTimestamp,
+          time: epochToDateStr(c.time),
           value: c.volume,
           color: c.close >= c.open ? "rgba(16,185,129,0.2)" : "rgba(244,63,94,0.2)",
         })),
@@ -106,7 +114,7 @@ export function CandlestickChart({
         lineWidth: 1,
         lineStyle: 2,
         axisLabelVisible: true,
-        title: `S: $${level.toLocaleString()}`,
+        title: `S: ${level}`,
       });
     }
 
@@ -117,7 +125,7 @@ export function CandlestickChart({
         lineWidth: 1,
         lineStyle: 2,
         axisLabelVisible: true,
-        title: `R: $${level.toLocaleString()}`,
+        title: `R: ${level}`,
       });
     }
 

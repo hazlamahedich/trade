@@ -162,9 +162,11 @@ class YFinanceProvider(DataProvider):
             dp = self._price_decimals(sample_price)
             rows = []
             for idx, row in hist.iterrows():
+                utc_date = idx.tz_convert("UTC").normalize()
+                utc_day = int(utc_date.timestamp())
                 rows.append(
                     {
-                        "time": int(idx.timestamp()),
+                        "time": utc_day,
                         "open": round(float(row["Open"]), dp),
                         "high": round(float(row["High"]), dp),
                         "low": round(float(row["Low"]), dp),
