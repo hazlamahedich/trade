@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { createChart, type IChartApi, CandlestickSeries, HistogramSeries, ColorType } from "lightweight-charts";
+import {
+  createChart,
+  type IChartApi,
+  CandlestickSeries,
+  AreaSeries,
+  HistogramSeries,
+  ColorType,
+} from "lightweight-charts";
 
 interface CandlestickChartProps {
   candles: Array<{
@@ -24,6 +31,22 @@ function epochToDateStr(epoch: number): string {
   const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
   const dd = String(d.getUTCDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
+}
+
+function shouldUseArea(candles: CandlestickChartProps["candles"]): boolean {
+  if (candles.length < 3) return false;
+  const prices: number[] = [];
+  for (const c of candles) {
+    prices.push(c.high, c.low);
+  }
+  const span = Math.max(...prices) - Math.min(...prices);
+  if (span <= 0) return false;
+  let totalBody = 0;
+  for (const c of candles) {
+    totalBody += Math.abs(c.close - c.open);
+  }
+  const avgBodyPct = totalBody / candles.length / span;
+  return avgBodyPct < 0.01;
 }
 
 export function CandlestickChart({
@@ -62,29 +85,52 @@ export function CandlestickChart({
         timeVisible: false,
       },
       crosshair: {
-        horzLine: { color: "rgba(255,255,255,0.2)", labelBackgroundColor: "#334155" },
-        vertLine: { color: "rgba(255,255,255,0.2)", labelBackgroundColor: "#334155" },
+        horzLine: {
+          color: "rgba(255,255,255,0.2)",
+          labelBackgroundColor: "#334155",
+        },
+        vertLine: {
+          color: "rgba(255,255,255,0.2)",
+          labelBackgroundColor: "#334155",
+        },
       },
     });
 
-    const candlestickSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#10b981",
-      downColor: "#f43f5e",
-      borderUpColor: "#10b981",
-      borderDownColor: "#f43f5e",
-      wickUpColor: "#10b981",
-      wickDownColor: "#f43f5e",
-    });
+    const useArea = shouldUseArea(candles);
+    const mainSeries = useArea
+      ? chart.addSeries(AreaSeries, {
+          topColor: "rgba(16,185,129,0.4)",
+          bottomColor: "rgba(16,185,129,0.02)",
+          lineColor: "#10b981",
+          lineWidth: 2,
+        })
+      : chart.addSeries(CandlestickSeries, {
+          upColor: "#10b981",
+          downColor: "#f43f5e",
+          borderUpColor: "#10b981",
+          borderDownColor: "#f43f5e",
+          wickUpColor: "#10b981",
+          wickDownColor: "#f43f5e",
+        });
 
-    const chartData = candles.map((c) => ({
-      time: epochToDateStr(c.time),
-      open: c.open,
-      high: c.high,
-      low: c.low,
-      close: c.close,
-    }));
-
-    candlestickSeries.setData(chartData);
+    if (useArea) {
+      mainSeries.setData(
+        candles.map((c) => ({
+          time: epochToDateStr(c.time),
+          value: c.close,
+        })),
+      );
+    } else {
+      mainSeries.setData(
+        candles.map((c) => ({
+          time: epochToDateStr(c.time),
+          open: c.open,
+          high: c.high,
+          low: c.low,
+          close: c.close,
+        })),
+      );
+    }
 
     const hasVolume = candles.some((c) => c.volume > 0);
 
@@ -102,13 +148,16 @@ export function CandlestickChart({
         candles.map((c) => ({
           time: epochToDateStr(c.time),
           value: c.volume,
-          color: c.close >= c.open ? "rgba(16,185,129,0.2)" : "rgba(244,63,94,0.2)",
+          color:
+            c.close >= c.open
+              ? "rgba(16,185,129,0.2)"
+              : "rgba(244,63,94,0.2)",
         })),
       );
     }
 
     for (const level of supportLevels) {
-      candlestickSeries.createPriceLine({
+      mainSeries.createPriceLine({
         price: level,
         color: "rgba(16,185,129,0.5)",
         lineWidth: 1,
@@ -119,7 +168,7 @@ export function CandlestickChart({
     }
 
     for (const level of resistanceLevels) {
-      candlestickSeries.createPriceLine({
+      mainSeries.createPriceLine({
         price: level,
         color: "rgba(244,63,94,0.5)",
         lineWidth: 1,
@@ -134,7 +183,9 @@ export function CandlestickChart({
 
     const handleResize = () => {
       if (containerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({ width: containerRef.current.clientWidth });
+        chartRef.current.applyOptions({
+          width: containerRef.current.clientWidth,
+        });
       }
     };
 
@@ -155,7 +206,7 @@ export function CandlestickChart({
       ref={containerRef}
       className="w-full rounded-lg border border-white/10 bg-slate-900/50"
       role="img"
-      aria-label="Price chart with candlesticks showing 30-day price history"
+      aria-label="Price chart showing 30-day price history"
     />
   );
 }
