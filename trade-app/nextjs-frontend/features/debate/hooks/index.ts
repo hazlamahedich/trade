@@ -9,6 +9,7 @@ export { queryKeys } from "./queryKeys";
 export { useSnapshot, SNAPSHOT_HIDDEN_STATUSES } from "./useSnapshot";
 export { useQuoteShare } from "./useQuoteShare";
 export { useQuoteShareFromStream } from "./useQuoteShareFromStream";
+export { useShareDebate } from "./useShareDebate";
 
 export type { GuardianFreezeState } from "./useGuardianFreeze";
 export type { VoteStatus } from "./useVote";

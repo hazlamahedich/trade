@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { trackEvent } from "@/features/debate/utils/analytics";
+import { ShareDebateButton } from "./ShareDebateButton";
 
 export function BackToHistoryLink() {
   return (
@@ -39,5 +40,27 @@ export function WatchLiveCTA({ externalId }: { externalId: string }) {
     >
       Watch Live Debates
     </Link>
+  );
+}
+
+export function DebateDetailActions({
+  externalId,
+  assetName,
+  debateStatus,
+}: {
+  externalId: string;
+  assetName: string;
+  debateStatus?: "active" | "completed";
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <WatchLiveCTA externalId={externalId} />
+      <ShareDebateButton
+        assetName={assetName}
+        externalId={externalId}
+        debateStatus={debateStatus}
+        source="debate_detail"
+      />
+    </div>
   );
 }

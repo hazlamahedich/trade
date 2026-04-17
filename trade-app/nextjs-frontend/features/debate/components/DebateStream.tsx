@@ -15,6 +15,7 @@ import { StaleDataWarning } from "./StaleDataWarning";
 import { GuardianOverlay } from "./GuardianOverlay";
 import { VoteControls } from "./VoteControls";
 import { SnapshotButton } from "./SnapshotButton";
+import { ShareDebateButton } from "./ShareDebateButton";
 import { SnapshotOverlay } from "./SnapshotOverlay";
 import { DebateMessageList } from "./DebateMessageList";
 import type { OptimisticSegment, OptimisticStatus } from "./SentimentReveal";
@@ -177,8 +178,9 @@ export function DebateStream({ debateId, assetName: assetNameProp, externalId: e
           transition: shouldReduceMotion ? "none" : "filter 0.3s ease",
         }}
       >
-        <div hidden={!showSnapshot} className="absolute top-2 right-2 z-10">
+        <div hidden={!showSnapshot} className="absolute top-2 right-2 z-10 flex gap-2">
           <SnapshotButton onClick={generateSnapshot} state={snapshotState} onResetState={resetState} successAnnouncement={successAnnouncement} />
+          <ShareDebateButton assetName={assetNameProp ?? debateId} externalId={externalIdProp ?? debateId} disabled={!externalIdProp} source="debate_stream" />
         </div>
         {isEmpty && (
           <div

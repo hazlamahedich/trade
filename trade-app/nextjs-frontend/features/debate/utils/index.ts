@@ -11,3 +11,4 @@ export type { WinnerBadge } from "./winner-badge";
 export { formatRelativeTime } from "./format-time";
 export { getOutcomeLabel } from "./filter-labels";
 export { buildTweetIntentUrl, buildQuoteShareFilename, buildTweetText, validateTweetLength } from "./quote-share";
+export { buildShareData, buildDebateShareUrl, isWebShareSupported } from "./share-debate";

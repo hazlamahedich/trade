@@ -6,7 +6,7 @@ import { getDebateDetail } from "@/features/debate/actions/debate-detail-action"
 import { DebateVoteBar } from "@/features/debate/components/DebateVoteBar";
 import { DebateTranscript } from "@/features/debate/components/DebateTranscript";
 import { ArchivedBadge } from "@/features/debate/components/ArchivedBadge";
-import { BackToHistoryLink, WatchLiveCTA } from "@/features/debate/components/DebateDetailClientActions";
+import { BackToHistoryLink, DebateDetailActions } from "@/features/debate/components/DebateDetailClientActions";
 import { extractVotes } from "@/features/debate/api/debate-history";
 import { getWinnerBadge } from "@/features/debate/utils/winner-badge";
 import { generateDebateStructuredData, deriveWinner } from "@/features/debate/utils/structured-data";
@@ -110,7 +110,7 @@ export default async function DebateDetailPage({
             />
           </div>
 
-          <WatchLiveCTA externalId={externalId} />
+          <DebateDetailActions externalId={externalId} assetName={data.asset} debateStatus={data.status as "active" | "completed" | undefined} />
         </section>
 
         {data.guardianVerdict && (

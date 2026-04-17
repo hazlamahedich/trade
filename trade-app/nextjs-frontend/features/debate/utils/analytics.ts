@@ -2,7 +2,9 @@ type EventName =
   | "debate_detail_page_viewed"
   | "debate_detail_cta_clicked"
   | "debate_detail_back_clicked"
-  | "debate_detail_transcript_expanded";
+  | "debate_detail_transcript_expanded"
+  | "debate_shared"
+  | "debate_link_copied";
 
 interface AnalyticsEvent {
   name: EventName;
