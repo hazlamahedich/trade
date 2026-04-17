@@ -78,22 +78,26 @@ export function CandlestickChart({
 
     candlestickSeries.setData(chartData);
 
-    const volumeSeries = chart.addSeries(HistogramSeries, {
-      priceFormat: { type: "volume" },
-      priceScaleId: "volume",
-    });
+    const hasVolume = candles.some((c) => c.volume > 0);
 
-    chart.priceScale("volume").applyOptions({
-      scaleMargins: { top: 0.8, bottom: 0 },
-    });
+    if (hasVolume) {
+      const volumeSeries = chart.addSeries(HistogramSeries, {
+        priceFormat: { type: "volume" },
+        priceScaleId: "volume",
+      });
 
-    volumeSeries.setData(
-      candles.map((c) => ({
-        time: c.time as import("lightweight-charts").UTCTimestamp,
-        value: c.volume,
-        color: c.close >= c.open ? "rgba(16,185,129,0.2)" : "rgba(244,63,94,0.2)",
-      })),
-    );
+      chart.priceScale("volume").applyOptions({
+        scaleMargins: { top: 0.8, bottom: 0 },
+      });
+
+      volumeSeries.setData(
+        candles.map((c) => ({
+          time: c.time as import("lightweight-charts").UTCTimestamp,
+          value: c.volume,
+          color: c.close >= c.open ? "rgba(16,185,129,0.2)" : "rgba(244,63,94,0.2)",
+        })),
+      );
+    }
 
     for (const level of supportLevels) {
       candlestickSeries.createPriceLine({

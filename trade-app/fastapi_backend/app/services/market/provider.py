@@ -138,6 +138,18 @@ class YFinanceProvider(DataProvider):
     async def fetch_news(self, asset: str) -> list[NewsItem]:
         return []
 
+    @staticmethod
+    def _price_decimals(price: float) -> int:
+        if price < 1:
+            return 6
+        if price < 10:
+            return 5
+        if price < 100:
+            return 4
+        if price < 1000:
+            return 3
+        return 2
+
     def _fetch_ohlcv_sync(
         self, symbol: str, period: str = "30d", interval: str = "1d"
     ) -> list[dict[str, Any]]:
@@ -146,15 +158,17 @@ class YFinanceProvider(DataProvider):
             hist = ticker.history(period=period, interval=interval)
             if hist.empty:
                 return []
+            sample_price = float(hist["Close"].iloc[0])
+            dp = self._price_decimals(sample_price)
             rows = []
             for idx, row in hist.iterrows():
                 rows.append(
                     {
                         "time": int(idx.timestamp()),
-                        "open": round(float(row["Open"]), 2),
-                        "high": round(float(row["High"]), 2),
-                        "low": round(float(row["Low"]), 2),
-                        "close": round(float(row["Close"]), 2),
+                        "open": round(float(row["Open"]), dp),
+                        "high": round(float(row["High"]), dp),
+                        "low": round(float(row["Low"]), dp),
+                        "close": round(float(row["Close"]), dp),
                         "volume": int(row["Volume"]),
                     }
                 )
