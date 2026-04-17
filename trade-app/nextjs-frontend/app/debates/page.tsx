@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { DebateHistorySkeleton } from "@/features/debate/components/DebateHistorySkeleton";
 import { DebateHistoryList } from "@/features/debate/components/DebateHistoryList";
+import { StartDebateForm } from "@/features/debate/components/StartDebateForm";
 import type { OutcomeFilter } from "@/features/debate/types/debate-history";
 
 interface PublicDebatesPageProps {
@@ -35,9 +36,13 @@ export default async function PublicDebatesPage({ searchParams }: PublicDebatesP
         <h1 className="text-3xl font-bold text-white mb-2">
           Debate Archive
         </h1>
-        <p className="text-slate-400 mb-8">
+        <p className="text-slate-400 mb-6">
           Browse past debates between Bull and Bear AI agents.
         </p>
+
+        <div className="mb-8">
+          <StartDebateForm />
+        </div>
 
         <Suspense key={paramsKey} fallback={<DebateHistorySkeleton />}>
           <DebateHistoryList
