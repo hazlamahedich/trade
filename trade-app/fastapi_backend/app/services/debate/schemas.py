@@ -5,24 +5,6 @@ import re
 from pydantic import BaseModel, ConfigDict, Field, field_validator, field_serializer
 
 
-SUPPORTED_CRYPTO = {
-    "bitcoin": "BTC",
-    "btc": "BTC",
-    "ethereum": "ETH",
-    "eth": "ETH",
-    "solana": "SOL",
-    "sol": "SOL",
-    "xrp": "XRP",
-    "ada": "ADA",
-    "doge": "DOGE",
-    "dot": "DOT",
-    "avax": "AVAX",
-    "matic": "MATIC",
-    "link": "LINK",
-    "ltc": "LTC",
-}
-
-
 class DebateMessage(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 

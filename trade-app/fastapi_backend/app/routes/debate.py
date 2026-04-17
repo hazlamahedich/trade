@@ -17,7 +17,6 @@ from app.services.debate.schemas import (
     StandardDebateHistoryResponse,
     DebateHistoryMeta,
     StandardActiveDebateResponse,
-    SUPPORTED_ASSETS,
 )
 from app.services.debate.vote_schemas import (
     VoteRequest,
@@ -130,20 +129,7 @@ async def get_debate_history(
     session: AsyncSession = Depends(get_async_session),
 ) -> StandardDebateHistoryResponse:
     if asset is not None:
-        normalized = asset.lower().strip()
-        if normalized not in SUPPORTED_ASSETS:
-            raise HTTPException(
-                status_code=422,
-                detail={
-                    "data": [],
-                    "error": {
-                        "code": "INVALID_ASSET",
-                        "message": f"Unsupported asset: {asset}. Supported: {', '.join(sorted(SUPPORTED_ASSETS))}",
-                    },
-                    "meta": {},
-                },
-            )
-        asset = normalized
+        asset = asset.lower().strip()
 
     if outcome is not None:
         normalized_outcome = outcome.lower().strip()
