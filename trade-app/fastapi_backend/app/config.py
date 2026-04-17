@@ -48,15 +48,12 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
 
     # LLM Configuration
-    openai_api_key: str = ""
-    anthropic_api_key: str = ""
+    google_api_key: str = ""
     debate_max_turns: int = 6
-    debate_llm_model: str = "gpt-4o-mini"
-    debate_llm_fallback_model: str = "claude-3-haiku-20240307"
+    debate_llm_model: str = "gemini-2.0-flash"
     debate_llm_temperature: float = 0.7
-    debate_llm_enable_failover: bool = True
 
-    guardian_llm_model: str = "gpt-4o-mini"
+    guardian_llm_model: str = "gemini-2.0-flash"
     guardian_llm_temperature: float = 0.3
     guardian_enabled: bool = True
 
@@ -97,10 +94,10 @@ class Settings(BaseSettings):
         Raises:
             ValueError: If required LLM settings are missing in production.
         """
-        if not self.openai_api_key and self.ENVIRONMENT != "test":
+        if not self.google_api_key and self.ENVIRONMENT != "test":
             raise ValueError(
-                "openai_api_key is required for debate engine. "
-                "Set OPENAI_API_KEY environment variable."
+                "google_api_key is required for debate engine. "
+                "Set GOOGLE_API_KEY environment variable."
             )
 
 
