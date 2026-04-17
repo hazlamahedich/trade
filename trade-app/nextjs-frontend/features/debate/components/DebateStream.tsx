@@ -180,7 +180,7 @@ export function DebateStream({ debateId, assetName: assetNameProp, externalId: e
       >
         <div hidden={!showSnapshot} className="absolute top-2 right-2 z-10 flex gap-2">
           <SnapshotButton onClick={generateSnapshot} state={snapshotState} onResetState={resetState} successAnnouncement={successAnnouncement} />
-          <ShareDebateButton assetName={assetNameProp ?? debateId} externalId={externalIdProp ?? debateId} disabled={!externalIdProp} source="debate_stream" />
+          <ShareDebateButton assetName={assetNameProp || debateId} externalId={externalIdProp || debateId} disabled={!externalIdProp} source="debate_stream" />
         </div>
         {isEmpty && (
           <div

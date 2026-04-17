@@ -110,7 +110,7 @@ export default async function DebateDetailPage({
             />
           </div>
 
-          <DebateDetailActions externalId={externalId} assetName={data.asset} debateStatus={data.status as "active" | "completed" | undefined} />
+          <DebateDetailActions externalId={externalId} assetName={data.asset} debateStatus={data.status as "active" | "running" | "completed" | undefined} />
         </section>
 
         {data.guardianVerdict && (

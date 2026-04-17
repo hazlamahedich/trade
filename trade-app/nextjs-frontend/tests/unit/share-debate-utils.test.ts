@@ -26,7 +26,13 @@ describe("[P0][5.4-utils] share debate utilities", () => {
       expect(url).toContain("/debates/ext-123");
     });
 
-    it("handles special chars in externalId", () => {
+    it("encodes special chars in externalId", () => {
+      process.env.NEXT_PUBLIC_SITE_URL = "https://myapp.com";
+      const url = buildDebateShareUrl("ext-with special?chars");
+      expect(url).toBe("https://myapp.com/debates/ext-with%20special%3Fchars");
+    });
+
+    it("handles dashes and underscores without encoding", () => {
       process.env.NEXT_PUBLIC_SITE_URL = "https://myapp.com";
       const url = buildDebateShareUrl("ext-with-dashes_and_underscores");
       expect(url).toBe("https://myapp.com/debates/ext-with-dashes_and_underscores");
@@ -49,6 +55,11 @@ describe("[P0][5.4-utils] share debate utilities", () => {
 
     it("uses active text for debateStatus=active", () => {
       const result = buildShareData({ assetName: "ETH", externalId: "ext-2", debateStatus: "active" });
+      expect(result.text).toBe("Watch AI agents debate ETH live");
+    });
+
+    it("uses active text for debateStatus=running (backend compatibility)", () => {
+      const result = buildShareData({ assetName: "ETH", externalId: "ext-2b", debateStatus: "running" as "active" });
       expect(result.text).toBe("Watch AI agents debate ETH live");
     });
 

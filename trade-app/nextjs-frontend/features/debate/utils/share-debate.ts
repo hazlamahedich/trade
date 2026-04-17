@@ -1,7 +1,7 @@
 interface ShareDataInput {
   assetName: string;
   externalId: string;
-  debateStatus?: "active" | "completed";
+  debateStatus?: "active" | "running" | "completed";
 }
 
 function getBaseUrl(): string {
@@ -9,7 +9,7 @@ function getBaseUrl(): string {
 }
 
 export function buildDebateShareUrl(externalId: string): string {
-  return `${getBaseUrl()}/debates/${externalId}`;
+  return `${getBaseUrl()}/debates/${encodeURIComponent(externalId)}`;
 }
 
 export function buildShareData(params: ShareDataInput): { title: string; text: string; url: string } {
@@ -18,7 +18,7 @@ export function buildShareData(params: ShareDataInput): { title: string; text: s
   const title = `Bull vs Bear on ${assetName} — AI Trading Debate Lab`;
 
   let text: string;
-  if (debateStatus === "active") {
+  if (debateStatus === "active" || debateStatus === "running") {
     text = `Watch AI agents debate ${assetName} live`;
   } else if (debateStatus === "completed") {
     text = `See how Bull & Bear argued on ${assetName}`;

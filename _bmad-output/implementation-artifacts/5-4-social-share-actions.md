@@ -1,6 +1,6 @@
 # Story 5.4: Social Share Actions
 
-Status: ready-for-dev
+Status: review
 
 ## Party-Mode Adversarial Review — 2026-04-17
 
@@ -387,3 +387,10 @@ Modified files:
 ### Completion Notes List
 
 ### File List
+
+### Review Findings
+
+- [x] [Review][Patch] `"running"` status mismatch — Mapped `"running"` → `"active"` in `buildShareData`. Updated types in `share-debate.ts`, `useShareDebate.ts`, `ShareDebateButton.tsx`, `DebateDetailClientActions.tsx`, and `page.tsx` to accept `"running"`. Added test case.
+- [x] [Review][Patch] Empty-string `assetName` passes `??` guard — Changed `??` to `||` in `DebateStream.tsx:183`.
+- [x] [Review][Patch] `externalId` not URI-encoded — Added `encodeURIComponent(externalId)` in `buildDebateShareUrl`. Updated tests.
+- [x] [Review][Defer] `aria-live` inside `<Tooltip>` root — potential SR double-announcement (pre-existing pattern in SnapshotButton.tsx)

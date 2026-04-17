@@ -6,7 +6,7 @@ import { trackEvent } from "../utils/analytics";
 interface UseShareDebateInput {
   assetName: string;
   externalId: string;
-  debateStatus?: "active" | "completed";
+  debateStatus?: "active" | "running" | "completed";
   source?: "debate_detail" | "debate_stream";
 }
 

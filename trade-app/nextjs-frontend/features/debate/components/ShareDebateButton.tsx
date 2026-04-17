@@ -12,7 +12,7 @@ import { useShareDebate } from "../hooks/useShareDebate";
 interface ShareDebateButtonProps {
   assetName: string;
   externalId: string;
-  debateStatus?: "active" | "completed";
+  debateStatus?: "active" | "running" | "completed";
   disabled?: boolean;
   className?: string;
   source?: "debate_detail" | "debate_stream";

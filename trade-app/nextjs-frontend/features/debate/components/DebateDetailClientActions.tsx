@@ -50,7 +50,7 @@ export function DebateDetailActions({
 }: {
   externalId: string;
   assetName: string;
-  debateStatus?: "active" | "completed";
+  debateStatus?: "active" | "running" | "completed";
 }) {
   return (
     <div className="flex items-center gap-3">

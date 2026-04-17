@@ -103,3 +103,7 @@
 - Popup blocker fallback untested — common mobile failure mode, medium probability × medium impact
 - React 18 + fakeTimers flaky test risk in 26 hook tests — one React version bump away from flaking
 - Roving tabindex + virtualizer desync — focus may fire before node re-materializes after scrollToIndex
+
+## Deferred from: code review of 5-4-social-share-actions (2026-04-17)
+
+- `aria-live` inside `<Tooltip>` root — potential SR double-announcement when tooltip opens and status text updates simultaneously. Pre-existing pattern in SnapshotButton.tsx.
