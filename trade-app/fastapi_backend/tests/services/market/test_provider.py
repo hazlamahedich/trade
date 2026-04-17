@@ -1,209 +1,115 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.services.market.provider import CoinGeckoProvider, YahooFinanceProvider
+from app.services.market.provider import YFinanceProvider, get_yfinance_symbol, normalize_asset
 
 
-class TestCoinGeckoProvider:
+class TestNormalizeAsset:
+    def test_crypto_full_names(self):
+        assert normalize_asset("bitcoin") == "BTC"
+        assert normalize_asset("ethereum") == "ETH"
+        assert normalize_asset("solana") == "SOL"
+
+    def test_crypto_symbols(self):
+        assert normalize_asset("btc") == "BTC"
+        assert normalize_asset("eth") == "ETH"
+        assert normalize_asset("sol") == "SOL"
+
+    def test_case_insensitive(self):
+        assert normalize_asset("Bitcoin") == "BTC"
+        assert normalize_asset("ETHEREUM") == "ETH"
+
+    def test_unknown_returns_none(self):
+        assert normalize_asset("AAPL") is None
+        assert normalize_asset("EURUSD") is None
+
+
+class TestGetYfinanceSymbol:
+    def test_crypto(self):
+        assert get_yfinance_symbol("BTC") == "BTC-USD"
+        assert get_yfinance_symbol("bitcoin") == "BTC-USD"
+        assert get_yfinance_symbol("ETH") == "ETH-USD"
+        assert get_yfinance_symbol("SOL") == "SOL-USD"
+
+    def test_forex(self):
+        assert get_yfinance_symbol("EURUSD") == "EURUSD=X"
+        assert get_yfinance_symbol("GBPUSD") == "GBPUSD=X"
+        assert get_yfinance_symbol("eurusd") == "EURUSD=X"
+
+    def test_stock(self):
+        assert get_yfinance_symbol("AAPL") == "AAPL"
+        assert get_yfinance_symbol("tsla") == "TSLA"
+
+    def test_empty_returns_none(self):
+        assert get_yfinance_symbol("") is None
+
+
+class TestYFinanceProvider:
     @pytest.fixture
     def provider(self):
-        return CoinGeckoProvider("redis://localhost:6379/0")
+        return YFinanceProvider()
 
-    @pytest.fixture
-    def mock_session(self):
-        session = AsyncMock()
-        return session
+    def test_get_name(self, provider):
+        assert provider.get_name() == "yfinance"
 
     @pytest.mark.asyncio
-    async def test_fetch_price_success(self, provider, mock_session):
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.json = AsyncMock(
-            return_value={"bitcoin": {"usd": 45000.0, "last_updated_at": 1700000000}}
-        )
-        mock_session.get = MagicMock(return_value=mock_response)
-        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_response.__aexit__ = AsyncMock(return_value=None)
+    async def test_fetch_price_success(self, provider):
+        mock_fast_info = MagicMock()
+        mock_fast_info.last_price = 74000.0
+        mock_ticker = MagicMock()
+        mock_ticker.fast_info = mock_fast_info
 
-        with patch.object(
-            provider, "_get_session", AsyncMock(return_value=mock_session)
-        ):
-            with patch.object(
-                provider.rate_limiter, "acquire", AsyncMock(return_value=True)
-            ):
-                result = await provider.fetch_price("BTC")
-
-                assert result is not None
-                assert result["price"] == 45000.0
-                assert result["last_updated"] == 1700000000
-        await provider.close()
-
-    @pytest.mark.asyncio
-    async def test_fetch_price_rate_limited(self, provider):
-        with patch.object(
-            provider.rate_limiter, "acquire", AsyncMock(return_value=False)
-        ):
-            result = await provider.fetch_price("BTC")
-            assert result is None
-        await provider.close()
-
-    @pytest.mark.asyncio
-    async def test_fetch_price_api_error(self, provider, mock_session):
-        mock_response = AsyncMock()
-        mock_response.status = 500
-        mock_session.get = MagicMock(return_value=mock_response)
-        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_response.__aexit__ = AsyncMock(return_value=None)
-
-        with patch.object(
-            provider, "_get_session", AsyncMock(return_value=mock_session)
-        ):
-            with patch.object(
-                provider.rate_limiter, "acquire", AsyncMock(return_value=True)
-            ):
-                result = await provider.fetch_price("BTC")
-                assert result is None
-        await provider.close()
-
-    @pytest.mark.asyncio
-    async def test_fetch_news_success(self, provider, mock_session):
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.json = AsyncMock(
-            return_value={
-                "status_updates": [
-                    {
-                        "description": "Bitcoin ETF sees record inflows",
-                        "permalink": "https://example.com/news/1",
-                        "created_at": "2024-01-01T00:00:00Z",
-                    }
-                ]
-            }
-        )
-        mock_session.get = MagicMock(return_value=mock_response)
-        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_response.__aexit__ = AsyncMock(return_value=None)
-
-        with patch.object(
-            provider, "_get_session", AsyncMock(return_value=mock_session)
-        ):
-            with patch.object(
-                provider.rate_limiter, "acquire", AsyncMock(return_value=True)
-            ):
-                result = await provider.fetch_news("BTC")
-
-                assert len(result) == 1
-                assert result[0].title == "Bitcoin ETF sees record inflows"
-                assert result[0].source == "coingecko"
-        await provider.close()
-
-    @pytest.mark.asyncio
-    async def test_get_name(self, provider):
-        assert provider.get_name() == "coingecko"
-        await provider.close()
-
-    @pytest.mark.asyncio
-    async def test_fetch_price_timeout(self, provider, mock_session):
-        import asyncio
-
-        async def timeout_response(*args, **kwargs):
-            raise asyncio.TimeoutError()
-
-        mock_session.get = MagicMock(side_effect=timeout_response)
-
-        with patch.object(
-            provider, "_get_session", AsyncMock(return_value=mock_session)
-        ):
-            with patch.object(
-                provider.rate_limiter, "acquire", AsyncMock(return_value=True)
-            ):
-                result = await provider.fetch_price("BTC")
-                assert result is None
-        await provider.close()
-
-    @pytest.mark.asyncio
-    async def test_fetch_news_timeout(self, provider, mock_session):
-        import asyncio
-
-        async def timeout_response(*args, **kwargs):
-            raise asyncio.TimeoutError()
-
-        mock_session.get = MagicMock(side_effect=timeout_response)
-
-        with patch.object(
-            provider, "_get_session", AsyncMock(return_value=mock_session)
-        ):
-            with patch.object(
-                provider.rate_limiter, "acquire", AsyncMock(return_value=True)
-            ):
-                result = await provider.fetch_news("BTC")
-                assert result == []
-        await provider.close()
-
-
-class TestYahooFinanceProvider:
-    @pytest.fixture
-    def provider(self):
-        return YahooFinanceProvider()
-
-    @pytest.fixture
-    def mock_session(self):
-        session = AsyncMock()
-        return session
-
-    @pytest.mark.asyncio
-    async def test_fetch_price_success(self, provider, mock_session):
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.json = AsyncMock(
-            return_value={
-                "chart": {
-                    "result": [
-                        {
-                            "meta": {
-                                "regularMarketPrice": 45000.0,
-                            }
-                        }
-                    ]
-                }
-            }
-        )
-        mock_session.get = MagicMock(return_value=mock_response)
-        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_response.__aexit__ = AsyncMock(return_value=None)
-
-        with patch.object(
-            provider, "_get_session", AsyncMock(return_value=mock_session)
-        ):
+        with patch("app.services.market.provider.yf.Ticker", return_value=mock_ticker):
             result = await provider.fetch_price("BTC")
 
-            assert result is not None
-            assert result["price"] == 45000.0
-        await provider.close()
+        assert result is not None
+        assert result["price"] == 74000.0
+        assert "last_updated" in result
 
     @pytest.mark.asyncio
-    async def test_fetch_price_api_error(self, provider, mock_session):
-        mock_response = AsyncMock()
-        mock_response.status = 500
-        mock_session.get = MagicMock(return_value=mock_response)
-        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_response.__aexit__ = AsyncMock(return_value=None)
+    async def test_fetch_price_forex(self, provider):
+        mock_fast_info = MagicMock()
+        mock_fast_info.last_price = 1.18
+        mock_ticker = MagicMock()
+        mock_ticker.fast_info = mock_fast_info
 
-        with patch.object(
-            provider, "_get_session", AsyncMock(return_value=mock_session)
-        ):
+        with patch("app.services.market.provider.yf.Ticker", return_value=mock_ticker) as mock_yf:
+            result = await provider.fetch_price("EURUSD")
+            mock_yf.assert_called_once_with("EURUSD=X")
+
+        assert result is not None
+        assert result["price"] == 1.18
+
+    @pytest.mark.asyncio
+    async def test_fetch_price_none_price_returns_none(self, provider):
+        mock_fast_info = MagicMock()
+        mock_fast_info.last_price = None
+        mock_ticker = MagicMock()
+        mock_ticker.fast_info = mock_fast_info
+
+        with patch("app.services.market.provider.yf.Ticker", return_value=mock_ticker):
             result = await provider.fetch_price("BTC")
-            assert result is None
-        await provider.close()
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_fetch_price_unknown_asset_returns_none(self, provider):
+        result = await provider.fetch_price("")
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_fetch_price_exception_returns_none(self, provider):
+        with patch("app.services.market.provider.yf.Ticker", side_effect=Exception("network error")):
+            result = await provider.fetch_price("BTC")
+
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_fetch_news_returns_empty(self, provider):
         result = await provider.fetch_news("BTC")
         assert result == []
-        await provider.close()
 
     @pytest.mark.asyncio
-    async def test_get_name(self, provider):
-        assert provider.get_name() == "yahoo"
+    async def test_close_is_noop(self, provider):
         await provider.close()
