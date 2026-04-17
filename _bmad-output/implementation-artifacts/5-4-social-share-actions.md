@@ -1,6 +1,6 @@
 # Story 5.4: Social Share Actions
 
-Status: testarch-test-review
+Status: party-mode-review
 
 ## Party-Mode Adversarial Review — 2026-04-17
 
@@ -414,3 +414,33 @@ glm-5.1 (opencode)
 - [x] [TestReview][Fixed] DebateStream toolbar file-content test — Replaced with 4 rendered toolbar tests + 4 focused static contract tests in `share-debate-integration.test.tsx`
 - [x] [TestReview][Fixed] Module-level mutable vars in button-states test — Consolidated 3 `let` vars into single `mockState` object in `share-debate-button-states.test.tsx`
 - 59 unit tests + 5 E2E = 64 total. All passing. Zero TS/lint errors.
+
+### Party-Mode Implementation Review (2026-04-17)
+
+**Participants:** Winston (Architect), Amelia (Dev), Murat (Test Architect), Sally (UX)
+**Outcome:** All approve — ship it. 6 changes applied, 1 bug filed.
+
+**Verdict:** No architectural debt introduced. Component decomposition, error handling, bundle isolation all correct. Test suite production-ready at 96/100.
+
+#### Changes Applied
+
+- [x] [Review] `@client-only` JSDoc annotation on `share-debate.ts:getBaseUrl` and `buildDebateShareUrl` — defensive documentation for server-side import protection (Amelia)
+- [x] [Review] Extracted `DebateToolbar.tsx` (45 lines) from `DebateStream.tsx` — proactive decomposition keeps DebateStream at 282 lines, 18 under 300-line hard limit (Winston)
+- [x] [Review] Enhanced concurrent guard test — verifies second call doesn't surface error toast and `isSharing` returns to false (Murat)
+- [x] [Review] Added disabled vs loading visual distinction tests — spinner renders in loading state, icon renders in disabled state; `disabled:opacity-50` + `disabled:cursor-not-allowed` asserted (Sally)
+- [x] [Review] Updated static contract tests for `DebateToolbar` — 6 tests verify DebateStream→DebateToolbar wiring, toolbar imports both buttons, source prop, disabled guard, early return
+- [x] [Review] Updated barrel exports — added `DebateToolbar` to `components/index.ts`
+
+#### Bug Filed
+
+- [ ] `bug-aria-live-tooltip-double-announcement.md` — P2, pre-existing in `SnapshotButton.tsx:120-122` and `ShareDebateButton.tsx:78-80`. Screen reader potential double-announcement from `aria-live` inside Radix Tooltip root. Should block release milestone. (Murat)
+
+#### Advisory Notes (No Action Needed)
+
+- Winston: `"running" → "active"` status mapping is fine as one-off. Extract to shared module only when 2nd+ consumer appears. Don't over-abstract.
+- Murat: Bundle isolation tests (6 of 16 integration tests) are static analysis, not true integration. Report honest integration count (~10) to stakeholders.
+- Winston: `TooltipProvider` at root is correct — lightweight (~2KB), needed by multiple routes. Don't make root promotion a reflex for every provider.
+
+#### Test Counts After Review
+
+64 unit tests + 5 E2E = 69 total. All passing. Zero TS/lint errors from changed files.

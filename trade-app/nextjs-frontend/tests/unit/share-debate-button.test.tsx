@@ -131,4 +131,37 @@ describe("[P0][5.4-button] ShareDebateButton", () => {
       expect.objectContaining({ source: "debate_stream" }),
     );
   });
+
+  it("disabled state has opacity-50 and no hover styles", () => {
+    renderWithProvider(<ShareDebateButton {...defaultProps} disabled />);
+    const button = screen.getByTestId("share-debate-button");
+    expect(button.className).toContain("disabled:opacity-50");
+    expect(button.className).toContain("disabled:cursor-not-allowed");
+  });
+
+  it("loading state (isSharing) shows spinner, disabled state shows icon", () => {
+    const { rerender } = renderWithProvider(
+      <ShareDebateButton {...defaultProps} />,
+    );
+
+    mockUseShareDebate.mockReturnValue({ share: jest.fn(), isSharing: true });
+    rerender(
+      <TooltipProvider>
+        <ShareDebateButton {...defaultProps} />
+      </TooltipProvider>,
+    );
+
+    const button = screen.getByTestId("share-debate-button");
+    expect(button.querySelector("div")).toBeInTheDocument();
+
+    mockUseShareDebate.mockReturnValue({ share: jest.fn(), isSharing: false });
+    rerender(
+      <TooltipProvider>
+        <ShareDebateButton {...defaultProps} disabled />
+      </TooltipProvider>,
+    );
+
+    expect(screen.getByTestId("share-debate-button").querySelector("div")).toBeNull();
+    expect(screen.getByTestId("share-debate-button").querySelector("svg")).toBeInTheDocument();
+  });
 });

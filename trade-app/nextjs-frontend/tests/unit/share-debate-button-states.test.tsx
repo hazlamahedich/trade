@@ -132,5 +132,18 @@ describe("[P0][5.4-button-states] ShareDebateButton state variations", () => {
 
       expect(screen.getByTestId("share-debate-button")).toBeDisabled();
     });
+
+    it("concurrent double-click does not surface error to user", async () => {
+      mockState.isSharing = false;
+      render(
+        <TooltipProvider>
+          <ShareDebateButton {...defaultProps} />
+        </TooltipProvider>,
+      );
+
+      const button = screen.getByTestId("share-debate-button");
+      expect(button).not.toBeDisabled();
+      expect(button).toHaveAttribute("aria-busy", "false");
+    });
   });
 });

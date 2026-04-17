@@ -165,7 +165,7 @@ describe("[P0][5.4-hook] useShareDebate", () => {
     expect(result.current.isSharing).toBe(false);
   });
 
-  it("Concurrent double-click — share called once", async () => {
+  it("Concurrent double-click — share called once, no error surfaced", async () => {
     setNavigatorShare(jest.fn().mockResolvedValue(undefined));
 
     const { result } = renderHook(() => useShareDebate(defaultArgs));
@@ -175,5 +175,7 @@ describe("[P0][5.4-hook] useShareDebate", () => {
     await act(async () => { await Promise.all([p1, p2]); });
 
     expect(navigator.share).toHaveBeenCalledTimes(1);
+    expect(mockToastError).not.toHaveBeenCalled();
+    expect(result.current.isSharing).toBe(false);
   });
 });

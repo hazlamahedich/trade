@@ -4,10 +4,12 @@ interface ShareDataInput {
   debateStatus?: "active" | "running" | "completed";
 }
 
+/** @client-only — callers must only invoke from client components or hooks */
 function getBaseUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "");
 }
 
+/** @client-only — relies on window.location.origin as env fallback */
 export function buildDebateShareUrl(externalId: string): string {
   return `${getBaseUrl()}/debates/${encodeURIComponent(externalId)}`;
 }

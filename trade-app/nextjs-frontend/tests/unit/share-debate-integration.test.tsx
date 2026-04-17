@@ -117,37 +117,47 @@ describe("[P0][5.4-integration] Social Share integration", () => {
   });
 
   describe("DebateStream toolbar — static contract verification", () => {
-    it("imports ShareDebateButton alongside SnapshotButton", () => {
+    it("DebateStream imports DebateToolbar component", () => {
       const streamPath = path.resolve(process.cwd(), "features/debate/components/DebateStream.tsx");
       const content = fs.readFileSync(streamPath, "utf-8");
 
-      expect(content).toContain("import { ShareDebateButton }");
-      expect(content).toContain("import { SnapshotButton }");
+      expect(content).toContain("import { DebateToolbar }");
     });
 
-    it("passes source=debate_stream prop to ShareDebateButton", () => {
-      const streamPath = path.resolve(process.cwd(), "features/debate/components/DebateStream.tsx");
-      const content = fs.readFileSync(streamPath, "utf-8");
+    it("DebateToolbar imports both SnapshotButton and ShareDebateButton", () => {
+      const toolbarPath = path.resolve(process.cwd(), "features/debate/components/DebateToolbar.tsx");
+      const content = fs.readFileSync(toolbarPath, "utf-8");
+
+      expect(content).toContain("import { SnapshotButton }");
+      expect(content).toContain("import { ShareDebateButton }");
+    });
+
+    it("DebateToolbar passes source=debate_stream to ShareDebateButton", () => {
+      const toolbarPath = path.resolve(process.cwd(), "features/debate/components/DebateToolbar.tsx");
+      const content = fs.readFileSync(toolbarPath, "utf-8");
 
       expect(content).toMatch(/source="debate_stream"/);
     });
 
-    it("disables button when externalIdProp is falsy", () => {
-      const streamPath = path.resolve(process.cwd(), "features/debate/components/DebateStream.tsx");
-      const content = fs.readFileSync(streamPath, "utf-8");
+    it("DebateToolbar disables ShareDebateButton when hasExternalId is false", () => {
+      const toolbarPath = path.resolve(process.cwd(), "features/debate/components/DebateToolbar.tsx");
+      const content = fs.readFileSync(toolbarPath, "utf-8");
 
-      expect(content).toContain("disabled={!externalIdProp}");
+      expect(content).toContain("disabled={!hasExternalId}");
     });
 
-    it("renders both buttons inside the same toolbar container", () => {
+    it("DebateToolbar returns null when showSnapshot is false", () => {
+      const toolbarPath = path.resolve(process.cwd(), "features/debate/components/DebateToolbar.tsx");
+      const content = fs.readFileSync(toolbarPath, "utf-8");
+
+      expect(content).toContain("if (!showSnapshot) return null");
+    });
+
+    it("DebateStream passes showSnapshot prop to DebateToolbar", () => {
       const streamPath = path.resolve(process.cwd(), "features/debate/components/DebateStream.tsx");
       const content = fs.readFileSync(streamPath, "utf-8");
 
-      const toolbarMatch = content.match(/<div[^>]*className="absolute top-2 right-2[^"]*flex gap-2"[^>]*>[\s\S]*?<\/div>\s*<\/div>/);
-      expect(toolbarMatch).not.toBeNull();
-      const toolbarBlock = toolbarMatch![0];
-      expect(toolbarBlock).toContain("SnapshotButton");
-      expect(toolbarBlock).toContain("ShareDebateButton");
+      expect(content).toContain("showSnapshot={showSnapshot}");
     });
   });
 
