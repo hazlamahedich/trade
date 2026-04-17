@@ -5,7 +5,15 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from app.services.market import MarketDataService
-from app.services.market.provider import normalize_asset, YFinanceProvider
+from app.services.market.provider import (
+    normalize_asset,
+    get_yfinance_symbol,
+    YFinanceProvider,
+    CRYPTO_SYMBOLS,
+    CRYPTO_ALIASES,
+    POPULAR_STOCKS,
+    POPULAR_FOREX,
+)
 from app.services.market.schemas import (
     MarketData,
     MarketErrorResponse,
@@ -90,8 +98,8 @@ async def get_candles(
     period: str = Query("30d", regex=r"^\d+[dhmwy]$"),
     interval: str = Query("1d", regex=r"^\d+[dhmwy]$"),
 ):
-    normalized = normalize_asset(asset)
-    if normalized is None:
+    symbol = get_yfinance_symbol(asset)
+    if not symbol:
         raise HTTPException(
             status_code=400,
             detail={
@@ -101,16 +109,16 @@ async def get_candles(
                 }
             },
         )
-    candles = await _yfinance_provider.fetch_ohlcv(
-        normalized, period=period, interval=interval
+    candles = await _yfinance_provider.fetch_ohlcv_raw(
+        symbol, period=period, interval=interval
     )
     return {"data": candles, "error": None, "meta": {}}
 
 
 @router.get("/{asset}/technical")
 async def get_technical(asset: str):
-    normalized = normalize_asset(asset)
-    if normalized is None:
+    symbol = get_yfinance_symbol(asset)
+    if not symbol:
         raise HTTPException(
             status_code=400,
             detail={
@@ -120,7 +128,7 @@ async def get_technical(asset: str):
                 }
             },
         )
-    tech = await _yfinance_provider.fetch_technical(normalized)
+    tech = await _yfinance_provider.fetch_technical_raw(symbol)
     if tech is None:
         raise HTTPException(
             status_code=503,
@@ -132,3 +140,44 @@ async def get_technical(asset: str):
             },
         )
     return {"data": tech, "error": None, "meta": {}}
+
+
+@router.get("/assets/search")
+async def search_assets(q: str = Query("", max_length=50)):
+    query = q.strip().lower()
+    results = []
+
+    for alias, symbol in CRYPTO_ALIASES.items():
+        if not query or query in alias or query in symbol.lower():
+            results.append(
+                {
+                    "symbol": symbol,
+                    "name": alias.capitalize(),
+                    "category": "crypto",
+                    "yfinance": CRYPTO_SYMBOLS.get(symbol, f"{symbol}-USD"),
+                }
+            )
+
+    for ticker, name in POPULAR_STOCKS.items():
+        if not query or query in ticker.lower() or query in name.lower():
+            results.append(
+                {
+                    "symbol": ticker,
+                    "name": name,
+                    "category": "stocks",
+                    "yfinance": ticker,
+                }
+            )
+
+    for pair, name in POPULAR_FOREX.items():
+        if not query or query in pair.lower() or query in name.lower():
+            results.append(
+                {
+                    "symbol": pair,
+                    "name": name,
+                    "category": "forex",
+                    "yfinance": f"{pair}=X",
+                }
+            )
+
+    return {"data": results[:30], "error": None, "meta": {}}

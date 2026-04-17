@@ -4,10 +4,8 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { getApiBaseUrl } from "@/lib/api/config";
 
-const SUPPORTED_ASSETS = ["bitcoin", "btc", "ethereum", "eth", "solana", "sol"] as const;
-
 const startDebateInputSchema = z.object({
-  asset: z.enum(SUPPORTED_ASSETS),
+  asset: z.string().min(1).max(20).regex(/^[A-Za-z0-9]+$/, "Only alphanumeric characters allowed"),
 });
 
 const debateMessageSchema = z.object({

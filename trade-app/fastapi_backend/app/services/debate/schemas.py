@@ -1,10 +1,26 @@
 from datetime import datetime, timezone
 from typing import Any
+import re
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, field_serializer
 
 
-SUPPORTED_ASSETS = {"bitcoin", "btc", "ethereum", "eth", "solana", "sol"}
+SUPPORTED_CRYPTO = {
+    "bitcoin": "BTC",
+    "btc": "BTC",
+    "ethereum": "ETH",
+    "eth": "ETH",
+    "solana": "SOL",
+    "sol": "SOL",
+    "xrp": "XRP",
+    "ada": "ADA",
+    "doge": "DOGE",
+    "dot": "DOT",
+    "avax": "AVAX",
+    "matic": "MATIC",
+    "link": "LINK",
+    "ltc": "LTC",
+}
 
 
 class DebateMessage(BaseModel):
@@ -20,12 +36,14 @@ class DebateStartRequest(BaseModel):
     @field_validator("asset")
     @classmethod
     def validate_asset(cls, v: str) -> str:
-        normalized = v.lower().strip()
-        if normalized not in SUPPORTED_ASSETS:
+        cleaned = v.strip()
+        if not cleaned:
+            raise ValueError("Asset cannot be empty")
+        if not re.match(r"^[A-Za-z0-9]+$", cleaned):
             raise ValueError(
-                f"Unsupported asset: {v}. Supported: {', '.join(sorted(SUPPORTED_ASSETS))}"
+                f"Invalid asset symbol: {v}. Only alphanumeric characters allowed."
             )
-        return normalized
+        return cleaned.lower()
 
 
 class DebateResponse(BaseModel):

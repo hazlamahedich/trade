@@ -14,21 +14,67 @@ CRYPTO_SYMBOLS: dict[str, str] = {
     "BTC": "BTC-USD",
     "ETH": "ETH-USD",
     "SOL": "SOL-USD",
+    "XRP": "XRP-USD",
+    "ADA": "ADA-USD",
+    "DOGE": "DOGE-USD",
+    "DOT": "DOT-USD",
+    "AVAX": "AVAX-USD",
+    "MATIC": "MATIC-USD",
+    "LINK": "LINK-USD",
+    "LTC": "LTC-USD",
 }
 
-SUPPORTED_ASSETS: set[str] = {"BTC", "ETH", "SOL", "bitcoin", "ethereum", "solana"}
+CRYPTO_ALIASES: dict[str, str] = {
+    "bitcoin": "BTC",
+    "btc": "BTC",
+    "ethereum": "ETH",
+    "eth": "ETH",
+    "solana": "SOL",
+    "sol": "SOL",
+    "xrp": "XRP",
+    "ada": "ADA",
+    "doge": "DOGE",
+    "dot": "DOT",
+    "avax": "AVAX",
+    "matic": "MATIC",
+    "link": "LINK",
+    "ltc": "LTC",
+}
+
+POPULAR_STOCKS: dict[str, str] = {
+    "AAPL": "Apple",
+    "MSFT": "Microsoft",
+    "GOOGL": "Alphabet",
+    "AMZN": "Amazon",
+    "TSLA": "Tesla",
+    "NVDA": "NVIDIA",
+    "META": "Meta",
+    "NFLX": "Netflix",
+    "AMD": "AMD",
+    "JPM": "JPMorgan",
+    "V": "Visa",
+    "DIS": "Disney",
+    "BA": "Boeing",
+    "INTC": "Intel",
+    "PYPL": "PayPal",
+}
+
+POPULAR_FOREX: dict[str, str] = {
+    "EURUSD": "EUR/USD",
+    "GBPUSD": "GBP/USD",
+    "USDJPY": "USD/JPY",
+    "AUDUSD": "AUD/USD",
+    "USDCAD": "USD/CAD",
+    "USDCHF": "USD/CHF",
+    "NZDUSD": "NZD/USD",
+    "EURGBP": "EUR/GBP",
+    "EURJPY": "EUR/JPY",
+    "GBPJPY": "GBP/JPY",
+}
 
 
 def normalize_asset(asset: str) -> str | None:
-    """Normalize crypto asset name to uppercase symbol. Returns None if not a known crypto."""
-    mapping = {
-        "bitcoin": "BTC",
-        "ethereum": "ETH",
-        "solana": "SOL",
-        "btc": "BTC",
-        "eth": "ETH",
-        "sol": "SOL",
-    }
+    mapping = CRYPTO_ALIASES
     return mapping.get(asset.lower())
 
 
@@ -217,6 +263,18 @@ class YFinanceProvider(DataProvider):
         symbol = get_yfinance_symbol(asset)
         if not symbol:
             return None
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self._fetch_technical_sync, symbol)
+
+    async def fetch_ohlcv_raw(
+        self, symbol: str, period: str = "30d", interval: str = "1d"
+    ) -> list[dict[str, Any]]:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, self._fetch_ohlcv_sync, symbol, period, interval
+        )
+
+    async def fetch_technical_raw(self, symbol: str) -> dict[str, Any] | None:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, self._fetch_technical_sync, symbol)
 
