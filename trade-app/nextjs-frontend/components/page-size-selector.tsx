@@ -33,7 +33,7 @@ export function PageSizeSelector({
 
   return (
     <div className="flex items-center space-x-2">
-      <span className="text-sm text-gray-600">Items per page:</span>
+      <span className="text-sm text-slate-400">Items per page:</span>
       <Select value={currentSize.toString()} onValueChange={handleSizeChange}>
         <SelectTrigger className="w-20">
           <SelectValue />

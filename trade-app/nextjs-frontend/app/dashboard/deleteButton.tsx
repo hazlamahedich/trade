@@ -14,7 +14,7 @@ export function DeleteButton({ itemId }: DeleteButtonProps) {
 
   return (
     <DropdownMenuItem
-      className="text-red-500 cursor-pointer"
+      className="text-red-400 cursor-pointer hover:text-red-300"
       onClick={handleDelete}
     >
       Delete

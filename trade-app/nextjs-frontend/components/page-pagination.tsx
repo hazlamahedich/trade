@@ -40,7 +40,7 @@ export function PagePagination({
 
   return (
     <div className="flex items-center justify-between my-4">
-      <div className="text-sm text-gray-600">
+      <div className="text-sm text-slate-400">
         {totalItems === 0 ? (
           <>Showing 0 of 0 results</>
         ) : (
@@ -72,7 +72,7 @@ export function PagePagination({
         </Link>
 
         {totalPages > 0 && (
-          <span className="text-sm font-medium">
+          <span className="text-sm font-medium text-slate-300">
             Page {currentPage} of {totalPages}
           </span>
         )}
