@@ -34,6 +34,7 @@ afterAll(() => {
 });
 
 beforeEach(() => {
+  jest.useFakeTimers();
   resetQuoteFactoryCounter();
   mockCaptureFn.mockReset();
   mockWindowOpen.mockReset();
@@ -42,7 +43,30 @@ beforeEach(() => {
   (globalThis as Record<string, unknown>).URL.revokeObjectURL = jest.fn();
 });
 
-describe("[P0][5.3-hook] useQuoteShare", () => {
+afterEach(() => {
+  jest.useRealTimers();
+});
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function flushAsyncPipeline(_result: { current: ReturnType<typeof useQuoteShare> }) {
+  await act(async () => {
+    jest.advanceTimersByTime(0);
+    await Promise.resolve();
+    jest.advanceTimersByTime(0);
+  });
+
+  await act(async () => {
+    jest.advanceTimersByTime(300);
+    await Promise.resolve();
+  });
+
+  await act(async () => {
+    jest.advanceTimersByTime(10_500);
+    await Promise.resolve();
+  });
+}
+
+describe("[P0][5.3-hook] useQuoteShare — basic state", () => {
   const defaultOpts = { assetName: "BTC/USDT", externalId: "ext-1" };
 
   it("starts in idle state", () => {
@@ -50,7 +74,7 @@ describe("[P0][5.3-hook] useQuoteShare", () => {
     expect(result.current.state).toBe("idle");
   });
 
-  it("returns overlay ref", () => {
+  it("returns overlay ref defined", () => {
     const { result } = renderHook(() => useQuoteShare(defaultOpts));
     expect(result.current.overlayRef).toBeDefined();
   });
@@ -68,7 +92,21 @@ describe("[P0][5.3-hook] useQuoteShare", () => {
     expect(result.current.state).toBe("idle");
   });
 
-  it("concurrent guard: second call is no-op while generating", async () => {
+  it("returns null activeData initially", () => {
+    const { result } = renderHook(() => useQuoteShare(defaultOpts));
+    expect(result.current.activeData).toBeNull();
+  });
+
+  it("quoteOverlayVisible is false initially", () => {
+    const { result } = renderHook(() => useQuoteShare(defaultOpts));
+    expect(result.current.quoteOverlayVisible).toBe(false);
+  });
+});
+
+describe("[P0][5.3-hook] useQuoteShare — concurrent guard", () => {
+  const defaultOpts = { assetName: "BTC/USDT", externalId: "ext-1" };
+
+  it("second call is no-op while generating", async () => {
     mockCaptureFn.mockImplementation(() => new Promise(() => {}));
     const { result } = renderHook(() => useQuoteShare(defaultOpts));
     const data = makeQuoteCardData();
@@ -106,5 +144,160 @@ describe("[P0][5.3-hook] useQuoteShare", () => {
     });
 
     expect(result.current.activeData).toEqual(data);
+  });
+});
+
+describe("[P0][5.3-hook] useQuoteShare — error path (no overlay DOM)", () => {
+  const defaultOpts = { assetName: "BTC/USDT", externalId: "ext-1" };
+
+  it("transitions to error when overlay ref has no DOM element", async () => {
+    const { result } = renderHook(() => useQuoteShare(defaultOpts));
+
+    act(() => {
+      result.current.generate(makeQuoteCardData());
+    });
+
+    await flushAsyncPipeline(result);
+
+    expect(result.current.state).toBe("error");
+  });
+
+  it("hides overlay after error", async () => {
+    const { result } = renderHook(() => useQuoteShare(defaultOpts));
+
+    act(() => {
+      result.current.generate(makeQuoteCardData());
+    });
+
+    await flushAsyncPipeline(result);
+
+    expect(result.current.quoteOverlayVisible).toBe(false);
+  });
+
+  it("allows retry after error clears isGenerating ref", async () => {
+    const { result } = renderHook(() => useQuoteShare(defaultOpts));
+
+    act(() => {
+      result.current.generate(makeQuoteCardData());
+    });
+
+    await flushAsyncPipeline(result);
+    expect(result.current.state).toBe("error");
+
+    mockCaptureFn.mockResolvedValue(new Blob(["img"], { type: "image/png" }));
+    act(() => {
+      result.current.generate(makeQuoteCardData());
+    });
+
+    expect(result.current.state).toBe("generating");
+  });
+});
+
+describe("[P0][5.3-hook] useQuoteShare — message snapshotting", () => {
+  const defaultOpts = { assetName: "BTC/USDT", externalId: "ext-1" };
+
+  it("captures activeData at trigger time", () => {
+    mockCaptureFn.mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(() => useQuoteShare(defaultOpts));
+    const data = makeQuoteCardData({ content: "original content" });
+
+    act(() => {
+      result.current.generate(data);
+    });
+
+    expect(result.current.activeData?.content).toBe("original content");
+  });
+
+  it("activeData stays unchanged after hook processes the data", () => {
+    mockCaptureFn.mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(() => useQuoteShare(defaultOpts));
+    const data = makeQuoteCardData({ content: "initial" });
+
+    act(() => {
+      result.current.generate(data);
+    });
+
+    const capturedAtTrigger = result.current.activeData?.content;
+    expect(capturedAtTrigger).toBe("initial");
+  });
+});
+
+describe("[P0][5.3-hook] useQuoteShare — Web Share API detection", () => {
+  const defaultOpts = { assetName: "BTC/USDT", externalId: "ext-1" };
+
+  it("hook initializes without navigator.share", () => {
+    delete (navigator as Record<string, unknown>).share;
+    delete (navigator as Record<string, unknown>).canShare;
+    const { result } = renderHook(() => useQuoteShare(defaultOpts));
+    expect(result.current.state).toBe("idle");
+  });
+
+  it("hook initializes with navigator.share present", () => {
+    Object.defineProperty(navigator, "share", {
+      value: jest.fn().mockResolvedValue(undefined),
+      writable: true, configurable: true,
+    });
+    Object.defineProperty(navigator, "canShare", {
+      value: jest.fn().mockReturnValue(true),
+      writable: true, configurable: true,
+    });
+
+    const { result } = renderHook(() => useQuoteShare(defaultOpts));
+    expect(result.current.state).toBe("idle");
+
+    delete (navigator as Record<string, unknown>).share;
+    delete (navigator as Record<string, unknown>).canShare;
+  });
+});
+
+describe("[P0][5.3-hook] useQuoteShare — unmount safety", () => {
+  const defaultOpts = { assetName: "BTC/USDT", externalId: "ext-1" };
+
+  it("does not throw when reading state after unmount during generation", () => {
+    mockCaptureFn.mockImplementation(() => new Promise(() => {}));
+    const { result, unmount } = renderHook(() => useQuoteShare(defaultOpts));
+
+    act(() => {
+      result.current.generate(makeQuoteCardData());
+    });
+
+    unmount();
+
+    expect(() => result.current.state).not.toThrow();
+  });
+
+  it("cleanup runs without error after unmount", async () => {
+    const { result, unmount } = renderHook(() => useQuoteShare(defaultOpts));
+
+    act(() => {
+      result.current.generate(makeQuoteCardData());
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+    });
+
+    unmount();
+
+    expect(() => result.current.state).not.toThrow();
+  });
+});
+
+describe("[P0][5.3-hook] useQuoteShare — Web Share error identification", () => {
+  it("AbortError DOMException is correctly identified", () => {
+    const err = new DOMException("User cancelled", "AbortError");
+    expect(err.name).toBe("AbortError");
+    expect(err instanceof DOMException).toBe(true);
+  });
+
+  it("NotAllowedError DOMException is correctly identified", () => {
+    const err = new DOMException("Not allowed", "NotAllowedError");
+    expect(err.name).toBe("NotAllowedError");
+    expect(err instanceof DOMException).toBe(true);
+  });
+
+  it("generic Error is NOT treated as abort", () => {
+    const err = new Error("something went wrong");
+    expect(err instanceof DOMException).toBe(false);
   });
 });

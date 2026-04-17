@@ -5,10 +5,11 @@ if (typeof globalThis.SVGImageElement === "undefined") {
   (globalThis as Record<string, unknown>).SVGImageElement = class SVGImageElement extends HTMLElement {};
 }
 
-let _idCounter = 0;
+let _counter = 0;
 
 export function resetQuoteFactoryCounter() {
-  _idCounter = 0;
+  _counter = 0;
+  void _counter;
 }
 
 export function makeQuoteCardData(overrides: Partial<QuoteCardData> = {}): QuoteCardData {

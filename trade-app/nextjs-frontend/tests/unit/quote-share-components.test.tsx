@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { jest } from "@jest/globals";
 import { QuoteCardTemplate } from "../../features/debate/components/QuoteCardTemplate";
 import { QuoteCardOverlay } from "../../features/debate/components/QuoteCardOverlay";

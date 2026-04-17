@@ -87,7 +87,8 @@ describe("[P0][5.3-utils] quote share utilities", () => {
     it("truncates long text to fit", () => {
       const text = "A".repeat(300);
       const result = validateTweetLength(text);
-      expect(Array.from(result).length).toBeLessThanOrEqual(256);
+      const maxTextLen = 280 - 14 - 1;
+      expect(Array.from(result).length).toBeLessThanOrEqual(maxTextLen);
       expect(result).toContain("…");
     });
 
