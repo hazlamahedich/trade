@@ -1,14 +1,10 @@
-import { jest } from "@jest/globals";
-import { makeQuoteCardData } from "./factories/quote-share-factory";
-
-const {
+import {
   buildTweetIntentUrl,
   buildQuoteShareFilename,
   buildTweetText,
   validateTweetLength,
-} = require("../../features/debate/utils/quote-share");
-
-const { truncateUnicode } = require("../../features/debate/utils/truncate");
+} from "../../features/debate/utils/quote-share";
+import { truncateUnicode } from "../../features/debate/utils/truncate";
 
 describe("[P0][5.3-utils] quote share utilities", () => {
   describe("buildTweetIntentUrl", () => {

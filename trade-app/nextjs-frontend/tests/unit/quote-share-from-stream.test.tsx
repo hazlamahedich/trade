@@ -24,13 +24,15 @@ import { useQuoteShareFromStream } from "../../features/debate/hooks/useQuoteSha
 import type { ArgumentMessage } from "../../features/debate/hooks/useDebateMessages";
 import type { SnapshotState } from "../../features/debate/types/snapshot";
 
+const FIXED_TIMESTAMP = "2026-04-16T12:00:00.000Z";
+
 function makeArgumentMessage(overrides: Partial<ArgumentMessage> = {}): ArgumentMessage {
   return {
     id: "arg-1",
     type: "argument",
     agent: "bull",
     content: "BTC is going to the moon",
-    timestamp: new Date().toISOString(),
+    timestamp: FIXED_TIMESTAMP,
     ...overrides,
   };
 }

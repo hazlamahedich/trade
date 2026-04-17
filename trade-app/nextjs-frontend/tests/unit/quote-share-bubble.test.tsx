@@ -18,7 +18,7 @@ function renderBubble(props: Partial<Parameters<typeof ArgumentBubble>[0]> = {})
       <ArgumentBubble
         agent="bull"
         content="Test argument"
-        timestamp={new Date().toISOString()}
+        timestamp="2026-04-16T12:00:00.000Z"
         {...props}
       />
     </TooltipProvider>,

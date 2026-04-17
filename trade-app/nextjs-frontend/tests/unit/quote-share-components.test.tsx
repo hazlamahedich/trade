@@ -272,6 +272,8 @@ describe("[P0][5.3-components] Quote card components", () => {
       "features/debate/components/QuoteCardOverlay.tsx",
       "features/debate/components/ShareButton.tsx",
       "features/debate/components/StaticAgentIcon.tsx",
+      "features/debate/hooks/useQuoteShare.ts",
+      "features/debate/hooks/useQuoteShareFromStream.tsx",
       "features/debate/utils/quote-share.ts",
       "features/debate/utils/truncate.ts",
       "features/debate/types/quote-share.ts",

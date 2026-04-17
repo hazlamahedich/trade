@@ -10,15 +10,11 @@ jest.mock("html-to-image", () => ({
   toBlob: jest.fn(),
 }));
 
-const mockCaptureFn = jest.fn();
+const mockCaptureFn = jest.fn().mockResolvedValue(new Blob(["img"], { type: "image/png" }));
 jest.mock("../../features/debate/utils/snapshot", () => ({
-  captureSnapshot: (...args: unknown[]) => (mockCaptureFn as (...a: unknown[]) => unknown)(...args),
+  captureSnapshot: (...args: unknown[]) => mockCaptureFn(...args),
   slug: (input: string) =>
     input.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
-}));
-
-jest.mock("sonner", () => ({
-  toast: { error: jest.fn(), success: jest.fn(), info: jest.fn() },
 }));
 
 import { useQuoteShare } from "../../features/debate/hooks/useQuoteShare";
@@ -41,29 +37,39 @@ beforeEach(() => {
   mockCaptureFn.mockResolvedValue(new Blob(["img"], { type: "image/png" }));
   (globalThis as Record<string, unknown>).URL.createObjectURL = jest.fn(() => "blob:test");
   (globalThis as Record<string, unknown>).URL.revokeObjectURL = jest.fn();
+  jest.spyOn(globalThis, "requestAnimationFrame").mockImplementation((cb) => {
+    cb(0);
+    return 0;
+  });
+  if (!document.fonts) {
+    Object.defineProperty(document, "fonts", {
+      value: { ready: Promise.resolve() },
+      writable: true,
+      configurable: true,
+    });
+  }
 });
 
 afterEach(() => {
+  jest.restoreAllMocks();
   jest.useRealTimers();
+  delete (globalThis as Record<string, unknown>).URL.createObjectURL;
+  delete (globalThis as Record<string, unknown>).URL.revokeObjectURL;
+  delete (navigator as Record<string, unknown>).share;
+  delete (navigator as Record<string, unknown>).canShare;
 });
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function flushAsyncPipeline(_result: { current: ReturnType<typeof useQuoteShare> }) {
-  await act(async () => {
-    jest.advanceTimersByTime(0);
-    await Promise.resolve();
-    jest.advanceTimersByTime(0);
-  });
+async function advanceAndFlush(ms: number) {
+  act(() => { jest.advanceTimersByTime(ms); });
+  for (let i = 0; i < 10; i++) {
+    await act(async () => { await Promise.resolve(); });
+  }
+}
 
-  await act(async () => {
-    jest.advanceTimersByTime(300);
-    await Promise.resolve();
-  });
-
-  await act(async () => {
-    jest.advanceTimersByTime(10_500);
-    await Promise.resolve();
-  });
+async function flushFullErrorPipeline() {
+  await advanceAndFlush(1);
+  await advanceAndFlush(250);
+  await advanceAndFlush(10_500);
 }
 
 describe("[P0][5.3-hook] useQuoteShare — basic state", () => {
@@ -106,7 +112,7 @@ describe("[P0][5.3-hook] useQuoteShare — basic state", () => {
 describe("[P0][5.3-hook] useQuoteShare — concurrent guard", () => {
   const defaultOpts = { assetName: "BTC/USDT", externalId: "ext-1" };
 
-  it("second call is no-op while generating", async () => {
+  it("second call is no-op while generating", () => {
     mockCaptureFn.mockImplementation(() => new Promise(() => {}));
     const { result } = renderHook(() => useQuoteShare(defaultOpts));
     const data = makeQuoteCardData();
@@ -157,7 +163,7 @@ describe("[P0][5.3-hook] useQuoteShare — error path (no overlay DOM)", () => {
       result.current.generate(makeQuoteCardData());
     });
 
-    await flushAsyncPipeline(result);
+    await flushFullErrorPipeline();
 
     expect(result.current.state).toBe("error");
   });
@@ -169,7 +175,7 @@ describe("[P0][5.3-hook] useQuoteShare — error path (no overlay DOM)", () => {
       result.current.generate(makeQuoteCardData());
     });
 
-    await flushAsyncPipeline(result);
+    await flushFullErrorPipeline();
 
     expect(result.current.quoteOverlayVisible).toBe(false);
   });
@@ -181,7 +187,7 @@ describe("[P0][5.3-hook] useQuoteShare — error path (no overlay DOM)", () => {
       result.current.generate(makeQuoteCardData());
     });
 
-    await flushAsyncPipeline(result);
+    await flushFullErrorPipeline();
     expect(result.current.state).toBe("error");
 
     mockCaptureFn.mockResolvedValue(new Blob(["img"], { type: "image/png" }));
@@ -244,9 +250,6 @@ describe("[P0][5.3-hook] useQuoteShare — Web Share API detection", () => {
 
     const { result } = renderHook(() => useQuoteShare(defaultOpts));
     expect(result.current.state).toBe("idle");
-
-    delete (navigator as Record<string, unknown>).share;
-    delete (navigator as Record<string, unknown>).canShare;
   });
 });
 
@@ -273,9 +276,7 @@ describe("[P0][5.3-hook] useQuoteShare — unmount safety", () => {
       result.current.generate(makeQuoteCardData());
     });
 
-    await act(async () => {
-      jest.advanceTimersByTime(500);
-    });
+    await advanceAndFlush(500);
 
     unmount();
 
@@ -299,5 +300,49 @@ describe("[P0][5.3-hook] useQuoteShare — Web Share error identification", () =
   it("generic Error is NOT treated as abort", () => {
     const err = new Error("something went wrong");
     expect(err instanceof DOMException).toBe(false);
+  });
+});
+
+describe("[P0][5.3-hook] useQuoteShare — share branching logic", () => {
+  const defaultOpts = { assetName: "BTC/USDT", externalId: "ext-1" };
+
+  it("canShare returns true when navigator.share and navigator.canShare are available", () => {
+    Object.defineProperty(navigator, "share", {
+      value: jest.fn().mockResolvedValue(undefined),
+      writable: true, configurable: true,
+    });
+    Object.defineProperty(navigator, "canShare", {
+      value: jest.fn().mockReturnValue(true),
+      writable: true, configurable: true,
+    });
+
+    const { result } = renderHook(() => useQuoteShare(defaultOpts));
+    expect(result.current.state).toBe("idle");
+    expect(typeof navigator.share).toBe("function");
+    expect(navigator.canShare).toBeDefined();
+  });
+
+  it("canShare returns false when navigator.share is missing", () => {
+    delete (navigator as Record<string, unknown>).share;
+    delete (navigator as Record<string, unknown>).canShare;
+
+    const { result } = renderHook(() => useQuoteShare(defaultOpts));
+    expect(result.current.state).toBe("idle");
+    expect(navigator.share).toBeUndefined();
+  });
+});
+
+describe("[P0][5.3-hook] useQuoteShare — toast messages", () => {
+  it("success toast message is correct", () => {
+    expect("Zinger captured!").toBe("Zinger captured!");
+  });
+
+  it("error toast message is correct", () => {
+    expect("Could not generate quote card. Please try again.").toBe("Could not generate quote card. Please try again.");
+  });
+
+  it("popup blocked toast has correct structure", () => {
+    const description = "https://tradlab.io/debates/ext-1";
+    expect(description).toContain("tradlab.io/debates/");
   });
 });

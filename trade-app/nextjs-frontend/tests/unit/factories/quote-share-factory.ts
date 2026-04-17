@@ -9,13 +9,13 @@ let _counter = 0;
 
 export function resetQuoteFactoryCounter() {
   _counter = 0;
-  void _counter;
 }
 
 export function makeQuoteCardData(overrides: Partial<QuoteCardData> = {}): QuoteCardData {
+  _counter++;
   return {
     agent: "bull",
-    content: "This is a test argument about market trends",
+    content: `This is test argument #${_counter} about market trends`,
     timestamp: "2026-04-16T12:00:00.000Z",
     ...overrides,
   };
