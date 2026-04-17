@@ -116,6 +116,35 @@ describe("[P0][5.4-hook] useShareDebate", () => {
     expect(mockToastError).toHaveBeenCalledWith(expect.stringContaining("ext-1"));
   });
 
+  it("Web Share API success — includes source in trackEvent", async () => {
+    setNavigatorShare(jest.fn().mockResolvedValue(undefined));
+
+    const { result } = renderHook(() => useShareDebate(defaultArgs));
+    await act(async () => { await result.current.share(); });
+
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "debate_shared",
+        properties: expect.objectContaining({ source: "debate_detail" }),
+      }),
+    );
+  });
+
+  it("Clipboard fallback — includes source in trackEvent", async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    setClipboard(writeText);
+
+    const { result } = renderHook(() => useShareDebate({ ...defaultArgs, source: "debate_stream" }));
+    await act(async () => { await result.current.share(); });
+
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "debate_link_copied",
+        properties: expect.objectContaining({ source: "debate_stream" }),
+      }),
+    );
+  });
+
   it("Analytics isolation — trackEvent throws, share still succeeds", async () => {
     setNavigatorShare(jest.fn().mockResolvedValue(undefined));
     mockTrackEvent.mockImplementation(() => { throw new Error("down"); });
