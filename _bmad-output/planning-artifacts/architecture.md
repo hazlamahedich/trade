@@ -245,7 +245,7 @@ trade-app/
 │   │   ├── schemas/             # Pydantic Models (Snake -> Camel)
 │   │   └── services/
 │   │       ├── auth/            # User management
-│   │       ├── market/          # Yahoo Finance/CoinGecko Integration
+│   │       ├── market/          # yfinance Integration (crypto, forex, stocks)
 │   │       └── debate/          # THE CORE ENGINE
 │   │           ├── engine.py    # LangGraph Workflow Definition
 │   │           ├── judge.py     # LLM-as-a-Judge Logic
@@ -283,7 +283,7 @@ trade-app/
 **API Boundaries:**
 - **Frontend -> Backend:** HTTP (REST) via `NEXT_PUBLIC_API_URL`.
 - **Frontend -> Backend:** WebSocket (WS) via `NEXT_PUBLIC_WS_URL`.
-- **Backend -> External:** Yahoo Finance / CoinGecko APIs.
+- **Backend -> External:** yfinance library (Yahoo Finance data — crypto, forex, stocks; no API key).
 - **Backend -> LLM:** OpenAI / Anthropic APIs.
 
 **Component Boundaries:**
@@ -317,7 +317,7 @@ trade-app/
 - **Frontend -> LangGraph:** Client sends `DEBATE/VOTE` action via WebSocket.
 
 **External Integrations:**
-- **Market Data:** `backend/app/services/market/` polls external APIs every 60s (cache in Redis).
+- **Market Data:** `backend/app/services/market/` fetches via `yfinance` (sync, wrapped in executor) every 60s (cache in Redis). Single `YFinanceProvider` handles crypto (`BTC-USD`), forex (`EURUSD=X`), and stocks (`AAPL`).
 
 **Development Workflow:**
 - **Local:** `docker-compose up` runs DB + Redis + Backend. `npm run dev` runs Frontend.

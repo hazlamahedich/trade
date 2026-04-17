@@ -86,7 +86,7 @@ Unlike traditional signals that provide a flat "Buy/Sell" output, the Debate Lab
 
 ### Growth Features (Post-MVP)
 
-- **Real Data Integration:** Live connection to Yahoo Finance / CoinGecko.
+- **Real Data Integration:** Live connection via yfinance (covers crypto, forex, and stocks — no API key required).
 - **Interactive Graph:** Visualization of the argument tree (React Flow).
 - **Social Sharing:** "Share this Debate" features for viral growth.
 
@@ -153,7 +153,7 @@ Unlike traditional signals that provide a flat "Buy/Sell" output, the Debate Lab
 
 ### Integration Requirements
 
-- **Market Data Aggregator:** Connection to a unified API (e.g., Yahoo Finance) with fallback.
+- **Market Data Aggregator:** `yfinance` Python library provides a single unified source for crypto, forex, and stocks with ~30s data lag. No API key or rate-limit management required.
 - **LLM "Judge" Engine:** A separate, isolated LLM pipeline that scores every argument for safety.
 
 ### Risk Mitigations

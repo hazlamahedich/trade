@@ -10,7 +10,7 @@ So that the agents have up-to-date context for their debate.
 
 ## Acceptance Criteria
 
-1. **Given** a target asset (e.g., BTC) **When** the service is triggered **Then** it fetches current price and news from the external provider (e.g., Yahoo/CoinGecko)
+1. **Given** a target asset (e.g., BTC, EURUSD, AAPL) **When** the service is triggered **Then** it fetches current price from yfinance (supports crypto, forex, and stocks)
 
 2. **Given** the fetched data **When** processing is complete **Then** it is cached in Redis with a precise timestamp
 
@@ -24,17 +24,12 @@ So that the agents have up-to-date context for their debate.
   - [x] Create `trade-app/fastapi_backend/app/services/market/cache.py` - Redis caching layer
   - [x] Create `trade-app/fastapi_backend/app/services/market/schemas.py` - Pydantic models
 
-- [x] Implement CoinGecko provider (AC: #1)
-  - [x] Add `aiohttp` and `redis[hiredis]` dependencies
-  - [x] Implement `CoinGeckoProvider` class with async methods
-  - [x] Fetch current price for asset
-  - [x] Fetch relevant news/headlines
-  - [x] Implement rate limiting (30 calls/min for free tier safety margin)
-
-- [x] Implement Yahoo Finance fallback provider (AC: #3)
-  - [x] Create `YahooFinanceProvider` class
-  - [x] Use as fallback when CoinGecko fails/times out
-  - [x] Same interface as CoinGeckoProvider
+- [x] Implement yfinance provider (AC: #1)
+  - [x] Add `yfinance>=0.2.0` dependency (replaces `aiohttp` and CoinGecko/Yahoo HTTP clients)
+  - [x] Implement `YFinanceProvider` class wrapping sync yfinance calls in `run_in_executor`
+  - [x] Fetch current price for crypto (BTC-USD), forex (EURUSD=X), and stocks (AAPL)
+  - [x] Symbol routing via `get_yfinance_symbol()`: crypto → `{SYM}-USD`, 6-char alpha → `{SYM}=X`, else pass-through
+  - [x] No rate limiting needed — yfinance is free with no enforced API limits
 
 - [x] Implement Redis caching layer (AC: #2)
   - [x] Use `redis.asyncio.Redis` (async client - never sync)
@@ -44,7 +39,7 @@ So that the agents have up-to-date context for their debate.
   - [x] Implement stale data detection with event emission
 
 - [x] Implement failure handling (AC: #3)
-  - [x] Try CoinGecko → fallback to Yahoo Finance → return cached
+  - [x] Try yfinance → return cached on failure
   - [x] If cache exists and < 60s old: return data with `isStale: true`
   - [x] If no cache or cache > 60s old: return error with specific code
   - [x] Emit `STALE_DATA` event for Story 1-6 consumers
@@ -56,10 +51,11 @@ So that the agents have up-to-date context for their debate.
   - [x] Register router in `trade-app/fastapi_backend/app/main.py`
 
 - [x] Write tests (AC: All)
-  - [x] Unit tests for providers with mocked HTTP (aioresponses)
+  - [x] Unit tests for `YFinanceProvider` with mocked `yf.Ticker`
+  - [x] Unit tests for `get_yfinance_symbol()` and `normalize_asset()` symbol routing
   - [x] Unit tests for cache layer with mocked async Redis
-  - [x] Integration tests for full flow with fallback logic
-  - [x] Test failure scenarios (both providers down, stale data)
+  - [x] Integration tests for full flow with stale data fallback
+  - [x] Test failure scenarios (provider down, stale data, unknown asset)
 
 ## Dev Notes
 
@@ -92,7 +88,7 @@ trade-app/
 # pyproject.toml - add dependencies
 dependencies = [
     # ... existing ...
-    "aiohttp>=3.9.0",
+    "yfinance>=0.2.0",         # Replaces aiohttp + CoinGecko/Yahoo HTTP calls
     "redis[hiredis]>=5.0.0",  # Includes async support
 ]
 
@@ -196,44 +192,33 @@ class MarketData(BaseModel):
 
 ### Provider Implementation
 
-**CoinGecko (Primary):**
+**YFinanceProvider (single provider, all asset classes):**
 ```
-Base URL: https://api.coingecko.com/api/v3
-Endpoints:
-  - GET /simple/price?ids=bitcoin&vs_currencies=usd&include_last_updated_at=true
-  - GET /status_updates?category=general&project_ids=bitcoin&per_page=5
-Rate Limit: 30 calls/min (safe margin from 50/min free tier)
-```
-
-**Yahoo Finance (Fallback):**
-```
-Base URL: https://query1.finance.yahoo.com/v8/finance/chart/
-Rate Limit: Higher tolerance, use as backup
+Library: yfinance>=0.2.0
+Data lag: ~30 seconds (near real-time)
+Rate limit: None enforced — free, no API key required
+Asset coverage: Crypto, Forex, Stocks, ETFs
 ```
 
-**Asset ID Mapping:**
+**Symbol Routing (`get_yfinance_symbol`):**
 ```python
-ASSET_IDS = {
-    "BTC": {"coingecko": "bitcoin", "yahoo": "BTC-USD"},
-    "ETH": {"coingecko": "ethereum", "yahoo": "ETH-USD"},
-    "SOL": {"coingecko": "solana", "yahoo": "SOL-USD"},
+# Crypto:  BTC / bitcoin  → BTC-USD
+# Forex:   EURUSD         → EURUSD=X  (6-char alpha string)
+# Stocks:  AAPL           → AAPL      (pass-through)
+
+CRYPTO_SYMBOLS = {
+    "BTC": "BTC-USD",
+    "ETH": "ETH-USD",
+    "SOL": "SOL-USD",
 }
 ```
 
-### Rate Limiting Strategy
-
+**Async wrapping (yfinance is sync):**
 ```python
-# provider.py - Simple token bucket in Redis
-class RateLimiter:
-    KEY = "market:rate_limit:coingecko"
-    MAX_CALLS = 30
-    WINDOW_SEC = 60
-    
-    async def acquire(self, redis: Redis) -> bool:
-        current = await redis.incr(self.KEY)
-        if current == 1:
-            await redis.expire(self.KEY, self.WINDOW_SEC)
-        return current <= self.MAX_CALLS
+async def fetch_price(self, asset: str) -> dict | None:
+    symbol = get_yfinance_symbol(asset)
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, self._fetch_price_sync, symbol)
 ```
 
 ### Caching Strategy
@@ -265,21 +250,23 @@ if is_stale:
 ### Testing Standards
 
 ```python
-# Use aioresponses for HTTP mocking, fakeredis for Redis
-@pytest.fixture
-def mock_coingecko():
-    with aioresponses() as m:
-        m.get("https://api.coingecko.com/api/v3/simple/price",
-              payload={"bitcoin": {"usd": 45000, "last_updated_at": 1700000000}})
-        yield m
+# Mock yf.Ticker — no HTTP mocking needed
+from unittest.mock import MagicMock, patch
+
+def make_ticker_mock(price: float):
+    mock_fi = MagicMock()
+    mock_fi.last_price = price
+    mock_t = MagicMock()
+    mock_t.fast_info = mock_fi
+    return mock_t
 
 # Required test scenarios:
-# 1. CoinGecko success → cache → return
-# 2. CoinGecko fail → Yahoo success → return
-# 3. Both fail → stale cache → return with isStale=true
-# 4. Both fail → no cache → 503 error
-# 5. Rate limit hit → fallback to Yahoo
-# 6. Cache hit → return cached (no provider call)
+# 1. yfinance success → cache → return
+# 2. yfinance returns None price → treat as failure
+# 3. yfinance raises exception → stale cache → return with isStale=true
+# 4. yfinance fails → no cache → 503 error
+# 5. Cache hit → return cached (no provider call)
+# 6. Forex symbol routing: EURUSD → EURUSD=X
 ```
 
 ### Performance Optimizations
@@ -385,6 +372,15 @@ glm-5 (zai-coding-plan/glm-5)
     - Added shared Redis connection manager
     - Added logging for timestamp parsing errors
     - Added timeout handling tests
+14. **Provider Migration** (2026-04-17):
+    - Replaced `CoinGeckoProvider` + `YahooFinanceProvider` (both HTTP-based) with `YFinanceProvider` (yfinance library)
+    - CoinGecko removed: API is not free; Yahoo Finance direct HTTP removed: replaced by yfinance
+    - yfinance covers crypto (BTC-USD), forex (EURUSD=X), and stocks (AAPL) — no API key required
+    - Data lag ~30s (near real-time); tested and confirmed live
+    - Added `get_yfinance_symbol()` for symbol routing; removed `RateLimiter` and `aiohttp` dependency
+    - `MarketDataService` simplified: single `self.provider` replaces two-provider fallback chain
+    - `pyproject.toml`: swapped `aiohttp>=3.9.0` for `yfinance>=0.2.0`
+    - Provider tests fully rewritten: 16/16 passing, mocking `yf.Ticker` directly
 
 ### File List
 
