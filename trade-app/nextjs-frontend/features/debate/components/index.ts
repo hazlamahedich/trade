@@ -26,3 +26,7 @@ export { SnapshotButton } from "./SnapshotButton";
 export { SnapshotOverlay } from "./SnapshotOverlay";
 export { SnapshotTemplate } from "./SnapshotTemplate";
 export { SnapshotArgumentBubble } from "./SnapshotArgumentBubble";
+export { StaticAgentIcon } from "./StaticAgentIcon";
+export { QuoteCardTemplate } from "./QuoteCardTemplate";
+export { QuoteCardOverlay } from "./QuoteCardOverlay";
+export { ShareButton } from "./ShareButton";

@@ -2,6 +2,7 @@ import { render, screen, act, fireEvent, waitFor } from "@testing-library/react"
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createElement, type ReactNode } from "react";
+import { TooltipProvider } from "../../components/ui/tooltip";
 
 const mockSubmitVote = jest.fn();
 const mockFetchDebateResult = jest.fn(() =>
@@ -42,7 +43,9 @@ function createWrapper() {
     defaultOptions: { queries: { retry: false } },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
+    return createElement(QueryClientProvider, { client: queryClient },
+      createElement(TooltipProvider, null, children)
+    );
   };
 }
 
@@ -118,6 +121,14 @@ jest.mock("framer-motion", () => {
           style = { ...style, ..._a2 };
         }
         return createElement("span", { ...rest, style });
+      },
+      button: (props: Record<string, unknown>) => {
+        const { initial: _i3, animate: _a3, exit: _e3, transition: _t3, layout: _l3, layoutId: _lid3, onAnimateComplete: _oac3, ...rest } = props;
+        let style = (rest.style as Record<string, unknown>) || {};
+        if (_a3 && typeof _a3 === "object") {
+          style = { ...style, ..._a3 };
+        }
+        return createElement("button", { ...rest, style });
       },
     },
     AnimatePresence: ({ children }: { children: React.ReactNode }) =>

@@ -1,9 +1,11 @@
 "use client";
 
+import { useCallback, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArgumentBubble } from "./ArgumentBubble";
 import type { AgentType } from "./ArgumentBubble";
-import type { DebateMessage } from "../hooks/useDebateMessages";
+import type { DebateMessage, ArgumentMessage } from "../hooks/useDebateMessages";
+import type { QuoteShareState } from "../types/quote-share";
 
 export type { ArgumentMessage } from "../hooks/useDebateMessages";
 export type { DebateMessage } from "../hooks/useDebateMessages";
@@ -12,15 +14,53 @@ export type { AgentType };
 interface DebateMessageListProps {
   messages: DebateMessage[];
   parentRef: React.RefObject<HTMLDivElement | null>;
+  onShareMessage?: (message: ArgumentMessage) => void;
+  activeShareId?: string | null;
+  shareState?: QuoteShareState;
 }
 
-export function DebateMessageList({ messages, parentRef }: DebateMessageListProps) {
+function getArgumentIndices(messages: DebateMessage[]): number[] {
+  return messages.reduce<number[]>((acc, m, i) => {
+    if (m.type !== "guardian") acc.push(i);
+    return acc;
+  }, []);
+}
+
+export function DebateMessageList({ messages, parentRef, onShareMessage, activeShareId, shareState }: DebateMessageListProps) {
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const argumentIndices = useRef(getArgumentIndices(messages));
+  argumentIndices.current = getArgumentIndices(messages);
+
   const rowVirtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
     estimateSize: (index) => (messages[index]?.type === "guardian" ? 120 : 100),
     overscan: 5,
   });
+
+  const handleArrowNavigation = useCallback(
+    (direction: "up" | "down") => {
+      const indices = argumentIndices.current;
+      if (indices.length === 0) return;
+
+      const currentPos = indices.indexOf(focusedIndex);
+      let nextPos: number;
+
+      if (currentPos === -1) {
+        nextPos = direction === "down" ? 0 : indices.length - 1;
+      } else {
+        nextPos =
+          direction === "down"
+            ? Math.min(currentPos + 1, indices.length - 1)
+            : Math.max(currentPos - 1, 0);
+      }
+
+      const nextIndex = indices[nextPos];
+      setFocusedIndex(nextIndex);
+      rowVirtualizer.scrollToIndex(nextIndex, { align: "auto" });
+    },
+    [focusedIndex, rowVirtualizer],
+  );
 
   return (
     <div
@@ -29,9 +69,22 @@ export function DebateMessageList({ messages, parentRef }: DebateMessageListProp
         width: "100%",
         position: "relative",
       }}
+      role="list"
+      onKeyDown={(e) => {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          handleArrowNavigation("down");
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          handleArrowNavigation("up");
+        }
+      }}
     >
       {rowVirtualizer.getVirtualItems().map((virtualRow) => {
         const message = messages[virtualRow.index];
+        const isArgument = message.type !== "guardian";
+        const isFocused = virtualRow.index === focusedIndex;
+
         return (
           <div
             key={message.id}
@@ -66,6 +119,10 @@ export function DebateMessageList({ messages, parentRef }: DebateMessageListProp
                 content={message.content}
                 timestamp={message.timestamp}
                 isRedacted={message.isRedacted}
+                onShare={onShareMessage ? () => onShareMessage(message as ArgumentMessage) : undefined}
+                shareState={activeShareId === message.id ? shareState : undefined}
+                isFocused={isFocused}
+                onFocusRequest={() => setFocusedIndex(virtualRow.index)}
               />
             )}
           </div>

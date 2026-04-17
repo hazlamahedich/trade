@@ -60,7 +60,10 @@ let mockReducedMotion = false;
 
 jest.mock('framer-motion', () => {
   return {
-    motion: { div: (props: Record<string, unknown>) => React.createElement('div', props) },
+    motion: {
+      div: (props: Record<string, unknown>) => React.createElement('div', props),
+      button: (props: Record<string, unknown>) => React.createElement('button', props),
+    },
     AnimatePresence: ({ children }: { children: React.ReactNode }) => React.createElement(React.Fragment, null, children),
     useReducedMotion: () => mockReducedMotion,
   };

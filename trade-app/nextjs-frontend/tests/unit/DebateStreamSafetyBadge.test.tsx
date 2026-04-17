@@ -17,7 +17,9 @@ function createWrapper() {
     defaultOptions: { queries: { retry: false } },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
+    return createElement(QueryClientProvider, { client: queryClient },
+      createElement(TooltipProvider, null, children)
+    );
   };
 }
 
@@ -26,6 +28,7 @@ let capturedSocketOptions: Record<string, unknown> = {};
 jest.mock('framer-motion', () => ({
   motion: {
     div: (props: Record<string, unknown>) => React.createElement('div', props),
+    button: (props: Record<string, unknown>) => React.createElement('button', props),
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => React.createElement(React.Fragment, null, children),
   useReducedMotion: () => false,

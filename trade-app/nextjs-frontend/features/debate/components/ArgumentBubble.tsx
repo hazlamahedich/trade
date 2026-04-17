@@ -10,6 +10,22 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
+import { ShareButton } from "./ShareButton";
+
+function handleBubbleKeyDown(e: React.KeyboardEvent, onShare?: () => void) {
+  if (e.key === "s" && onShare) {
+    const target = e.target as HTMLElement;
+    if (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target.isContentEditable
+    ) {
+      return;
+    }
+    e.preventDefault();
+    onShare();
+  }
+}
 
 interface ArgumentBubbleProps {
   agent: AgentType;
@@ -17,6 +33,10 @@ interface ArgumentBubbleProps {
   timestamp: string;
   isStreaming?: boolean;
   isRedacted?: boolean;
+  onShare?: () => void;
+  shareState?: import("../types/quote-share").QuoteShareState;
+  isFocused?: boolean;
+  onFocusRequest?: () => void;
 }
 
 const messageVariants = {
@@ -51,7 +71,7 @@ function renderContent(content: string, isRedacted: boolean) {
   ));
 }
 
-export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedacted }: ArgumentBubbleProps) {
+export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedacted, onShare, shareState, isFocused, onFocusRequest }: ArgumentBubbleProps) {
   const isBull = agent === "bull";
   // Two independent signals for redaction:
   // - hasRedactedContent: string-based detection for inline [REDACTED] span rendering.
@@ -70,11 +90,19 @@ export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedac
       data-testid="argument-bubble"
       data-agent={agent}
       role="article"
+      tabIndex={isFocused ? 0 : -1}
       variants={messageVariants}
       initial="hidden"
       animate="visible"
+      onFocus={onFocusRequest}
+      onKeyDown={(e) => {
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          e.preventDefault();
+        }
+        handleBubbleKeyDown(e, onShare);
+      }}
       className={cn(
-        "flex gap-3 p-4 rounded-lg border",
+        "group relative flex gap-3 p-4 rounded-lg border",
         isBull
           ? "flex-row bg-emerald-500/10 border-emerald-500/20"
           : "flex-row-reverse bg-rose-500/10 border-rose-500/20"
@@ -146,6 +174,22 @@ export function ArgumentBubble({ agent, content, timestamp, isStreaming, isRedac
           </div>
         )}
       </div>
+      {onShare && (
+        <div
+          className={cn(
+            "absolute top-2 right-2",
+            "opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100",
+            "transition-opacity",
+          )}
+        >
+          <ShareButton
+            shareState={shareState ?? "idle"}
+            onShare={onShare}
+            isStreaming={isStreaming}
+            isRedacted={isRedacted}
+          />
+        </div>
+      )}
     </motion.div>
   );
 }

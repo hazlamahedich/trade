@@ -3,6 +3,7 @@ import { render, screen, act, fireEvent, within, renderHook } from '@testing-lib
 import React from 'react';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createElement, type ReactNode } from "react";
+import { TooltipProvider } from '../../components/ui/tooltip';
 jest.mock("../../features/debate/api", () => ({
   submitVote: jest.fn(),
   fetchDebateResult: jest.fn(() => Promise.reject(new Error("Not mocked"))),
@@ -16,7 +17,9 @@ function createWrapper() {
     defaultOptions: { queries: { retry: false } },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
+    return createElement(QueryClientProvider, { client: queryClient },
+      createElement(TooltipProvider, null, children)
+    );
   };
 }
 
@@ -59,7 +62,10 @@ jest.mock('@tanstack/react-virtual', () => ({
 
 jest.mock('framer-motion', () => {
   return {
-    motion: { div: (props: Record<string, unknown>) => React.createElement('div', props) },
+    motion: {
+      div: (props: Record<string, unknown>) => React.createElement('div', props),
+      button: (props: Record<string, unknown>) => React.createElement('button', props),
+    },
     AnimatePresence: ({ children }: { children: React.ReactNode }) => React.createElement(React.Fragment, null, children),
     useReducedMotion: () => false,
   };

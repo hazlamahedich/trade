@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
-import { useDebateMessages, type ArgumentMessage } from "../hooks/useDebateMessages";
+import { useDebateMessages } from "../hooks/useDebateMessages";
 import { useVote } from "../hooks/useVote";
 import { useVotingStatus } from "../hooks/useVotingStatus";
 import { useFirstVoter } from "../hooks/useFirstVoter";
 import { useSnapshot, SNAPSHOT_HIDDEN_STATUSES } from "../hooks/useSnapshot";
+import { useQuoteShareFromStream } from "../hooks/useQuoteShareFromStream";
 import { ArgumentBubble } from "./ArgumentBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { StaleDataWarning } from "./StaleDataWarning";
@@ -130,6 +131,17 @@ export function DebateStream({ debateId, assetName: assetNameProp, externalId: e
   const { generateSnapshot, state: snapshotState, overlayVisible, overlayRef, resetState, successAnnouncement } = useSnapshot(snapshotInput);
   const showSnapshot = !isEmpty && !SNAPSHOT_HIDDEN_STATUSES.has(debateStatus);
 
+  const {
+    quoteShareState,
+    activeShareId,
+    handleShareMessage,
+    quoteOverlay,
+  } = useQuoteShareFromStream({
+    assetName: assetNameProp ?? debateId,
+    externalId: externalIdProp ?? debateId,
+    snapshotState,
+  });
+
   return (
     <>
       {isDataStale && stalePayload && (
@@ -177,7 +189,13 @@ export function DebateStream({ debateId, assetName: assetNameProp, externalId: e
           </div>
         )}
 
-        <DebateMessageList messages={messages} parentRef={parentRef} />
+        <DebateMessageList
+          messages={messages}
+          parentRef={parentRef}
+          onShareMessage={handleShareMessage}
+          activeShareId={activeShareId}
+          shareState={quoteShareState}
+        />
 
         <AnimatePresence>
           {isStreaming && currentAgent && (
@@ -251,6 +269,7 @@ export function DebateStream({ debateId, assetName: assetNameProp, externalId: e
           overlayRef={overlayRef}
         />
       )}
+      {quoteOverlay}
     </>
   );
 }

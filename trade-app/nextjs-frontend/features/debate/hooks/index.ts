@@ -7,6 +7,9 @@ export { useVotingStatus } from "./useVotingStatus";
 export type { UseVotingStatusOptions } from "./useVotingStatus";
 export { queryKeys } from "./queryKeys";
 export { useSnapshot, SNAPSHOT_HIDDEN_STATUSES } from "./useSnapshot";
+export { useQuoteShare } from "./useQuoteShare";
+export { useQuoteShareFromStream } from "./useQuoteShareFromStream";
+
 export type { GuardianFreezeState } from "./useGuardianFreeze";
 export type { VoteStatus } from "./useVote";
 export type { VoteChoice } from "./storedVote";

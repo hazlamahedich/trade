@@ -1,5 +1,5 @@
 all# generated: 2026-02-18
-# last_updated: 2026-04-16 (story 5-2 code review patches applied)
+# last_updated: 2026-04-17 (story 5-3 created)
 # project: trade
 # project_key: NOKEY
 # tracking_system: file-system
@@ -82,7 +82,7 @@ development_status:
   epic-5: in-progress
   5-1-dynamic-og-image-generation: done
   5-2-debate-snapshot-tool: review
-  5-3-quote-sharing-flow: backlog
+  5-3-quote-sharing-flow: review
   5-4-social-share-actions: backlog
   epic-5-retrospective: optional
 

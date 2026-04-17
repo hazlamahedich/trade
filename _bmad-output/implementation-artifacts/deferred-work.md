@@ -94,3 +94,7 @@
 ## Deferred from: code review of 5-2-debate-snapshot-tool (2026-04-16)
 
 - objectUrl revocation timing (1s delay may be insufficient for slow browsers) — File constructor holds blob reference independently, 1s delay is per spec, low risk of download failure in practice.
+
+## Deferred from: code review of 5-3-quote-sharing-flow (2026-04-17)
+
+- Object URL revoke timer may fire before browser reads blob — pre-existing pattern from Story 5.2 snapshot feature, 1s delay matches existing behavior

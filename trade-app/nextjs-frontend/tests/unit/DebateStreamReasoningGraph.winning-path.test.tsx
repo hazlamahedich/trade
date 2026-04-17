@@ -1,6 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createElement, type ReactNode } from "react";
+import { TooltipProvider } from "../../components/ui/tooltip";
 
 jest.mock("@xyflow/react", () => {
   const react = jest.requireActual("react");
@@ -56,6 +57,13 @@ jest.mock("framer-motion", () => ({
       children: React.ReactNode;
       [key: string]: unknown;
     }) => <div {...props}>{children}</div>,
+    button: ({
+      children,
+      ...props
+    }: {
+      children: React.ReactNode;
+      [key: string]: unknown;
+    }) => <button {...props}>{children}</button>,
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
@@ -131,7 +139,9 @@ function createWrapper() {
     defaultOptions: { queries: { retry: false } },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
+    return createElement(QueryClientProvider, { client: queryClient },
+      createElement(TooltipProvider, null, children)
+    );
   };
 }
 
