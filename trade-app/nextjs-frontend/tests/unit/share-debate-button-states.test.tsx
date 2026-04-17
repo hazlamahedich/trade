@@ -1,14 +1,16 @@
 import { render, screen } from "@testing-library/react";
 import { TooltipProvider } from "../../components/ui/tooltip";
 
-let mockIsSharing = false;
-let mockReduceMotion = false;
-let capturedButtonProps: Record<string, unknown> = {};
+const mockState = {
+  isSharing: false,
+  reduceMotion: false,
+  capturedButtonProps: {} as Record<string, unknown>,
+};
 
 jest.mock("../../features/debate/hooks/useShareDebate", () => ({
   useShareDebate: () => ({
     share: jest.fn(),
-    isSharing: mockIsSharing,
+    isSharing: mockState.isSharing,
   }),
 }));
 
@@ -22,7 +24,7 @@ jest.mock("framer-motion", () => {
     motion: {
       button: React.forwardRef(
         (props: Record<string, unknown>, ref: React.Ref<HTMLButtonElement>) => {
-          capturedButtonProps = props;
+          mockState.capturedButtonProps = props;
           return React.createElement("button", { ...props, ref });
         },
       ),
@@ -31,7 +33,7 @@ jest.mock("framer-motion", () => {
           React.createElement("div", { ...props, ref }),
       ),
     },
-    useReducedMotion: () => mockReduceMotion,
+    useReducedMotion: () => mockState.reduceMotion,
     AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
   };
 });
@@ -42,14 +44,14 @@ const defaultProps = { assetName: "BTC", externalId: "ext-1" };
 
 describe("[P0][5.4-button-states] ShareDebateButton state variations", () => {
   beforeEach(() => {
-    mockIsSharing = false;
-    mockReduceMotion = false;
-    capturedButtonProps = {};
+    mockState.isSharing = false;
+    mockState.reduceMotion = false;
+    mockState.capturedButtonProps = {};
   });
 
   describe("useReducedMotion", () => {
     it("sets transition duration to 0 when reduced motion preferred", () => {
-      mockReduceMotion = true;
+      mockState.reduceMotion = true;
       render(
         <TooltipProvider>
           <ShareDebateButton {...defaultProps} />
@@ -58,12 +60,12 @@ describe("[P0][5.4-button-states] ShareDebateButton state variations", () => {
 
       const button = screen.getByTestId("share-debate-button");
       expect(button).toBeInTheDocument();
-      const transition = capturedButtonProps.transition as Record<string, unknown>;
+      const transition = mockState.capturedButtonProps.transition as Record<string, unknown>;
       expect(transition.duration).toBe(0);
     });
 
     it("sets transition duration > 0 when reduced motion not preferred", () => {
-      mockReduceMotion = false;
+      mockState.reduceMotion = false;
       render(
         <TooltipProvider>
           <ShareDebateButton {...defaultProps} />
@@ -72,25 +74,25 @@ describe("[P0][5.4-button-states] ShareDebateButton state variations", () => {
 
       const button = screen.getByTestId("share-debate-button");
       expect(button).toBeInTheDocument();
-      const transition = capturedButtonProps.transition as Record<string, unknown>;
+      const transition = mockState.capturedButtonProps.transition as Record<string, unknown>;
       expect(transition.duration).toBe(0.2);
     });
 
     it("disables initial animation when reduced motion preferred", () => {
-      mockReduceMotion = true;
+      mockState.reduceMotion = true;
       render(
         <TooltipProvider>
           <ShareDebateButton {...defaultProps} />
         </TooltipProvider>,
       );
 
-      expect(capturedButtonProps.initial).toBe(false);
+      expect(mockState.capturedButtonProps.initial).toBe(false);
     });
   });
 
   describe("isSharing state", () => {
     it("renders Loader2 icon when isSharing is true", () => {
-      mockIsSharing = true;
+      mockState.isSharing = true;
       render(
         <TooltipProvider>
           <ShareDebateButton {...defaultProps} />
@@ -105,7 +107,7 @@ describe("[P0][5.4-button-states] ShareDebateButton state variations", () => {
     });
 
     it("renders Share2 icon when isSharing is false", () => {
-      mockIsSharing = false;
+      mockState.isSharing = false;
       render(
         <TooltipProvider>
           <ShareDebateButton {...defaultProps} />
@@ -121,7 +123,7 @@ describe("[P0][5.4-button-states] ShareDebateButton state variations", () => {
     });
 
     it("is disabled during isSharing", () => {
-      mockIsSharing = true;
+      mockState.isSharing = true;
       render(
         <TooltipProvider>
           <ShareDebateButton {...defaultProps} />

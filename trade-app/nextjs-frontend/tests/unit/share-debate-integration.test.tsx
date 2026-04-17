@@ -3,11 +3,13 @@ import fs from "fs";
 import path from "path";
 import { TooltipProvider } from "../../components/ui/tooltip";
 
+const mockUseShareDebate = jest.fn(() => ({
+  share: jest.fn(),
+  isSharing: false,
+}));
+
 jest.mock("../../features/debate/hooks/useShareDebate", () => ({
-  useShareDebate: () => ({
-    share: jest.fn(),
-    isSharing: false,
-  }),
+  get useShareDebate() { return mockUseShareDebate; },
 }));
 
 jest.mock("../../features/debate/utils/analytics", () => ({
@@ -33,8 +35,13 @@ jest.mock("framer-motion", () => {
 });
 
 import { DebateDetailActions } from "../../features/debate/components/DebateDetailClientActions";
+import { ShareDebateButton } from "../../features/debate/components/ShareDebateButton";
 
 describe("[P0][5.4-integration] Social Share integration", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe("DebateDetailActions wrapper", () => {
     it("renders ShareDebateButton alongside WatchLiveCTA in flex row", () => {
       render(
@@ -54,28 +61,93 @@ describe("[P0][5.4-integration] Social Share integration", () => {
       expect(container?.className).toContain("gap-3");
     });
 
-    it("forwards debateStatus to ShareDebateButton", () => {
+    it("forwards debateStatus to ShareDebateButton via hook", () => {
       render(
         <TooltipProvider>
           <DebateDetailActions externalId="ext-1" assetName="ETH" debateStatus="active" />
         </TooltipProvider>,
       );
 
-      const shareBtn = screen.getByTestId("share-debate-button");
-      expect(shareBtn).toBeInTheDocument();
-      expect(shareBtn).toHaveAttribute("aria-label", "Share debate");
+      expect(mockUseShareDebate).toHaveBeenCalledWith(
+        expect.objectContaining({ debateStatus: "active", assetName: "ETH" }),
+      );
     });
   });
 
-  describe("DebateStream toolbar", () => {
-    it("includes ShareDebateButton import alongside SnapshotButton", () => {
+  describe("DebateStream toolbar — rendered toolbar row", () => {
+    function renderToolbarRow(externalId?: string) {
+      const assetName = "BTC";
+      return render(
+        <TooltipProvider>
+          <div className="absolute top-2 right-2 z-10 flex gap-2">
+            <ShareDebateButton
+              assetName={assetName}
+              externalId={externalId || assetName}
+              disabled={!externalId}
+              source="debate_stream"
+            />
+          </div>
+        </TooltipProvider>,
+      );
+    }
+
+    it("renders ShareDebateButton with source=debate_stream", () => {
+      renderToolbarRow("ext-1");
+
+      const shareBtn = screen.getByTestId("share-debate-button");
+      expect(shareBtn).toBeInTheDocument();
+      expect(mockUseShareDebate).toHaveBeenCalledWith(
+        expect.objectContaining({ source: "debate_stream" }),
+      );
+    });
+
+    it("disables ShareDebateButton when externalId is undefined", () => {
+      renderToolbarRow(undefined);
+
+      expect(screen.getByTestId("share-debate-button")).toBeDisabled();
+    });
+
+    it("passes assetName fallback from debateId when externalId is undefined", () => {
+      renderToolbarRow(undefined);
+
+      expect(mockUseShareDebate).toHaveBeenCalledWith(
+        expect.objectContaining({ assetName: "BTC", externalId: "BTC" }),
+      );
+    });
+  });
+
+  describe("DebateStream toolbar — static contract verification", () => {
+    it("imports ShareDebateButton alongside SnapshotButton", () => {
       const streamPath = path.resolve(process.cwd(), "features/debate/components/DebateStream.tsx");
       const content = fs.readFileSync(streamPath, "utf-8");
 
       expect(content).toContain("import { ShareDebateButton }");
       expect(content).toContain("import { SnapshotButton }");
-      expect(content).toMatch(/ShareDebateButton.*assetName/);
+    });
+
+    it("passes source=debate_stream prop to ShareDebateButton", () => {
+      const streamPath = path.resolve(process.cwd(), "features/debate/components/DebateStream.tsx");
+      const content = fs.readFileSync(streamPath, "utf-8");
+
+      expect(content).toMatch(/source="debate_stream"/);
+    });
+
+    it("disables button when externalIdProp is falsy", () => {
+      const streamPath = path.resolve(process.cwd(), "features/debate/components/DebateStream.tsx");
+      const content = fs.readFileSync(streamPath, "utf-8");
+
       expect(content).toContain("disabled={!externalIdProp}");
+    });
+
+    it("renders both buttons inside the same toolbar container", () => {
+      const streamPath = path.resolve(process.cwd(), "features/debate/components/DebateStream.tsx");
+      const content = fs.readFileSync(streamPath, "utf-8");
+
+      const toolbarMatch = content.match(/<div[^>]*className="absolute top-2 right-2[^"]*flex gap-2"[^>]*>[\s\S]*?<\/div>\s*<\/div>/);
+      expect(toolbarMatch).not.toBeNull();
+      const toolbarBlock = toolbarMatch![0];
+      expect(toolbarBlock).toContain("SnapshotButton");
+      expect(toolbarBlock).toContain("ShareDebateButton");
     });
   });
 

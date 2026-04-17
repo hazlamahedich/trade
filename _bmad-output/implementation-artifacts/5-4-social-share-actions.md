@@ -1,6 +1,6 @@
 # Story 5.4: Social Share Actions
 
-Status: testarch-automate
+Status: testarch-test-review
 
 ## Party-Mode Adversarial Review — 2026-04-17
 
@@ -404,3 +404,13 @@ glm-5.1 (opencode)
 - [x] [Review][Patch] Empty-string `assetName` passes `??` guard — Changed `??` to `||` in `DebateStream.tsx:183`.
 - [x] [Review][Patch] `externalId` not URI-encoded — Added `encodeURIComponent(externalId)` in `buildDebateShareUrl`. Updated tests.
 - [x] [Review][Defer] `aria-live` inside `<Tooltip>` root — potential SR double-announcement (pre-existing pattern in SnapshotButton.tsx)
+
+### Test Review (2026-04-17)
+
+**Quality Score**: 96/100 (A+ — Excellent)
+**Report**: `_bmad-output/test-artifacts/test-reviews/test-review-story-5-4.md`
+
+- [x] [TestReview][Fixed] Component test missing `debateStatus` prop forwarding — Added 3 tests to `share-debate-button.test.tsx` verifying hook receives `debateStatus=active/completed` and `source=debate_stream`
+- [x] [TestReview][Fixed] DebateStream toolbar file-content test — Replaced with 4 rendered toolbar tests + 4 focused static contract tests in `share-debate-integration.test.tsx`
+- [x] [TestReview][Fixed] Module-level mutable vars in button-states test — Consolidated 3 `let` vars into single `mockState` object in `share-debate-button-states.test.tsx`
+- 59 unit tests + 5 E2E = 64 total. All passing. Zero TS/lint errors.

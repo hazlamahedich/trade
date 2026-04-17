@@ -6,12 +6,13 @@ expect.extend(toHaveNoViolations);
 
 const mockShare = jest.fn().mockResolvedValue(undefined);
 const mockTrackEvent = jest.fn();
+const mockUseShareDebate = jest.fn(() => ({
+  share: mockShare,
+  isSharing: false,
+}));
 
 jest.mock("../../features/debate/hooks/useShareDebate", () => ({
-  useShareDebate: () => ({
-    share: mockShare,
-    isSharing: false,
-  }),
+  get useShareDebate() { return mockUseShareDebate; },
 }));
 
 jest.mock("../../features/debate/utils/analytics", () => ({
@@ -108,5 +109,26 @@ describe("[P0][5.4-button] ShareDebateButton", () => {
     const { container } = renderWithProvider(<ShareDebateButton {...defaultProps} />);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
+  });
+
+  it("forwards debateStatus=active to useShareDebate hook", () => {
+    renderWithProvider(<ShareDebateButton {...defaultProps} debateStatus="active" />);
+    expect(mockUseShareDebate).toHaveBeenCalledWith(
+      expect.objectContaining({ assetName: "BTC", externalId: "ext-1", debateStatus: "active" }),
+    );
+  });
+
+  it("forwards debateStatus=completed to useShareDebate hook", () => {
+    renderWithProvider(<ShareDebateButton {...defaultProps} debateStatus="completed" />);
+    expect(mockUseShareDebate).toHaveBeenCalledWith(
+      expect.objectContaining({ debateStatus: "completed" }),
+    );
+  });
+
+  it("forwards source prop to useShareDebate hook", () => {
+    renderWithProvider(<ShareDebateButton {...defaultProps} source="debate_stream" />);
+    expect(mockUseShareDebate).toHaveBeenCalledWith(
+      expect.objectContaining({ source: "debate_stream" }),
+    );
   });
 });

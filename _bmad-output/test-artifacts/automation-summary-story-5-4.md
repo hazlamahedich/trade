@@ -29,7 +29,7 @@ inputDocuments:
 | Unit | Integration + bundle isolation | P0 | 10 |
 | E2E | Share debate flow (clipboard path) | P0 | 5 |
 
-**Total: 55 tests across 6 suites, all passing.**
+**Total: 64 tests across 6 suites, all passing.**
 
 ## Gaps Filled (This Run)
 
@@ -78,5 +78,5 @@ inputDocuments:
 
 ## Next Recommended Workflow
 
-- `testarch-test-review` — review test quality for story 5.4
 - `testarch-trace` — generate traceability matrix for AC→test mapping
+- `qa-generate-e2e-tests` — generate E2E tests for share debate feature
