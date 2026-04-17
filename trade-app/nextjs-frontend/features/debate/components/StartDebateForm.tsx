@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition, useState, useEffect, useRef, useCallback } from "react";
+import { useTransition, useState, useMemo } from "react";
 import { startDebate } from "@/features/debate/actions/start-debate-action";
 import { TrendingUp, DollarSign, BarChart3, Search, Loader2 } from "lucide-react";
 
@@ -9,6 +9,44 @@ interface AssetOption {
   name: string;
   category: "crypto" | "stocks" | "forex";
 }
+
+const ALL_ASSETS: AssetOption[] = [
+  { symbol: "BTC", name: "Bitcoin", category: "crypto" },
+  { symbol: "ETH", name: "Ethereum", category: "crypto" },
+  { symbol: "SOL", name: "Solana", category: "crypto" },
+  { symbol: "XRP", name: "Ripple", category: "crypto" },
+  { symbol: "ADA", name: "Cardano", category: "crypto" },
+  { symbol: "DOGE", name: "Dogecoin", category: "crypto" },
+  { symbol: "DOT", name: "Polkadot", category: "crypto" },
+  { symbol: "AVAX", name: "Avalanche", category: "crypto" },
+  { symbol: "MATIC", name: "Polygon", category: "crypto" },
+  { symbol: "LINK", name: "Chainlink", category: "crypto" },
+  { symbol: "LTC", name: "Litecoin", category: "crypto" },
+  { symbol: "AAPL", name: "Apple", category: "stocks" },
+  { symbol: "MSFT", name: "Microsoft", category: "stocks" },
+  { symbol: "GOOGL", name: "Alphabet", category: "stocks" },
+  { symbol: "AMZN", name: "Amazon", category: "stocks" },
+  { symbol: "TSLA", name: "Tesla", category: "stocks" },
+  { symbol: "NVDA", name: "NVIDIA", category: "stocks" },
+  { symbol: "META", name: "Meta", category: "stocks" },
+  { symbol: "NFLX", name: "Netflix", category: "stocks" },
+  { symbol: "AMD", name: "AMD", category: "stocks" },
+  { symbol: "JPM", name: "JPMorgan", category: "stocks" },
+  { symbol: "V", name: "Visa", category: "stocks" },
+  { symbol: "DIS", name: "Disney", category: "stocks" },
+  { symbol: "BA", name: "Boeing", category: "stocks" },
+  { symbol: "INTC", name: "Intel", category: "stocks" },
+  { symbol: "EURUSD", name: "EUR/USD", category: "forex" },
+  { symbol: "GBPUSD", name: "GBP/USD", category: "forex" },
+  { symbol: "USDJPY", name: "USD/JPY", category: "forex" },
+  { symbol: "AUDUSD", name: "AUD/USD", category: "forex" },
+  { symbol: "USDCAD", name: "USD/CAD", category: "forex" },
+  { symbol: "USDCHF", name: "USD/CHF", category: "forex" },
+  { symbol: "NZDUSD", name: "NZD/USD", category: "forex" },
+  { symbol: "EURGBP", name: "EUR/GBP", category: "forex" },
+  { symbol: "EURJPY", name: "EUR/JPY", category: "forex" },
+  { symbol: "GBPJPY", name: "GBP/JPY", category: "forex" },
+];
 
 const CATEGORIES = [
   { key: "crypto" as const, label: "Crypto", icon: TrendingUp },
@@ -22,38 +60,13 @@ export function StartDebateForm({ compact = false }: { compact?: boolean }) {
   const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
   const [category, setCategory] = useState<"crypto" | "stocks" | "forex">("crypto");
   const [query, setQuery] = useState("");
-  const [assets, setAssets] = useState<AssetOption[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const fetchAssets = useCallback(async (cat: string, q: string) => {
-    setSearchLoading(true);
-    try {
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-      const res = await fetch(`${apiBase}/api/market/assets/search?q=${encodeURIComponent(q)}&category=${cat}`);
-      const data = await res.json();
-      if (data?.data && Array.isArray(data.data)) {
-        const filtered = cat === "all" ? data.data : data.data.filter((a: AssetOption) => a.category === cat);
-        setAssets(filtered);
-      }
-    } catch {
-      setAssets([]);
-    } finally {
-      setSearchLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      fetchAssets(category, query);
-    }, 200);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [category, query, fetchAssets]);
-
-  useEffect(() => {
-    fetchAssets(category, "");
-  }, [category, fetchAssets]);
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase();
+    return ALL_ASSETS.filter(
+      (a) => a.category === category && (!q || a.symbol.toLowerCase().includes(q) || a.name.toLowerCase().includes(q))
+    );
+  }, [category, query]);
 
   function handleSubmit() {
     if (!selectedAsset) return;
@@ -72,7 +85,6 @@ export function StartDebateForm({ compact = false }: { compact?: boolean }) {
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="rounded-lg border border-white/15 bg-slate-900/80 overflow-hidden">
-        {/* Category tabs */}
         <div className="flex border-b border-white/15">
           {CATEGORIES.map(({ key, label, icon: Icon }) => (
             <button
@@ -88,7 +100,6 @@ export function StartDebateForm({ compact = false }: { compact?: boolean }) {
           ))}
         </div>
 
-        {/* Search */}
         <div className="p-3 border-b border-white/15">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" aria-hidden="true" />
@@ -102,17 +113,11 @@ export function StartDebateForm({ compact = false }: { compact?: boolean }) {
           </div>
         </div>
 
-        {/* Asset list */}
         <div className="max-h-56 overflow-y-auto p-2" role="listbox" aria-label="Asset list">
-          {searchLoading && assets.length === 0 ? (
-            <div className="flex items-center justify-center py-8 text-slate-500">
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              <span className="text-sm">Loading...</span>
-            </div>
-          ) : assets.length === 0 ? (
+          {filtered.length === 0 ? (
             <p className="text-center text-sm text-slate-500 py-6">No assets found</p>
           ) : (
-            assets.map((asset) => (
+            filtered.map((asset) => (
               <button
                 key={`${asset.category}-${asset.symbol}`}
                 type="button"
@@ -131,7 +136,6 @@ export function StartDebateForm({ compact = false }: { compact?: boolean }) {
           )}
         </div>
 
-        {/* Start button */}
         <div className="p-3 border-t border-white/15">
           <button
             type="button"
