@@ -50,10 +50,10 @@ class Settings(BaseSettings):
     # LLM Configuration
     google_api_key: str = ""
     debate_max_turns: int = 6
-    debate_llm_model: str = "gemini-2.0-flash"
+    debate_llm_model: str = "gemini-2.5-flash"
     debate_llm_temperature: float = 0.7
 
-    guardian_llm_model: str = "gemini-2.0-flash"
+    guardian_llm_model: str = "gemini-2.5-flash"
     guardian_llm_temperature: float = 0.3
     guardian_enabled: bool = True
 
