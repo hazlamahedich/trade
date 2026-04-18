@@ -371,3 +371,252 @@ async def test_admin_hallucination_flag_no_dismissed_to_confirmed(
         headers=authenticated_admin_user["headers"],
     )
     assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_admin_debates_sort_by_allowlist(test_client, authenticated_admin_user):
+    response = await test_client.get(
+        "/api/admin/debates?sort_by=nonexistent_col",
+        headers=authenticated_admin_user["headers"],
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert "debates" in body["data"]
+
+
+@pytest.mark.asyncio
+async def test_admin_debates_status_filter(
+    test_client, authenticated_admin_user, db_session
+):
+    debate_completed = Debate(
+        external_id=f"ext-{uuid.uuid4()}",
+        asset="BTC",
+        status="completed",
+    )
+    debate_active = Debate(
+        external_id=f"ext-{uuid.uuid4()}",
+        asset="ETH",
+        status="active",
+    )
+    db_session.add_all([debate_completed, debate_active])
+    await db_session.commit()
+
+    response = await test_client.get(
+        "/api/admin/debates?status=completed",
+        headers=authenticated_admin_user["headers"],
+    )
+    assert response.status_code == 200
+    body = response.json()
+    for d in body["data"]["debates"]:
+        assert d["status"] == "completed"
+
+
+@pytest.mark.asyncio
+async def test_admin_audit_events_filter_by_event_type(
+    test_client, authenticated_admin_user, db_session
+):
+    debate = Debate(
+        external_id=f"ext-{uuid.uuid4()}",
+        asset="BTC",
+        status="completed",
+    )
+    db_session.add(debate)
+    await db_session.commit()
+
+    from app.models import AuditEvent
+
+    event = AuditEvent(
+        debate_id=debate.id,
+        sequence_number=1,
+        event_type="GUARDIAN_ANALYSIS",
+        actor="guardian",
+        payload={"risk_level": "high"},
+    )
+    db_session.add(event)
+    await db_session.commit()
+
+    response = await test_client.get(
+        "/api/admin/audit-events?event_type=GUARDIAN_ANALYSIS",
+        headers=authenticated_admin_user["headers"],
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["data"]["events"]) >= 1
+    for e in body["data"]["events"]:
+        assert e["eventType"] == "GUARDIAN_ANALYSIS"
+
+
+@pytest.mark.asyncio
+async def test_admin_audit_events_filter_by_actor(
+    test_client, authenticated_admin_user, db_session
+):
+    debate = Debate(
+        external_id=f"ext-{uuid.uuid4()}",
+        asset="BTC",
+        status="completed",
+    )
+    db_session.add(debate)
+    await db_session.commit()
+
+    from app.models import AuditEvent
+
+    event = AuditEvent(
+        debate_id=debate.id,
+        sequence_number=1,
+        event_type="SANITIZATION",
+        actor="bull",
+        payload={},
+    )
+    db_session.add(event)
+    await db_session.commit()
+
+    response = await test_client.get(
+        "/api/admin/audit-events?actor=bull",
+        headers=authenticated_admin_user["headers"],
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["data"]["events"]) >= 1
+    for e in body["data"]["events"]:
+        assert e["actor"] == "bull"
+
+
+@pytest.mark.asyncio
+async def test_admin_audit_events_invalid_date_format(
+    test_client, authenticated_admin_user
+):
+    response = await test_client.get(
+        "/api/admin/audit-events?created_after=not-a-date&created_before=2026-01-10T00:00:00",
+        headers=authenticated_admin_user["headers"],
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_admin_hallucination_flags_list_with_filter(
+    test_client, authenticated_admin_user, db_session
+):
+    debate = Debate(
+        external_id=f"ext-{uuid.uuid4()}",
+        asset="BTC",
+        status="completed",
+    )
+    db_session.add(debate)
+    await db_session.commit()
+
+    flag_pending = HallucinationFlag(
+        debate_id=debate.id,
+        turn=1,
+        agent="bull",
+        message_snippet="test1",
+        status="pending",
+    )
+    flag_confirmed = HallucinationFlag(
+        debate_id=debate.id,
+        turn=2,
+        agent="bear",
+        message_snippet="test2",
+        status="confirmed",
+    )
+    db_session.add_all([flag_pending, flag_confirmed])
+    await db_session.commit()
+
+    response = await test_client.get(
+        "/api/admin/hallucination-flags?status=pending",
+        headers=authenticated_admin_user["headers"],
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert "flags" in body["data"]
+    for f in body["data"]["flags"]:
+        assert f["status"] == "pending"
+
+
+@pytest.mark.asyncio
+async def test_admin_debates_debate_scoped_audit_events(
+    test_client, authenticated_admin_user, db_session
+):
+    debate = Debate(
+        external_id=f"ext-{uuid.uuid4()}",
+        asset="ETH",
+        status="completed",
+    )
+    db_session.add(debate)
+    await db_session.commit()
+
+    from app.models import AuditEvent
+
+    for seq, etype in [(1, "DEBATE_STARTED"), (2, "SANITIZATION")]:
+        event = AuditEvent(
+            debate_id=debate.id,
+            sequence_number=seq,
+            event_type=etype,
+            actor="system" if seq == 1 else "bull",
+            payload={},
+        )
+        db_session.add(event)
+    await db_session.commit()
+
+    response = await test_client.get(
+        f"/api/admin/debates/{debate.id}/audit-events?event_type=SANITIZATION",
+        headers=authenticated_admin_user["headers"],
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["data"]["events"]) == 1
+    assert body["data"]["events"][0]["eventType"] == "SANITIZATION"
+
+
+@pytest.mark.asyncio
+async def test_admin_dlq_replay_with_force(
+    test_client, authenticated_admin_user, db_session
+):
+    from app.models import AuditDLQ
+
+    dlq = AuditDLQ(
+        original_event={
+            "debate_id": str(uuid.uuid4()),
+            "event_type": "TEST",
+            "actor": "system",
+            "payload": {},
+        },
+        error_message="permanent",
+        retry_count=3,
+    )
+    db_session.add(dlq)
+    await db_session.commit()
+
+    with patch("app.services.audit.dlq.DirectAuditWriter") as MockWriter:
+        mock_instance = AsyncMock()
+        MockWriter.return_value = mock_instance
+        response = await test_client.post(
+            f"/api/admin/audit/dlq/{dlq.id}/replay?force=true",
+            headers=authenticated_admin_user["headers"],
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["data"]["replayed"] is True
+
+
+@pytest.mark.asyncio
+async def test_admin_debates_sort_order_asc(
+    test_client, authenticated_admin_user, db_session
+):
+    for asset in ["AAA", "BBB", "CCC"]:
+        debate = Debate(
+            external_id=f"ext-{uuid.uuid4()}",
+            asset=asset,
+            status="completed",
+        )
+        db_session.add(debate)
+    await db_session.commit()
+
+    response = await test_client.get(
+        "/api/admin/debates?sort_by=asset&sort_order=asc",
+        headers=authenticated_admin_user["headers"],
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assets = [d["asset"] for d in body["data"]["debates"]]
+    assert assets == sorted(assets)
