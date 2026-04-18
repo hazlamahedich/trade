@@ -5,7 +5,6 @@ import {
   createChart,
   type IChartApi,
   CandlestickSeries,
-  AreaSeries,
   HistogramSeries,
   ColorType,
 } from "lightweight-charts";
@@ -33,30 +32,37 @@ function epochToDateStr(epoch: number): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-function shouldUseArea(candles: CandlestickChartProps["candles"]): boolean {
-  if (candles.length < 3) return false;
+function computeChartHeight(candles: CandlestickChartProps["candles"], baseHeight: number): number {
+  if (candles.length < 3) return baseHeight;
   const prices: number[] = [];
   for (const c of candles) {
     prices.push(c.high, c.low);
   }
   const span = Math.max(...prices) - Math.min(...prices);
-  if (span <= 0) return false;
+  if (span <= 0) return baseHeight;
   let totalBody = 0;
   for (const c of candles) {
     totalBody += Math.abs(c.close - c.open);
   }
-  const avgBodyPct = totalBody / candles.length / span;
-  return avgBodyPct < 0.01;
+  const avgBody = totalBody / candles.length;
+  const minBodyPx = 4;
+  const neededHeight = (avgBody * baseHeight * minBodyPx) / (avgBody * baseHeight / (span / avgBody)) || baseHeight;
+  const ratio = span / avgBody;
+  if (ratio > 150) return Math.min(baseHeight + 200, 600);
+  if (ratio > 80) return Math.min(baseHeight + 120, 540);
+  return baseHeight;
 }
 
 export function CandlestickChart({
   candles,
   supportLevels = [],
   resistanceLevels = [],
-  height = 360,
+  height = 400,
 }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+
+  const chartHeight = computeChartHeight(candles, height);
 
   useEffect(() => {
     if (!containerRef.current || candles.length === 0) return;
@@ -67,7 +73,7 @@ export function CandlestickChart({
     }
 
     const chart = createChart(containerRef.current, {
-      height,
+      height: chartHeight,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: "#94a3b8",
@@ -79,10 +85,17 @@ export function CandlestickChart({
       },
       rightPriceScale: {
         borderColor: "rgba(255,255,255,0.1)",
+        autoScale: true,
+        scaleMargins: {
+          top: 0.05,
+          bottom: 0.05,
+        },
       },
       timeScale: {
         borderColor: "rgba(255,255,255,0.1)",
         timeVisible: false,
+        barSpacing: 12,
+        minBarSpacing: 2,
       },
       crosshair: {
         horzLine: {
@@ -96,41 +109,24 @@ export function CandlestickChart({
       },
     });
 
-    const useArea = shouldUseArea(candles);
-    const mainSeries = useArea
-      ? chart.addSeries(AreaSeries, {
-          topColor: "rgba(16,185,129,0.4)",
-          bottomColor: "rgba(16,185,129,0.02)",
-          lineColor: "#10b981",
-          lineWidth: 2,
-        })
-      : chart.addSeries(CandlestickSeries, {
-          upColor: "#10b981",
-          downColor: "#f43f5e",
-          borderUpColor: "#10b981",
-          borderDownColor: "#f43f5e",
-          wickUpColor: "#10b981",
-          wickDownColor: "#f43f5e",
-        });
+    const candlestickSeries = chart.addSeries(CandlestickSeries, {
+      upColor: "#10b981",
+      downColor: "#f43f5e",
+      borderUpColor: "#10b981",
+      borderDownColor: "#f43f5e",
+      wickUpColor: "#10b981a0",
+      wickDownColor: "#f43f5ea0",
+    });
 
-    if (useArea) {
-      mainSeries.setData(
-        candles.map((c) => ({
-          time: epochToDateStr(c.time),
-          value: c.close,
-        })),
-      );
-    } else {
-      mainSeries.setData(
-        candles.map((c) => ({
-          time: epochToDateStr(c.time),
-          open: c.open,
-          high: c.high,
-          low: c.low,
-          close: c.close,
-        })),
-      );
-    }
+    candlestickSeries.setData(
+      candles.map((c) => ({
+        time: epochToDateStr(c.time),
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      })),
+    );
 
     const hasVolume = candles.some((c) => c.volume > 0);
 
@@ -157,7 +153,7 @@ export function CandlestickChart({
     }
 
     for (const level of supportLevels) {
-      mainSeries.createPriceLine({
+      candlestickSeries.createPriceLine({
         price: level,
         color: "rgba(16,185,129,0.5)",
         lineWidth: 1,
@@ -168,7 +164,7 @@ export function CandlestickChart({
     }
 
     for (const level of resistanceLevels) {
-      mainSeries.createPriceLine({
+      candlestickSeries.createPriceLine({
         price: level,
         color: "rgba(244,63,94,0.5)",
         lineWidth: 1,
@@ -199,12 +195,12 @@ export function CandlestickChart({
         chartRef.current = null;
       }
     };
-  }, [candles, supportLevels, resistanceLevels, height]);
+  }, [candles, supportLevels, resistanceLevels, chartHeight]);
 
   return (
     <div
       ref={containerRef}
-      className="w-full rounded-lg border border-white/10 bg-slate-900/50"
+      className="w-full rounded-lg border border-white/15 bg-slate-900/50"
       role="img"
       aria-label="Price chart showing 30-day price history"
     />
