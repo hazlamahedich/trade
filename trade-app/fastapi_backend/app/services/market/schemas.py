@@ -27,6 +27,48 @@ class MarketData(BaseModel):
     )
 
 
+class OHLCVCandle(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    time: int
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int | None = None
+
+
+class TechnicalIndicators(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    rsi_14: float | None = Field(default=None, serialization_alias="rsi14")
+    macd: dict[str, float] | None = None
+    sma_20: float | None = Field(default=None, serialization_alias="sma20")
+    sma_50: float | None = Field(default=None, serialization_alias="sma50")
+    bollinger_bands: dict[str, float] | None = None
+    atr_14: float | None = Field(default=None, serialization_alias="atr14")
+    change_24h: float | None = Field(default=None, serialization_alias="change24h")
+    change_7d: float | None = Field(default=None, serialization_alias="change7d")
+    volume_ratio: float | None = Field(default=None, serialization_alias="volumeRatio")
+    support_levels: list[float] | None = Field(
+        default=None, serialization_alias="supportLevels"
+    )
+    resistance_levels: list[float] | None = Field(
+        default=None, serialization_alias="resistanceLevels"
+    )
+
+
+class ForexMeta(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    pair: str
+    base_currency: str = Field(serialization_alias="baseCurrency")
+    quote_currency: str = Field(serialization_alias="quoteCurrency")
+    spread: float | None = None
+    pip_value: float | None = Field(default=None, serialization_alias="pipValue")
+    lot_size: int | None = Field(default=None, serialization_alias="lotSize")
+
+
 class MarketContext(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -34,6 +76,9 @@ class MarketContext(BaseModel):
     price: float
     news_summary: list[str]
     is_stale: bool = Field(serialization_alias="isStale")
+    ohlcv: list[OHLCVCandle] | None = None
+    technicals: TechnicalIndicators | None = None
+    forex_meta: ForexMeta | None = Field(default=None, serialization_alias="forexMeta")
 
 
 class MarketMeta(BaseModel):

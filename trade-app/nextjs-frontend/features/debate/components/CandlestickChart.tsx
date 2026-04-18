@@ -45,12 +45,28 @@ function computeChartHeight(candles: CandlestickChartProps["candles"], baseHeigh
     totalBody += Math.abs(c.close - c.open);
   }
   const avgBody = totalBody / candles.length;
-  const minBodyPx = 4;
-  const neededHeight = (avgBody * baseHeight * minBodyPx) / (avgBody * baseHeight / (span / avgBody)) || baseHeight;
   const ratio = span / avgBody;
   if (ratio > 150) return Math.min(baseHeight + 200, 600);
   if (ratio > 80) return Math.min(baseHeight + 120, 540);
   return baseHeight;
+}
+
+function computeAutoscaleMargin(candles: CandlestickChartProps["candles"]): number {
+  if (candles.length < 3) return 0.05;
+  let totalBody = 0;
+  let totalRange = 0;
+  for (const c of candles) {
+    totalBody += Math.abs(c.close - c.open);
+    totalRange += c.high - c.low;
+  }
+  const avgBody = totalBody / candles.length;
+  const avgRange = totalRange / candles.length;
+  if (avgRange <= 0) return 0.05;
+  const bodyToRangeRatio = avgBody / avgRange;
+  if (bodyToRangeRatio < 0.15) return 0.005;
+  if (bodyToRangeRatio < 0.3) return 0.01;
+  if (bodyToRangeRatio < 0.5) return 0.02;
+  return 0.05;
 }
 
 export function CandlestickChart({
@@ -63,6 +79,7 @@ export function CandlestickChart({
   const chartRef = useRef<IChartApi | null>(null);
 
   const chartHeight = computeChartHeight(candles, height);
+  const scaleMargin = computeAutoscaleMargin(candles);
 
   useEffect(() => {
     if (!containerRef.current || candles.length === 0) return;
@@ -87,8 +104,8 @@ export function CandlestickChart({
         borderColor: "rgba(255,255,255,0.1)",
         autoScale: true,
         scaleMargins: {
-          top: 0.05,
-          bottom: 0.05,
+          top: scaleMargin,
+          bottom: scaleMargin,
         },
       },
       timeScale: {

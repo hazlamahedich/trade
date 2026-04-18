@@ -15,6 +15,8 @@ DEBATE TRANSCRIPT:
 TECHNICAL DATA:
 {technical_data}
 
+{forex_section}
+
 Respond with ONLY valid JSON (no markdown, no code fences) in this exact format:
 {{
   "bullScore": <integer 0-100 representing how convincing the bull case is>,
@@ -47,6 +49,12 @@ TRADE DIRECTION MUST ALIGN WITH THE WINNER:
 
 This is critical for user trust: the trade suggestion must match the debate outcome. A Bear winning the debate should produce a SHORT trade, not a long trade at a "better price."
 
+FOREX-SPECIFIC RULES (when forex data is present):
+- Stop-loss distances should account for ATR-based volatility (e.g., 1.5× ATR from entry)
+- Pip values matter — express stop-loss and take-profit in terms meaningful to forex traders
+- For JPY pairs: use 2 decimal places; for other pairs: use 4-5 decimal places
+- Consider spread costs when calculating entry zones
+
 - All price levels must be realistic based on the technical data
 - The verdict should be educational, not prescriptive — use language like "consider" not "should"
 - NEVER use forbidden promissory language (guaranteed, risk-free, can't lose, etc.)
@@ -57,6 +65,7 @@ async def generate_trading_analysis(
     asset: str,
     messages: list[dict[str, str]],
     technical_data: dict | None = None,
+    forex_meta: dict | None = None,
 ) -> dict:
     llm = await get_llm_with_failover(temperature=0.3)
 
@@ -71,6 +80,15 @@ async def generate_trading_analysis(
         json.dumps(technical_data, indent=2) if technical_data else "Not available"
     )
 
+    if forex_meta:
+        forex_section = (
+            f"FOREX METADATA:\n{json.dumps(forex_meta, indent=2)}\n\n"
+            f"This is a forex pair ({forex_meta.get('pair', asset)}). "
+            f"Account for pip values, spread, and currency-pair-specific dynamics in your analysis."
+        )
+    else:
+        forex_section = ""
+
     prompt = ChatPromptTemplate.from_template(TRADING_ANALYST_PROMPT)
     chain = prompt | llm
 
@@ -79,6 +97,7 @@ async def generate_trading_analysis(
             "asset": asset.upper(),
             "transcript": transcript,
             "technical_data": tech_str,
+            "forex_section": forex_section,
         }
     )
 

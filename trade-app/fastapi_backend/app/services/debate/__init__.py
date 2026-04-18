@@ -90,7 +90,11 @@ class DebateService:
 
             trading_analysis = None
             try:
-                tech_data = await self.yfinance.fetch_technical(asset)
+                market_ctx = result.get("market_context", {})
+                tech_data = market_ctx.get("technicals")
+                forex_meta = market_ctx.get("forex_meta")
+                if not tech_data:
+                    tech_data = await self.yfinance.fetch_technical(asset)
                 debate_messages = [
                     {"role": m["role"], "content": m["content"]}
                     for m in result["messages"]
@@ -100,6 +104,7 @@ class DebateService:
                     asset=asset,
                     messages=debate_messages,
                     technical_data=tech_data,
+                    forex_meta=forex_meta,
                 )
                 logger.info(
                     f"Trading analysis generated for {debate_id}: {trading_analysis.get('direction', 'unknown')}"

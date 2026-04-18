@@ -14,6 +14,10 @@ from app.services.market.provider import (
     POPULAR_STOCKS,
     POPULAR_FOREX,
 )
+from app.services.market.twelvedata_provider import (
+    TwelveDataForexProvider,
+    is_forex_asset as _is_forex_asset,
+)
 from app.services.market.schemas import (
     MarketData,
     MarketErrorResponse,
@@ -26,6 +30,22 @@ logger = logging.getLogger(__name__)
 
 market_service = MarketDataService()
 _yfinance_provider = YFinanceProvider()
+_forex_provider: TwelveDataForexProvider | None = None
+
+
+def _get_forex_provider() -> TwelveDataForexProvider | None:
+    global _forex_provider
+    if _forex_provider is not None:
+        return _forex_provider
+    from app.config import settings
+
+    if settings.TWELVEDATA_API_KEY:
+        _forex_provider = TwelveDataForexProvider(
+            api_key=settings.TWELVEDATA_API_KEY,
+            base_url=settings.TWELVEDATA_BASE_URL,
+        )
+        return _forex_provider
+    return None
 
 
 class StandardResponse(BaseModel):
@@ -37,7 +57,7 @@ class StandardResponse(BaseModel):
 @router.get("/{asset}/data", response_model=StandardResponse)
 async def get_market_data(asset: str, request: Request) -> StandardResponse:
     normalized = normalize_asset(asset)
-    if normalized is None:
+    if normalized is None and not _is_forex_asset(asset):
         raise HTTPException(
             status_code=400,
             detail={
@@ -50,12 +70,14 @@ async def get_market_data(asset: str, request: Request) -> StandardResponse:
             },
         )
 
+    resolved = normalized or asset
+
     mock_providers_down = getattr(request.state, "mock_providers_down", False)
     mock_no_cache = getattr(request.state, "mock_no_cache", False)
 
     try:
         market_data, meta = await market_service.get_data(
-            normalized,
+            resolved,
             mock_providers_down=mock_providers_down,
             mock_no_cache=mock_no_cache,
         )
@@ -98,6 +120,19 @@ async def get_candles(
     period: str = Query("30d", regex=r"^\d+[dhmwy]$"),
     interval: str = Query("1d", regex=r"^\d+[dhmwy]$"),
 ):
+    if _is_forex_asset(asset):
+        forex_prov = _get_forex_provider()
+        if forex_prov:
+            outputsize = 30
+            try:
+                outputsize = int(period.rstrip("dhwmy"))
+            except (ValueError, TypeError):
+                pass
+            candles = await forex_prov.fetch_ohlcv(
+                asset, interval="1day", outputsize=outputsize
+            )
+            return {"data": candles, "error": None, "meta": {"provider": "twelvedata"}}
+
     symbol = get_yfinance_symbol(asset)
     if not symbol:
         raise HTTPException(
@@ -117,6 +152,22 @@ async def get_candles(
 
 @router.get("/{asset}/technical")
 async def get_technical(asset: str):
+    if _is_forex_asset(asset):
+        forex_prov = _get_forex_provider()
+        if forex_prov:
+            tech = await forex_prov.fetch_technicals(asset)
+            if tech is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail={
+                        "error": {
+                            "code": "DATA_UNAVAILABLE",
+                            "message": "Technical data unavailable",
+                        }
+                    },
+                )
+            return {"data": tech, "error": None, "meta": {"provider": "twelvedata"}}
+
     symbol = get_yfinance_symbol(asset)
     if not symbol:
         raise HTTPException(

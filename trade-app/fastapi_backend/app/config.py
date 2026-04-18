@@ -80,6 +80,10 @@ class Settings(BaseSettings):
         "to the moon",
     ]
 
+    # Twelve Data (Forex)
+    TWELVEDATA_API_KEY: str = ""
+    TWELVEDATA_BASE_URL: str = "https://api.twelvedata.com"
+
     # LangGraph Checkpointer
     CHECKPOINTER_TYPE: str = "memory"
     CHECKPOINTER_URL: str | None = None

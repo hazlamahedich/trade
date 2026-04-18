@@ -32,3 +32,5 @@ export { QuoteCardOverlay } from "./QuoteCardOverlay";
 export { ShareButton } from "./ShareButton";
 export { ShareDebateButton } from "./ShareDebateButton";
 export { DebateToolbar } from "./DebateToolbar";
+export { ForexPriceTicker } from "./ForexPriceTicker";
+export { TechnicalIndicatorsPanel } from "./TechnicalIndicatorsPanel";

@@ -45,3 +45,26 @@ export interface DebateDetailData {
   transcript: TranscriptMessage[] | null;
   tradingAnalysis: TradingAnalysis | null;
 }
+
+export interface TechnicalIndicators {
+  rsi14: number | null;
+  macd: { macd: number; signal: number; histogram: number } | null;
+  sma20: number | null;
+  sma50: number | null;
+  bollingerBands: { upper: number; middle: number; lower: number } | null;
+  atr14: number | null;
+  change24h: number | null;
+  change7d: number | null;
+  volumeRatio: number | null;
+  supportLevels: number[] | null;
+  resistanceLevels: number[] | null;
+}
+
+export interface ForexMeta {
+  pair: string;
+  baseCurrency: string;
+  quoteCurrency: string;
+  spread: number | null;
+  pipValue: number | null;
+  lotSize: number | null;
+}

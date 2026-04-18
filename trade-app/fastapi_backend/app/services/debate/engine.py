@@ -23,7 +23,9 @@ from app.services.debate.streaming import (
     send_guardian_verdict,
     send_debate_paused,
     send_debate_resumed,
+    send_forex_price_update,
     stream_state,
+    FOREX_PRICE_POLL_INTERVAL,
 )
 from app.services.debate.agents.guardian import GuardianAgent
 from app.services.debate.sanitization import (
@@ -307,6 +309,14 @@ async def stream_debate(
     freshness_monitor_task = asyncio.create_task(
         _monitor_freshness(debate_id, asset, manager, stale_guardian, stale_event)
     )
+
+    from app.services.market.twelvedata_provider import is_forex_asset as _is_forex
+
+    forex_price_task: asyncio.Task | None = None
+    if _is_forex(asset):
+        forex_price_task = asyncio.create_task(
+            _poll_forex_price(debate_id, asset, manager, stale_event)
+        )
 
     current_state = initial_state
     turn_arguments: dict[tuple[str, int], ArgumentEntry] = {}
@@ -594,10 +604,17 @@ async def stream_debate(
     finally:
         _clear_pause_event(debate_id)
         freshness_monitor_task.cancel()
+        if forex_price_task:
+            forex_price_task.cancel()
         try:
             await freshness_monitor_task
         except asyncio.CancelledError:
             pass
+        if forex_price_task:
+            try:
+                await forex_price_task
+            except asyncio.CancelledError:
+                pass
 
 
 async def _monitor_freshness(
@@ -624,3 +641,60 @@ async def _monitor_freshness(
         pass
     except Exception as e:
         logger.error(f"Freshness monitor error for debate {debate_id}: {e}")
+
+
+async def _poll_forex_price(
+    debate_id: str,
+    asset: str,
+    manager: DebateConnectionManager,
+    stop_event: asyncio.Event,
+) -> None:
+    from app.services.market.twelvedata_provider import (
+        TwelveDataForexProvider,
+    )
+    from app.config import settings
+
+    if not settings.TWELVEDATA_API_KEY:
+        return
+
+    provider = TwelveDataForexProvider(
+        api_key=settings.TWELVEDATA_API_KEY,
+        base_url=settings.TWELVEDATA_BASE_URL,
+    )
+    last_price: float | None = None
+
+    try:
+        while not stop_event.is_set():
+            try:
+                result = await provider.fetch_price(asset)
+                if result and result.get("price"):
+                    current_price = result["price"]
+                    change_pct = None
+                    if last_price is not None and last_price > 0:
+                        change_pct = round(
+                            ((current_price - last_price) / last_price) * 100, 4
+                        )
+                    await send_forex_price_update(
+                        manager,
+                        debate_id,
+                        asset=asset,
+                        price=current_price,
+                        previous_price=last_price,
+                        change_pct=change_pct,
+                    )
+                    last_price = current_price
+            except Exception as e:
+                logger.debug(f"Forex price poll error for {asset}: {e}")
+
+            try:
+                await asyncio.wait_for(
+                    stop_event.wait(), timeout=FOREX_PRICE_POLL_INTERVAL
+                )
+            except asyncio.TimeoutError:
+                continue
+            except asyncio.CancelledError:
+                break
+    except asyncio.CancelledError:
+        pass
+    finally:
+        await provider.close()

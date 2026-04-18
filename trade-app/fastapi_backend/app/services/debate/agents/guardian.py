@@ -72,6 +72,16 @@ Market Context: {market_context}
 All Arguments So Far:
 {all_arguments}
 
+MARKET DATA VALIDATION GUIDELINES:
+- When technical indicators are present (RSI, SMA, MACD, Bollinger Bands, ATR), verify that agents cite them accurately
+- RSI above 70 = overbought, below 30 = oversold. Flag agents who ignore extreme RSI readings
+- Bollinger Bands: price near upper band = stretched; near lower band = compressed. Flag if agents misuse band positioning
+- MACD: histogram direction matters — flag if an agent claims momentum is bullish when histogram is declining
+- ATR indicates volatility — high ATR means wider stops needed. Flag if agents suggest tight stops during high ATR
+- Support/resistance levels: verify agents reference realistic levels from the data
+- For forex pairs (when forex_meta is present): flag if agents ignore pip values, spread costs, or currency-specific volatility patterns
+- For forex: leverage amplifies risk — flag any argument that downplays the impact of leverage on ATR-based stop distances
+
 Analyze the MOST RECENT argument for fallacies or dangerous logic.
 Respond with your analysis in the required format."""
 

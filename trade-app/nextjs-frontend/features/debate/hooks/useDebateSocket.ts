@@ -73,6 +73,16 @@ export interface VoteUpdatePayload {
   voteBreakdown: Record<string, number>;
 }
 
+export interface ForexPriceUpdatePayload {
+  debateId: string;
+  asset: string;
+  price: number;
+  previousPrice: number | null;
+  changePct: number | null;
+  spread: number | null;
+  timestamp: string;
+}
+
 export type ReasoningNodeType = "data_input" | "bull_analysis" | "bear_counter" | "risk_check";
 
 export interface ReasoningNodePayload {
@@ -102,6 +112,7 @@ export interface WebSocketAction {
     | DebatePausedPayload
     | DebateResumedPayload
     | VoteUpdatePayload
+    | ForexPriceUpdatePayload
     | Record<string, unknown>;
   timestamp: string;
 }
@@ -122,6 +133,7 @@ export interface UseDebateSocketOptions {
   onDebatePaused?: (payload: DebatePausedPayload) => void;
   onDebateResumed?: (payload: DebateResumedPayload) => void;
   onVoteUpdate?: (payload: VoteUpdatePayload) => void;
+  onForexPriceUpdate?: (payload: ForexPriceUpdatePayload) => void;
   maxRetries?: number;
   onConnected?: () => void;
   onDisconnected?: () => void;
@@ -179,6 +191,7 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
     onDebatePaused,
     onDebateResumed,
     onVoteUpdate,
+    onForexPriceUpdate,
     maxRetries = DEFAULT_MAX_RETRIES,
     onConnected,
     onDisconnected,
@@ -273,6 +286,9 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
                 console.warn("Malformed DEBATE/VOTE_UPDATE payload:", action.payload);
               }
               break;
+            case "DEBATE/FOREX_PRICE_UPDATE":
+              onForexPriceUpdate?.(action.payload as ForexPriceUpdatePayload);
+              break;
             case "DEBATE/PING":
               ws.send(JSON.stringify({ type: "DEBATE/PONG" }));
               break;
@@ -310,7 +326,7 @@ export function useDebateSocket(options: UseDebateSocketOptions) {
       console.error("Failed to create WebSocket:", e);
       setStatus("disconnected");
     }
-  }, [debateId, maxRetries, onTokenReceived, onArgumentComplete, onStatusUpdate, onTurnChange, onError, onDataStale, onDataRefreshed, onReasoningNode, onGuardianInterrupt, onDebatePaused, onDebateResumed, onVoteUpdate, onConnected, onDisconnected]);
+  }, [debateId, maxRetries, onTokenReceived, onArgumentComplete, onStatusUpdate, onTurnChange, onError, onDataStale, onDataRefreshed, onReasoningNode, onGuardianInterrupt, onDebatePaused, onDebateResumed, onVoteUpdate, onForexPriceUpdate, onConnected, onDisconnected]);
 
   const sendGuardianAck = useCallback((): boolean => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {

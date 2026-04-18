@@ -24,6 +24,7 @@ WebSocketActionType = Literal[
     "DEBATE/DEBATE_RESUMED",
     "DEBATE/GUARDIAN_INTERRUPT_ACK",
     "DEBATE/VOTE_UPDATE",
+    "DEBATE/FOREX_PRICE_UPDATE",
 ]
 
 
@@ -198,3 +199,17 @@ class VoteUpdatePayload(BaseModel):
     debate_id: str = Field(serialization_alias="debateId")
     total_votes: int = Field(serialization_alias="totalVotes")
     vote_breakdown: dict[str, int] = Field(serialization_alias="voteBreakdown")
+
+
+class ForexPriceUpdatePayload(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    debate_id: str = Field(serialization_alias="debateId")
+    asset: str
+    price: float
+    previous_price: float | None = Field(
+        default=None, serialization_alias="previousPrice"
+    )
+    change_pct: float | None = Field(default=None, serialization_alias="changePct")
+    spread: float | None = None
+    timestamp: str

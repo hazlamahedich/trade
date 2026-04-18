@@ -13,6 +13,7 @@ from app.services.debate.ws_schemas import (
     DataStalePayload,
     DebatePausedPayload,
     DebateResumedPayload,
+    ForexPriceUpdatePayload,
     GuardianInterruptPayload,
     GuardianVerdictPayload,
     ReasoningNodePayload,
@@ -463,6 +464,37 @@ async def send_debate_resumed(
     )
     action = WebSocketAction(
         type="DEBATE/DEBATE_RESUMED",
+        payload=payload.model_dump(by_alias=True),
+    )
+    await manager.broadcast_to_debate(debate_id, action.model_dump(by_alias=True))
+
+
+FOREX_PRICE_POLL_INTERVAL = 15
+
+
+async def send_forex_price_update(
+    manager: DebateConnectionManager,
+    debate_id: str,
+    *,
+    asset: str,
+    price: float,
+    previous_price: float | None = None,
+    change_pct: float | None = None,
+    spread: float | None = None,
+) -> None:
+    from datetime import datetime, timezone
+
+    payload = ForexPriceUpdatePayload(
+        debate_id=debate_id,
+        asset=asset,
+        price=price,
+        previous_price=previous_price,
+        change_pct=change_pct,
+        spread=spread,
+        timestamp=datetime.now(timezone.utc).isoformat(),
+    )
+    action = WebSocketAction(
+        type="DEBATE/FOREX_PRICE_UPDATE",
         payload=payload.model_dump(by_alias=True),
     )
     await manager.broadcast_to_debate(debate_id, action.model_dump(by_alias=True))
