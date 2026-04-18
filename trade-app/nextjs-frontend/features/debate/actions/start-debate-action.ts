@@ -8,20 +8,14 @@ const startDebateInputSchema = z.object({
   asset: z.string().min(1).max(20).regex(/^[A-Za-z0-9]+$/, "Only alphanumeric characters allowed"),
 });
 
-const debateMessageSchema = z.object({
-  role: z.string(),
-  content: z.string(),
-});
-
 const startDebateResponseSchema = z.object({
   data: z.object({
     debateId: z.string(),
     asset: z.string(),
     status: z.string(),
-    messages: z.array(debateMessageSchema),
     currentTurn: z.number(),
     maxTurns: z.number(),
-    createdAt: z.string(),
+    createdAt: z.string().optional(),
   }).nullable(),
   error: z.object({ code: z.string(), message: z.string() }).nullable(),
   meta: z.record(z.unknown()).optional(),
@@ -39,7 +33,7 @@ export async function startDebate(formData: FormData): Promise<never> {
   const url = `${getApiBaseUrl()}/api/debate/start`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120_000);
+  const timeout = setTimeout(() => controller.abort(), 30_000);
 
   let response: Response;
   try {

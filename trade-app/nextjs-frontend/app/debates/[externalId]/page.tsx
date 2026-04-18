@@ -7,10 +7,12 @@ import { DebateVoteBar } from "@/features/debate/components/DebateVoteBar";
 import { DebateTranscript } from "@/features/debate/components/DebateTranscript";
 import { ArchivedBadge } from "@/features/debate/components/ArchivedBadge";
 import { BackToHistoryLink, DebateDetailActions } from "@/features/debate/components/DebateDetailClientActions";
+import { DebatePoller } from "@/features/debate/components/DebatePoller";
 import { extractVotes } from "@/features/debate/api/debate-history";
 import { getWinnerBadge } from "@/features/debate/utils/winner-badge";
 import { generateDebateStructuredData, deriveWinner } from "@/features/debate/utils/structured-data";
 import { DebateChartAndAnalysis } from "@/features/debate/components/DebateChartAndAnalysis";
+import type { DebateDetailData } from "@/features/debate/types/debate-detail";
 
 export const revalidate = DEBATE_DETAIL_ISR_REVALIDATE_SECONDS;
 
@@ -58,21 +60,14 @@ export async function generateMetadata({
   };
 }
 
-export default async function DebateDetailPage({
-  params,
-}: {
-  params: Promise<{ externalId: string }>;
-}) {
-  const { externalId } = await params;
-  const data = await getDebateDetail(externalId);
-
+function DebateContent({ data, externalId }: { data: DebateDetailData; externalId: string }) {
   const winner = deriveWinner(data);
   const badge = getWinnerBadge(winner);
   const votes = extractVotes(data.voteBreakdown);
   const structuredData = generateDebateStructuredData(data);
 
   return (
-    <main className="min-h-screen bg-background text-slate-100">
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -130,7 +125,7 @@ export default async function DebateDetailPage({
         )}
 
         <section className="mt-8" aria-label="Chart and trading analysis">
-          <DebateChartAndAnalysis asset={data.asset} analysis={data.tradingAnalysis} />
+          <DebateChartAndAnalysis asset={data.asset} analysis={data.tradingAnalysis as any} />
         </section>
 
         <section className="mt-8" aria-label="Debate transcript">
@@ -158,6 +153,23 @@ export default async function DebateDetailPage({
           </div>
         </footer>
       </div>
+    </>
+  );
+}
+
+export default async function DebateDetailPage({
+  params,
+}: {
+  params: Promise<{ externalId: string }>;
+}) {
+  const { externalId } = await params;
+  const data = await getDebateDetail(externalId);
+
+  return (
+    <main className="min-h-screen bg-background text-slate-100">
+      <DebatePoller debateId={externalId} initialData={data}>
+        {(freshData) => <DebateContent data={freshData} externalId={externalId} />}
+      </DebatePoller>
     </main>
   );
 }

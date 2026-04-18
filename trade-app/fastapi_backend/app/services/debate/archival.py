@@ -66,6 +66,10 @@ async def archive_debate(debate_id: str, state: dict[str, Any] | None = None) ->
         )
         current_turn = state.get("current_turn", 0)
         trading_analysis = state.get("trading_analysis")
+        print(
+            f"[ARCHIVE] {debate_id}: ta={'YES' if trading_analysis else 'NO'}, messages={len(messages)}, turn={current_turn}",
+            flush=True,
+        )
 
         await repo.complete_debate(
             external_id=debate_id,
@@ -88,6 +92,10 @@ async def archive_debate(debate_id: str, state: dict[str, Any] | None = None) ->
             )
 
         logger.info(f"Debate {debate_id} archived successfully")
+        print(
+            f"[ARCHIVE] {debate_id} archived successfully, debate.trading_analysis={'set' if debate.trading_analysis else 'None'}",
+            flush=True,
+        )
 
 
 async def archive_with_retry(

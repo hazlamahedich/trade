@@ -75,7 +75,7 @@ def _hash_fingerprint(fp: str) -> str:
 @router.post("/start", response_model=StandardDebateResponse)
 async def start_debate(request: DebateStartRequest) -> StandardDebateResponse:
     try:
-        result = await get_debate_service().start_debate(request.asset)
+        result = await get_debate_service().create_debate(request.asset)
         return StandardDebateResponse(
             data=result, error=None, meta=DebateMeta(latency_ms=0)
         )
