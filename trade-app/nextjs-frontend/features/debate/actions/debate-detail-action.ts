@@ -33,7 +33,8 @@ const debateDetailSchema = z.object({
     summary: z.string(),
     keySupport: z.array(z.number()),
     keyResistance: z.array(z.number()),
-    buyZone: z.object({ low: z.number(), high: z.number(), rationale: z.string() }).nullable(),
+    entryZone: z.object({ low: z.number(), high: z.number(), rationale: z.string() }).nullable().optional(),
+    buyZone: z.object({ low: z.number(), high: z.number(), rationale: z.string() }).nullable().optional(),
     stopLoss: z.object({ price: z.number(), rationale: z.string() }).nullable(),
     takeProfit: z.object({ price: z.number(), rationale: z.string() }).nullable(),
     riskRewardRatio: z.string(),
@@ -107,9 +108,18 @@ export async function getDebateDetail(
     throw new Error("Invalid response shape from debate detail API");
   }
 
+  const raw = parsed.data.data;
+  const ta = raw.tradingAnalysis ?? null;
+  const normalizedTA = ta
+    ? (() => {
+        const { buyZone: _legacy, ...rest } = ta as Record<string, unknown> & { buyZone?: unknown };
+        return { ...rest, entryZone: (rest as Record<string, unknown>).entryZone ?? _legacy ?? null };
+      })()
+    : null;
+
   return {
-    ...parsed.data.data,
-    transcript: parsed.data.data.transcript ?? null,
-    tradingAnalysis: parsed.data.data.tradingAnalysis ?? null,
+    ...raw,
+    transcript: raw.transcript ?? null,
+    tradingAnalysis: normalizedTA as DebateDetailData["tradingAnalysis"],
   };
 }

@@ -13,7 +13,7 @@ export interface TradingAnalysis {
   summary: string;
   keySupport: number[];
   keyResistance: number[];
-  buyZone: { low: number; high: number; rationale: string } | null;
+  entryZone: { low: number; high: number; rationale: string } | null;
   stopLoss: { price: number; rationale: string } | null;
   takeProfit: { price: number; rationale: string } | null;
   riskRewardRatio: string;

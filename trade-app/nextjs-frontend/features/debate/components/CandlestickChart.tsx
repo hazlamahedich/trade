@@ -21,7 +21,7 @@ interface CandlestickChartProps {
   }>;
   supportLevels?: number[];
   resistanceLevels?: number[];
-  buyZone?: { low: number; high: number } | null;
+  entryZone?: { low: number; high: number } | null;
   height?: number;
 }
 

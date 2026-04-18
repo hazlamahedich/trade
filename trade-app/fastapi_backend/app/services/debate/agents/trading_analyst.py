@@ -26,7 +26,7 @@ Respond with ONLY valid JSON (no markdown, no code fences) in this exact format:
   "summary": "<1-2 sentence summary declaring the debate winner and the key reason>",
   "keySupport": [<price level 1>, <price level 2>],
   "keyResistance": [<price level 1>, <price level 2>],
-  "buyZone": {{ "low": <price>, "high": <price>, "rationale": "<why this zone>" }},
+  "entryZone": {{ "low": <price>, "high": <price>, "rationale": "<why this zone>" }},
   "stopLoss": {{ "price": <price>, "rationale": "<why this level>" }},
   "takeProfit": {{ "price": <price>, "rationale": "<why this level>" }},
   "riskRewardRatio": "<e.g. 1:2.5>",
@@ -34,11 +34,19 @@ Respond with ONLY valid JSON (no markdown, no code fences) in this exact format:
   "verdict": "<2-3 sentence actionable recommendation>"
 }}
 
-IMPORTANT:
+CRITICAL RULES:
 - bullScore + bearScore should roughly sum to 100 (they represent probability split)
 - You MUST pick a clear winner in the "winner" field unless both sides are equally convincing (then use "tie")
 - The winnerRationale must reference SPECIFIC arguments from the transcript — which claims were backed by data, which reasoning was more sound
-- The summary must explicitly state who won and why (e.g., "Bull wins because X, Y, Z arguments were data-backed while Bear's concerns about A were speculative")
+- The summary must explicitly state who won and why
+
+TRADE DIRECTION MUST ALIGN WITH THE WINNER:
+- If Bull wins → direction MUST be "bullish" → entryZone is a BUY zone (enter long near support), stopLoss BELOW entry, takeProfit ABOVE entry at resistance
+- If Bear wins → direction MUST be "bearish" → entryZone is a SHORT zone (enter short near resistance), stopLoss ABOVE entry, takeProfit BELOW entry at support
+- If tie → direction "neutral" → still provide levels but note no clear edge
+
+This is critical for user trust: the trade suggestion must match the debate outcome. A Bear winning the debate should produce a SHORT trade, not a long trade at a "better price."
+
 - All price levels must be realistic based on the technical data
 - The verdict should be educational, not prescriptive — use language like "consider" not "should"
 - NEVER use forbidden promissory language (guaranteed, risk-free, can't lose, etc.)
@@ -96,7 +104,7 @@ async def generate_trading_analysis(
             "summary": "Analysis could not be fully generated.",
             "keySupport": [],
             "keyResistance": [],
-            "buyZone": None,
+            "entryZone": None,
             "stopLoss": None,
             "takeProfit": None,
             "riskRewardRatio": "N/A",

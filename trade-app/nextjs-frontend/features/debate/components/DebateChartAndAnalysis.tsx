@@ -41,7 +41,7 @@ export function DebateChartAndAnalysis({ asset, analysis }: DebateChartAndAnalys
             candles={candles}
             supportLevels={analysis?.keySupport ?? []}
             resistanceLevels={analysis?.keyResistance ?? []}
-            buyZone={analysis?.buyZone ?? null}
+            entryZone={analysis?.entryZone ?? null}
           />
         ) : (
           <div className="h-[360px] rounded-lg border border-white/10 bg-white/5 flex items-center justify-center">

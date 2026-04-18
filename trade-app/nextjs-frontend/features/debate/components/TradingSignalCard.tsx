@@ -20,7 +20,7 @@ function PriceLevel({ label, price, color }: { label: string; price: number; col
 }
 
 export function TradingSignalCard({ analysis, asset }: TradingSignalCardProps) {
-  const { bullScore, direction, confidence, winner, winnerRationale, buyZone, stopLoss, takeProfit, riskRewardRatio, keySupport, keyResistance, verdict, watchlist } = analysis;
+  const { bullScore, direction, confidence, winner, winnerRationale, entryZone, stopLoss, takeProfit, riskRewardRatio, keySupport, keyResistance, verdict, watchlist } = analysis;
 
   const bullPct = Math.round(bullScore);
   const bearPct = 100 - bullPct;
@@ -91,17 +91,19 @@ export function TradingSignalCard({ analysis, asset }: TradingSignalCardProps) {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="rounded-md border border-white/10 p-3" aria-label="Buy zone">
+          <div className="rounded-md border border-white/10 p-3" aria-label="Entry zone">
             <div className="flex items-center gap-1.5 mb-2">
               <Target className="h-4 w-4 text-emerald-400" aria-hidden="true" />
-              <h3 className="text-sm font-semibold text-slate-200">Buy Zone</h3>
+              <h3 className="text-sm font-semibold text-slate-200">
+                {direction === "bearish" ? "Short Zone" : "Buy Zone"}
+              </h3>
             </div>
-            {buyZone ? (
+            {entryZone ? (
               <>
                 <p className="font-mono text-emerald-400 text-lg">
-                  ${buyZone.low.toLocaleString(undefined, { minimumFractionDigits: 2 })} – ${buyZone.high.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  ${entryZone.low.toLocaleString(undefined, { minimumFractionDigits: 2 })} – ${entryZone.high.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
-                <p className="mt-1 text-xs text-slate-400">{buyZone.rationale}</p>
+                <p className="mt-1 text-xs text-slate-400">{entryZone.rationale}</p>
               </>
             ) : (
               <p className="text-sm text-slate-500">Not available</p>
