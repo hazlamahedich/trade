@@ -1,5 +1,5 @@
 all# generated: 2026-02-18
-# last_updated: 2026-04-17 (story 5-4 created)
+# last_updated: 2026-04-18 (story 6-1 validated + split into 6-1a/6-1b)
 # project: trade
 # project_key: NOKEY
 # tracking_system: file-system
@@ -79,14 +79,20 @@ development_status:
   4-4-high-conversion-landing-page: done
   epic-4-retrospective: done
 
-  epic-5: in-progress
+  epic-5: done
   5-1-dynamic-og-image-generation: done
-  5-2-debate-snapshot-tool: review
-  5-3-quote-sharing-flow: review
-  5-4-social-share-actions: review
-  epic-5-retrospective: optional
+  5-2-debate-snapshot-tool: done
+  5-3-quote-sharing-flow: done
+  5-4-social-share-actions: done
+  epic-5-retrospective: done
 
-  epic-6: backlog
-  6-1-admin-dashboard-logs-hallucinations: backlog
+  epic-6: in-progress
+  6-0-spike-admin-auth-design: done
+  6-0-spike-hallucination-log-data-model: done
+  6-0-spike-sanitization-knowledge-transfer: done
+  6-1-admin-dashboard-logs-hallucinations: superseded-by-split
+  6-1a-audit-infrastructure-write-path: review-complete
+    # All review patches applied. 46 tests pass. Ruff clean.
+  6-1b-frontend-admin-observability: backlog
   6-2-agent-strategy-config-ui-diana-persona: backlog
   epic-6-retrospective: optional

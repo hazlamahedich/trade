@@ -111,3 +111,29 @@ async def authenticated_user(test_client, db_session):
         "user": user,
         "user_data": {"email": user_data["email"], "password": "TestPassword123#"},
     }
+
+
+@pytest_asyncio.fixture(scope="function")
+async def authenticated_admin_user(test_client, db_session):
+    user_data = {
+        "id": uuid.uuid4(),
+        "email": "admin@trade.dev",
+        "hashed_password": PasswordHelper().hash("AdminPass1!"),
+        "is_active": True,
+        "is_superuser": True,
+        "is_verified": True,
+    }
+
+    user = User(**user_data)
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+
+    strategy = get_jwt_strategy()
+    access_token = await strategy.write_token(user)
+
+    return {
+        "headers": {"Authorization": f"Bearer {access_token}"},
+        "user": user,
+        "user_data": {"email": user_data["email"], "password": "AdminPass1!"},
+    }

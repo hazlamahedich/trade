@@ -17,6 +17,7 @@ from app.routes.market import router as market_router
 from app.routes.debate import router as debate_router
 from app.routes.landing import router as landing_router
 from app.routes.ws import router as ws_router
+from app.routes.admin import admin_router
 from app.config import settings
 from app.middleware.mock_middleware import MockHeadersMiddleware
 
@@ -26,10 +27,30 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(application: FastAPI):
     from app.services.debate.archival_sweeper import sweep_loop
+    from app.services.audit.writer import get_audit_writer, QueuedAuditWriter
+    from app.services.audit.reconciliation import run_reconciliation_loop
 
     sweeper_task = asyncio.create_task(sweep_loop())
     logger.info("Archival sweeper started")
+
+    reconciliation_task: asyncio.Task | None = None
+    audit_writer = get_audit_writer()
+    if isinstance(audit_writer, QueuedAuditWriter):
+        await audit_writer.start()
+        reconciliation_task = asyncio.create_task(run_reconciliation_loop())
+        logger.info("Audit writer and reconciliation started")
+
     yield
+
+    if isinstance(audit_writer, QueuedAuditWriter):
+        await audit_writer.close()
+    if reconciliation_task:
+        reconciliation_task.cancel()
+        try:
+            await reconciliation_task
+        except asyncio.CancelledError:
+            pass
+
     sweeper_task.cancel()
     try:
         await sweeper_task
@@ -130,4 +151,5 @@ app.include_router(market_router)
 app.include_router(debate_router)
 app.include_router(landing_router, prefix="/api")
 app.include_router(ws_router)
+app.include_router(admin_router)
 add_pagination(app)

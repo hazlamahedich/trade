@@ -107,3 +107,13 @@
 ## Deferred from: code review of 5-4-social-share-actions (2026-04-17)
 
 - `aria-live` inside `<Tooltip>` root — potential SR double-announcement when tooltip opens and status text updates simultaneously. Pre-existing pattern in SnapshotButton.tsx.
+
+## Deferred from: code review of 6-1a-audit-infrastructure-write-path (2026-04-18)
+
+- N+1 query pattern in admin debates list — 2 additional queries per debate for audit_event_count and risk_score. Pre-existing performance issue, not a bug.
+- Global singleton not thread-safe — `get_audit_writer()` module global without lock. Safe under ASGI single-event-loop with uvicorn.
+- `_make_session_factory()` drops query params and mishandles `@` in passwords — pre-existing pattern from database.py.
+- HallucinationFlag FK to user.id has no `ondelete="SET NULL"` — minor, user deletion is edge case.
+- Admin endpoints have no rate limiting — out of scope for this story.
+- 1-second latency floor in consumer loop — by design for batching efficiency.
+- `test_config_audit_enabled_defaults_false` passes only 2 required Settings fields — depends on env vars in test environment.

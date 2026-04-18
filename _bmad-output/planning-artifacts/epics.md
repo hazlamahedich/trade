@@ -3,11 +3,13 @@ stepsCompleted:
   - step-02-design-epics
   - step-03-create-stories
   - step-04-final-validation
+  - epic-7-decision-pipeline-added
 inputDocuments:
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/planning-artifacts/ux-design-specification.md
 completedAt: '2026-02-18'
+epic7AddedAt: '2026-04-18'
 
 # trade - Epic Breakdown
 
@@ -96,6 +98,11 @@ This document provides the complete epic and story breakdown for trade, decompos
 - Journey-Req-1: Epic 1/2 - UX states
 - Journey-Req-2: Epic 6 - Agent config
 - Journey-Req-3: Epic 6 - Admin tools
+- FR-PIPE-01: Epic 7 - Decision-node pipeline with agent cards and guardian checkpoints
+- FR-PIPE-02: Epic 7 - Auto-play with step-by-step node reveal
+- FR-PIPE-03: Epic 7 - Sidebar score accumulator
+- FR-PIPE-04: Epic 7 - Real-time pipeline via WebSocket
+- FR-PIPE-05: Epic 7 - Pipeline/transcript view toggle
 
 ## Epic List
 
@@ -583,6 +590,12 @@ Power users can tune agent parameters to their strategy, and Admins can audit/fl
 
 **FRs covered:** Journey-Req-2, Journey-Req-3, NFR-09
 
+### Epic 7: Decision Pipeline Visualization (Graphical Debate Playback)
+
+Users can view debates as an animated, interactive decision-node pipeline showing how bull and bear agents built their arguments, how the guardian evaluated risk at each step, and how the final trade decision was synthesized — making the AI reasoning process visually intuitive and easy to understand.
+
+**FRs covered:** FR-01, FR-02, FR-06, FR-07, FR-09, FR-PIPE-01, FR-PIPE-02, FR-PIPE-03, FR-PIPE-04, FR-PIPE-05, Journey-Req-1
+
 ### Story 6.1: Admin Dashboard (Logs & Hallucinations)
 
 As a Compliance Officer,
@@ -614,3 +627,229 @@ So that the debate reflects my personal trading strategy.
 **Given** a custom strategy
 **When** I start a new debate
 **Then** the agents explicitly reference my rules ("Per your RSI rule...")
+
+### Epic 7: Decision Pipeline Visualization (Graphical Debate Playback)
+
+Users can view debates as an animated, interactive decision-node pipeline showing how bull and bear agents built their arguments, how the guardian evaluated risk at each step, and how the final trade decision was synthesized — making the AI reasoning process visually intuitive and easy to understand.
+
+**FRs covered:** FR-01, FR-02, FR-06, FR-07, FR-09, FR-PIPE-01, FR-PIPE-02, FR-PIPE-03, FR-PIPE-04, FR-PIPE-05, Journey-Req-1
+
+### Story 7.1: Core Pipeline Skeleton & Node Components
+
+As a User,
+I want to see a debate displayed as a vertical pipeline of connected decision nodes (agent arguments, guardian checkpoints, final synthesis),
+So that I can visually understand how each piece of the debate contributed to the final trade decision.
+
+**Acceptance Criteria:**
+
+**Given** a completed debate with transcript and trading analysis
+**When** I visit the debate detail page
+**Then** I see a vertical pipeline with nodes for: Market Data Input → Agent Decision Nodes → Guardian Checkpoint Nodes → Decision Synthesis Node
+
+**Given** each Agent Decision Node
+**When** displayed
+**Then** it shows the agent avatar (Bull=emerald, Bear=rose), turn number, a 1-line thesis summary (first ~80 chars of content), and a collapsed state showing key metrics
+
+**Given** an Agent Decision Node
+**When** I click/tap it
+**Then** it expands to reveal the full argument text, data sources referenced, and any redaction badges (FR-09)
+
+**Given** a Guardian Checkpoint Node
+**When** displayed between agent turns
+**Then** it shows a shield icon with a color-coded risk ring (green=safe, yellow=low, orange=medium, red=high/critical) and the summary verdict (FR-07)
+
+**Given** a Guardian Checkpoint Node that had an interrupt
+**When** displayed
+**Then** it shows the fallacy type badge (e.g., "overconfidence", "confirmation_bias") and an expandable reason section (FR-06)
+
+**Given** animated flow connections between nodes
+**When** rendered
+**Then** dashed SVG lines animate downward showing data flow direction, with the winning path glowing on completion
+
+**Given** the Decision Synthesis Node at the bottom
+**When** displayed for a completed debate
+**Then** it shows: winner badge, bull/bear score bars, confidence %, direction indicator, entry zone, stop loss, take profit, risk:reward ratio, guardian verdict, and the AI verdict text
+
+**Given** the pipeline view
+**When** viewed on mobile (portrait)
+**Then** all nodes are full-width, touch-friendly (44px min targets), and scrollable vertically
+
+**Given** `useReducedMotion()` returns true
+**When** any node animation plays
+**Then** all animations set duration to 0 — nodes appear instantly with no motion
+
+### Story 7.2: Playback Controls & Animation Engine
+
+As a User,
+I want to auto-play a completed debate with step-by-step node reveal and adjustable speed,
+So that I can watch the decision process unfold like a narrative at a pace I control.
+
+**Acceptance Criteria:**
+
+**Given** a completed debate in pipeline view
+**When** the page loads
+**Then** playback controls appear at the bottom: play/pause button, scrub bar (slider), speed selector (0.5x / 1x / 2x), and step counter ("Step 3 of 12")
+
+**Given** I press Play
+**When** playback starts
+**Then** nodes appear one at a time with a Framer Motion entrance animation (opacity 0 → 1, y 20 → 0, 0.4s ease-out) and a ~2.5s pause between steps at 1x speed
+
+**Given** playback is active
+**When** a new node appears
+**Then** the viewport auto-scrolls to keep the active node centered, and the active node gets a subtle left-border highlight
+
+**Given** previously revealed nodes
+**When** a new step activates
+**Then** past nodes dim to opacity 0.7, and the active node is at full opacity
+
+**Given** the scrub bar
+**When** I click or drag to any position
+**Then** all nodes up to that position are revealed and the pipeline scrolls to that node
+
+**Given** the speed selector
+**When** I change speed to 2x
+**Then** the pause between steps halves (~1.25s); at 0.5x it doubles (~5s)
+
+**Given** playback reaches the Decision Synthesis Node
+**When** it activates
+**Then** a special "sealing" animation plays: scale pulse + glow ring effect, and playback auto-pauses
+
+**Given** I press Pause during playback
+**When** playback stops
+**Then** the current node stays highlighted and the play button changes to a resume icon
+
+**Given** the keyboard
+**When** I press Space
+**Then** it toggles play/pause; Left/Right arrows step backward/forward one node; Home/End jump to first/last node
+
+**Given** `useReducedMotion()` returns true
+**When** playback runs
+**Then** nodes appear instantly (no entrance animation) but still auto-advance on the same timing
+
+### Story 7.3: Score Accumulator Sidebar
+
+As a User,
+I want to see a visual gauge alongside the pipeline showing how bull vs bear strength accumulated across turns,
+So that I can see at a glance how the balance of persuasion shifted over time.
+
+**Acceptance Criteria:**
+
+**Given** a completed debate with trading analysis
+**When** the pipeline is displayed on desktop (>1024px)
+**Then** a Score Accumulator sidebar appears to the left of the pipeline showing two vertical filling bars (Bull=emerald, Bear=rose)
+
+**Given** the sidebar bars
+**When** displayed
+**Then** Bull bar height represents `tradingAnalysis.bullScore` and Bear bar height represents `tradingAnalysis.bearScore`, with numeric labels
+
+**Given** playback is running
+**When** each turn node activates
+**Then** the bars fill incrementally (distributing final scores evenly across turns), animated with a 0.3s ease-out transition
+
+**Given** the sidebar
+**When** displayed
+**Then** it shows a Guardian safety indicator (shield icon with aggregated risk status from guardianVerdict) and turn-by-turn markers
+
+**Given** mobile viewport (<1024px)
+**When** the pipeline is displayed
+**Then** the Score Accumulator moves above the pipeline as a compact horizontal bar (not sidebar), showing the same bull/bear balance
+
+**Given** a live debate in progress
+**When** new argument nodes arrive via WebSocket
+**Then** the score bars update in real-time as each turn completes
+
+**Given** `useReducedMotion()` returns true
+**When** bar fills animate
+**Then** transitions are instant (duration: 0)
+
+### Story 7.4: Live Real-Time Pipeline Integration
+
+As a User,
+I want the pipeline to build in real-time during a live debate,
+So that I can watch the decision process unfold as agents generate arguments.
+
+**Acceptance Criteria:**
+
+**Given** a live debate is in progress
+**When** I view the debate page
+**Then** the pipeline starts with a Market Data Input node and builds downward as arguments stream in
+
+**Given** a `DEBATE/TOKEN_RECEIVED` WebSocket event
+**When** tokens arrive for the current agent
+**Then** the active Agent Decision Node shows a streaming cursor with text appearing character by character inside the node
+
+**Given** a `DEBATE/ARGUMENT_COMPLETE` WebSocket event
+**When** a full argument is delivered
+**Then** the Agent Decision Node completes with full content, thesis summary, and any redaction metadata — then a new placeholder node appears for the next agent
+
+**Given** a `DEBATE/REASONING_NODE` with `nodeType="risk_check"`
+**When** the guardian analysis completes
+**Then** a Guardian Checkpoint Node appears between the agent turns with the appropriate risk level indicator
+
+**Given** a `DEBATE/GUARDIAN_INTERRUPT` WebSocket event
+**When** a critical risk is detected
+**Then** the active node pulses red, the existing GuardianOverlay freeze mechanism activates (grayscale + modal), and playback pauses until acknowledged
+
+**Given** a `DEBATE/STATUS_UPDATE` with `status="completed"`
+**When** the debate finishes
+**Then** the Decision Synthesis Node animates in with the "sealing" effect, showing the full trading analysis and winner
+
+**Given** new nodes appearing during live debate
+**When** each node enters
+**Then** the viewport auto-scrolls downward to keep the latest node visible
+
+**Given** a `DEBATE/TURN_CHANGE` event
+**When** the active agent switches
+**Then** a typing indicator appears in the next agent's placeholder node showing "Bull is analyzing..." or "Bear is thinking..."
+
+**Given** the user votes during a live debate
+**When** vote is submitted
+**Then** the existing SentimentReveal component appears in the Decision Synthesis Node area (or as an overlay if debate is still running)
+
+### Story 7.5: View Toggle, Accessibility & Polish
+
+As a User,
+I want to toggle between the pipeline view and the raw transcript,
+So that I can choose between the visual overview and the detailed chat-style view.
+
+**Acceptance Criteria:**
+
+**Given** the debate detail page
+**When** loaded
+**Then** a segmented ViewToggle control appears at the top of the debate content area with two options: "Pipeline" (default) and "Transcript", with an animated underline indicator
+
+**Given** the ViewToggle
+**When** I select "Transcript"
+**Then** the pipeline hides and the existing DebateTranscript component renders showing the raw message list with show-more disclosure
+
+**Given** the ViewToggle
+**When** I select "Pipeline"
+**Then** the transcript hides and the pipeline renders, resuming from the last playback state
+
+**Given** the ViewToggle selection
+**When** I navigate away and return
+**Then** my preference is persisted in localStorage and restored on next visit
+
+**Given** the pipeline view
+**When** a screen reader is active
+**Then** each node has an `aria-live="polite"` announcement as it activates during playback (e.g., "Bull argues that strong RSI supports an uptrend. Guardian rates this as low risk.")
+
+**Given** the pipeline view
+**When** I press Tab
+**Then** focus moves through interactive elements in logical order: ViewToggle → PlaybackControls → each expandable node → TradingSignalCard
+
+**Given** a debate with more than 12 transcript messages
+**When** the pipeline renders
+**Then** off-screen nodes are virtualized using `@tanstack/react-virtual` (already installed) to prevent performance degradation
+
+**Given** the pipeline view
+**When** a node is focused
+**Then** a visible focus ring (2px offset, theme-colored) appears meeting WCAG AA contrast requirements
+
+**Given** the Decision Synthesis Node
+**When** rendered
+**Then** the existing TradingSignalCard component is embedded within it (reused, not duplicated), maintaining all existing functionality (watchlist, disclaimer, price levels)
+
+**Given** mobile viewport (<768px)
+**When** the pipeline is displayed
+**Then** the playback controls become a sticky bottom bar with compact controls (play/pause, step counter, speed toggle), and swipe left/right gestures step through nodes

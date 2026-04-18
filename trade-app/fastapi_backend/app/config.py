@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     # Voting Capacity
     VOTE_CAPACITY_LIMIT: int = 10_000
 
+    # Audit Trail (NFR-09)
+    AUDIT_ENABLED: bool = False
+    AUDIT_RECONCILIATION_INTERVAL_SECONDS: int = 300
+
     # Forbidden Phrases (configurable compliance list)
     FORBIDDEN_PHRASES: list[str] = [
         "guaranteed",

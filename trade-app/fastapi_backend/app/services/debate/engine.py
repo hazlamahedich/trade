@@ -36,6 +36,7 @@ from app.services.debate.sanitization import (
 )
 from app.services.debate.archival import archive_with_retry
 from app.services.market.stale_data_guardian import StaleDataGuardian
+from app.services.audit.writer import AuditWriter
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +138,35 @@ async def bull_agent_node(
         sanitization_result = None
 
     result["_sanitization_result"] = sanitization_result
+
+    if (
+        sanitization_result
+        and sanitization_result.is_redacted
+        and manager
+        and debate_id
+    ):
+        from app.config import settings as _s
+
+        if _s.AUDIT_ENABLED:
+            from app.services.audit.writer import get_audit_writer as _gaw
+
+            try:
+                await _gaw().write(
+                    {
+                        "debate_id": debate_id,
+                        "event_type": "SANITIZATION",
+                        "actor": "bull",
+                        "payload": {
+                            "redacted_phrases": sanitization_result.redacted_phrases,
+                            "redaction_ratio": sanitization_result.redaction_ratio,
+                            "original_length": len(raw_content),
+                            "turn": result["current_turn"],
+                        },
+                    }
+                )
+            except Exception as _audit_exc:
+                logger.warning(f"Audit write failed for SANITIZATION: {_audit_exc}")
+
     return result
 
 
@@ -195,6 +225,35 @@ async def bear_agent_node(
         sanitization_result = None
 
     result["_sanitization_result"] = sanitization_result
+
+    if (
+        sanitization_result
+        and sanitization_result.is_redacted
+        and manager
+        and debate_id
+    ):
+        from app.config import settings as _s
+
+        if _s.AUDIT_ENABLED:
+            from app.services.audit.writer import get_audit_writer as _gaw
+
+            try:
+                await _gaw().write(
+                    {
+                        "debate_id": debate_id,
+                        "event_type": "SANITIZATION",
+                        "actor": "bear",
+                        "payload": {
+                            "redacted_phrases": sanitization_result.redacted_phrases,
+                            "redaction_ratio": sanitization_result.redaction_ratio,
+                            "original_length": len(raw_content),
+                            "turn": result["current_turn"],
+                        },
+                    }
+                )
+            except Exception as _audit_exc:
+                logger.warning(f"Audit write failed for SANITIZATION: {_audit_exc}")
+
     return result
 
 
@@ -266,6 +325,7 @@ async def stream_debate(
     manager: DebateConnectionManager,
     max_turns: int = 6,
     stale_guardian: StaleDataGuardian | None = None,
+    audit_writer: AuditWriter | None = None,
 ) -> dict[str, Any]:
     """Stream debate tokens via async generator with WebSocket broadcasting."""
     if stale_guardian is None:
@@ -295,6 +355,26 @@ async def stream_debate(
 
     await stream_state.save_state(debate_id, {"status": "running", "asset": asset})
     await send_status_update(manager, debate_id, "running")
+
+    from app.config import settings as _audit_settings
+
+    if audit_writer is None and _audit_settings.AUDIT_ENABLED:
+        from app.services.audit.writer import get_audit_writer
+
+        audit_writer = get_audit_writer()
+
+    if _audit_settings.AUDIT_ENABLED and audit_writer is not None:
+        try:
+            await audit_writer.write(
+                {
+                    "debate_id": debate_id,
+                    "event_type": "DEBATE_STARTED",
+                    "actor": "system",
+                    "payload": {"asset": asset, "max_turns": max_turns},
+                }
+            )
+        except Exception as e:
+            logger.warning(f"Audit write failed for DEBATE_STARTED: {e}")
 
     await send_reasoning_node(
         manager,
@@ -386,6 +466,37 @@ async def stream_debate(
             if guardian is not None:
                 try:
                     analysis = await guardian.analyze(current_state)
+
+                    if audit_writer is not None:
+                        try:
+                            await audit_writer.write(
+                                {
+                                    "debate_id": debate_id,
+                                    "event_type": "GUARDIAN_ANALYSIS",
+                                    "actor": "guardian",
+                                    "payload": {
+                                        "turn": result["current_turn"],
+                                        "analyzing_agent": current_agent,
+                                        "should_interrupt": analysis.get(
+                                            "should_interrupt", False
+                                        ),
+                                        "risk_level": analysis.get("risk_level", "low"),
+                                        "fallacy_type": analysis.get("fallacy_type"),
+                                        "reason": analysis.get("reason", ""),
+                                        "summary_verdict": analysis.get(
+                                            "summary_verdict", ""
+                                        ),
+                                        "safe": analysis.get("safe", True),
+                                        "detailed_reasoning": analysis.get(
+                                            "detailed_reasoning", ""
+                                        ),
+                                    },
+                                }
+                            )
+                        except Exception as e:
+                            logger.warning(
+                                f"Audit write failed for GUARDIAN_ANALYSIS: {e}"
+                            )
 
                     if analysis["should_interrupt"]:
                         risk_lvl: RiskLevel = cast(RiskLevel, analysis["risk_level"])
@@ -585,6 +696,25 @@ async def stream_debate(
         await stream_state.save_state(debate_id, completed_state)
         await send_status_update(manager, debate_id, "completed")
 
+        if audit_writer is not None:
+            try:
+                await audit_writer.write(
+                    {
+                        "debate_id": debate_id,
+                        "event_type": "DEBATE_COMPLETED",
+                        "actor": "system",
+                        "payload": {
+                            "total_turns": current_state["current_turn"],
+                            "guardian_verdict": current_state.get("guardian_verdict"),
+                            "interrupt_count": len(
+                                current_state.get("guardian_interrupts", [])
+                            ),
+                        },
+                    }
+                )
+            except Exception as e:
+                logger.warning(f"Audit write failed for DEBATE_COMPLETED: {e}")
+
         try:
             await archive_with_retry(debate_id, current_state)
         except Exception as e:
@@ -600,6 +730,22 @@ async def stream_debate(
             debate_id, {"status": "error", "asset": asset, "error": str(e)}
         )
         await send_status_update(manager, debate_id, "error")
+        if audit_writer is not None:
+            try:
+                await audit_writer.write(
+                    {
+                        "debate_id": debate_id,
+                        "event_type": "DEBATE_ERROR",
+                        "actor": "system",
+                        "payload": {
+                            "error_type": type(e).__name__,
+                            "error_message": str(e)[:500],
+                            "total_turns": current_state["current_turn"],
+                        },
+                    }
+                )
+            except Exception as audit_err:
+                logger.warning(f"Audit write failed for DEBATE_ERROR: {audit_err}")
         raise
     finally:
         _clear_pause_event(debate_id)
