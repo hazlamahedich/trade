@@ -167,8 +167,12 @@ export default async function DebateDetailPage({
 
   return (
     <main className="min-h-screen bg-background text-slate-100">
-      <DebatePoller debateId={externalId} initialData={data}>
-        {(freshData) => <DebateContent data={freshData} externalId={externalId} />}
+      <DebatePoller
+        debateId={externalId}
+        initialStatus={data.status}
+        asset={data.asset}
+      >
+        <DebateContent data={data} externalId={externalId} />
       </DebatePoller>
     </main>
   );
