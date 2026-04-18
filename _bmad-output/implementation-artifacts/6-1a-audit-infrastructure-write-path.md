@@ -378,12 +378,16 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - `trade-app/fastapi_backend/app/routes/admin.py` — Admin API (debates, audit-events, DLQ, hallucination-flags, /me)
 - `trade-app/fastapi_backend/alembic_migrations/versions/g2b4c6d8e0f1_add_audit_infrastructure.py`
 - `trade-app/fastapi_backend/tests/services/audit/__init__.py` — Writer unit tests
-- `trade-app/fastapi_backend/tests/services/audit/test_writer.py` — Writer unit tests
+- `trade-app/fastapi_backend/tests/services/audit/test_writer.py` — Writer unit tests (deterministic, mocked sleep)
 - `trade-app/fastapi_backend/tests/services/audit/test_dlq.py` — DLQ unit tests
 - `trade-app/fastapi_backend/tests/services/audit/test_reconciliation.py` — Reconciliation unit tests
-- `trade-app/fastapi_backend/tests/routes/test_admin.py` — Admin API tests
+- `trade-app/fastapi_backend/tests/routes/conftest.py` — Shared admin test fixtures (debate, flags, DLQ)
+- `trade-app/fastapi_backend/tests/routes/test_admin_auth.py` — Admin auth tests (401/403/200)
+- `trade-app/fastapi_backend/tests/routes/test_admin_debates.py` — Admin debates + audit events tests
+- `trade-app/fastapi_backend/tests/routes/test_admin_flags.py` — Hallucination flag tests
+- `trade-app/fastapi_backend/tests/routes/test_admin_dlq.py` — DLQ endpoint tests
 - `trade-app/fastapi_backend/tests/test_audit_models.py` — Data model + migration tests (PostgreSQL)
- - `trade-app/fastapi_backend/tests/test_jsonb_queries.py` — JSONB containment + ordering tests
+- `trade-app/fastapi_backend/tests/test_jsonb_queries.py` — JSONB containment + ordering tests
 
 ### Review Findings (2026-04-18)
 
@@ -451,6 +455,23 @@ Bug fix: `test_reconciliation_no_gaps_for_complete_sequence` — `db_session.add
 
 Total: 46 → 64 tests.
 
+#### TEA Test Review Fixes (2026-04-19)
+
+TEA testarch-test-review identified 8 findings (1 critical, 5 warnings, 2 info). All addressed:
+
+| # | Finding | Fix |
+|---|---------|-----|
+| M-1 | `test_admin.py` 622 lines — exceeds Lesson #14 (300-line limit) | Split into 4 files: `test_admin_auth.py` (33 lines), `test_admin_debates.py` (201), `test_admin_flags.py` (139), `test_admin_dlq.py` (52) |
+| M-2 | Repeated debate+flag setup boilerplate in 6+ tests | Extracted fixtures to `tests/routes/conftest.py`: `debate`, `debate_eth`, `debate_with_flag`, `debate_with_dismissed_flag`, `dlq_entry`, `dlq_maxed_entry` |
+| M-3 | Inline imports (`from app.models import ...`) inside test bodies | Moved all imports to top level in each file |
+| D-1 | `asyncio.sleep(1.5)` in timeout test — flaky under load | Replaced with `writer.flush()` + `close()` — deterministic, no sleep |
+| D-2 | `Settings()` partial mock only passes 2 fields — env-dependent | Changed to `monkeypatch.setenv()` for all required env vars |
+| I-1 | Module global `_writer_instance` mutation leaks between tests | Added `reset_writer_global` fixture with yield cleanup |
+| P-2 | Real backoff sleep in retry tests adds ~1.5s per test | All retry tests mock `asyncio.sleep` — suite time 13.82s → 7.56s |
+| M-4 | QueuedAuditWriter never tested with `start()` (normal path) | Added `test_queued_writer_consumer_with_start` |
+
+**64/64 tests pass. Ruff clean. 7.56s execution.**
+
 #### Deferred
 
 - [x] [Review][Defer] N+1 query pattern in admin debates list — 2 additional queries per debate for audit_event_count and risk_score [`admin.py:164-183`] — deferred, pre-existing performance issue, not a bug
@@ -459,4 +480,3 @@ Total: 46 → 64 tests.
 - [x] [Review][Defer] HallucinationFlag FK to user.id has no `ondelete="SET NULL"` — deferred, minor, user deletion is edge case
 - [x] [Review][Defer] Admin endpoints have no rate limiting — deferred, out of scope for this story
 - [x] [Review][Defer] 1-second latency floor in consumer loop — deferred, by design for batching efficiency
-- [x] [Review][Defer] `test_config_audit_enabled_defaults_false` passes only 2 required Settings fields — deferred, depends on env vars in test environment

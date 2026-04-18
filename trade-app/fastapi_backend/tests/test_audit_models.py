@@ -205,10 +205,21 @@ async def test_audit_dlq_crud(db_session: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_config_audit_enabled_defaults_false():
+async def test_config_audit_enabled_defaults_false(monkeypatch):
     from app.config import Settings
 
-    s = Settings(DATABASE_URL="postgresql://test", google_api_key="test")
+    env_vars = {
+        "DATABASE_URL": "postgresql://test",
+        "GOOGLE_API_KEY": "test",
+        "REDIS_URL": "redis://localhost:6379/0",
+        "ACCESS_SECRET_KEY": "test",
+        "RESET_PASSWORD_SECRET_KEY": "test",
+        "VERIFICATION_SECRET_KEY": "test",
+    }
+    for key, val in env_vars.items():
+        monkeypatch.setenv(key, val)
+
+    s = Settings()
     assert s.AUDIT_ENABLED is False
 
 

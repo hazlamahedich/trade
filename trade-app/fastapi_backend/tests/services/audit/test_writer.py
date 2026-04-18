@@ -1,5 +1,3 @@
-import asyncio
-
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -33,9 +31,10 @@ async def test_direct_writer_write_batch_retries_on_failure():
     writer = DirectAuditWriter(session_factory=MagicMock())
     writer.write = _flaky_write
 
-    await writer.write_batch(
-        [{"debate_id": "test", "event_type": "TEST", "actor": "system"}]
-    )
+    with patch("app.services.audit.writer.asyncio.sleep", new_callable=AsyncMock):
+        await writer.write_batch(
+            [{"debate_id": "test", "event_type": "TEST", "actor": "system"}]
+        )
     assert call_count == 3
 
 
@@ -47,14 +46,15 @@ async def test_direct_writer_write_batch_raises_after_3_retries():
     writer = DirectAuditWriter(session_factory=MagicMock())
     writer.write = _always_fail
 
-    with pytest.raises(ConnectionError):
-        await writer.write_batch(
-            [{"debate_id": "test", "event_type": "TEST", "actor": "system"}]
-        )
+    with patch("app.services.audit.writer.asyncio.sleep", new_callable=AsyncMock):
+        with pytest.raises(ConnectionError):
+            await writer.write_batch(
+                [{"debate_id": "test", "event_type": "TEST", "actor": "system"}]
+            )
 
 
 @pytest.mark.asyncio
-async def test_queued_writer_consumer_flushes_on_timeout():
+async def test_queued_writer_consumer_with_start():
     mock_direct = AsyncMock()
     writer = QueuedAuditWriter(direct_writer=mock_direct)
     await writer.start()
@@ -63,7 +63,7 @@ async def test_queued_writer_consumer_flushes_on_timeout():
         {"debate_id": "test", "event_type": "TEST", "actor": "system", "payload": {}}
     )
 
-    await asyncio.sleep(1.5)
+    await writer.flush()
     await writer.close()
 
     mock_direct.write.assert_called_once()
@@ -106,10 +106,20 @@ async def test_queued_writer_sends_to_dlq_after_retries():
     batch = [
         {"debate_id": "fail", "event_type": "TEST", "actor": "system", "payload": {}}
     ]
-    await writer._write_batch(batch)
+    with patch("app.services.audit.writer.asyncio.sleep", new_callable=AsyncMock):
+        await writer._write_batch(batch)
 
     mock_session.add.assert_called_once()
     mock_session.commit.assert_called_once()
+
+
+@pytest.fixture
+def reset_writer_global():
+    import app.services.audit.writer as writer_mod
+
+    original = writer_mod._writer_instance
+    yield
+    writer_mod._writer_instance = original
 
 
 @pytest.mark.asyncio
@@ -121,20 +131,16 @@ async def test_get_audit_writer_returns_null_when_disabled():
 
 
 @pytest.mark.asyncio
-async def test_get_audit_writer_returns_queued_when_enabled():
+async def test_get_audit_writer_returns_queued_when_enabled(reset_writer_global):
     import app.services.audit.writer as writer_mod
 
-    original = writer_mod._writer_instance
     writer_mod._writer_instance = None
-    try:
-        with patch("app.services.audit.writer.settings") as mock_settings:
-            mock_settings.AUDIT_ENABLED = True
-            mock_settings.DATABASE_URL = "postgresql+asyncpg://test:test@localhost/test"
-            writer = get_audit_writer()
-            assert isinstance(writer, QueuedAuditWriter)
-            await writer.close()
-    finally:
-        writer_mod._writer_instance = original
+    with patch("app.services.audit.writer.settings") as mock_settings:
+        mock_settings.AUDIT_ENABLED = True
+        mock_settings.DATABASE_URL = "postgresql+asyncpg://test:test@localhost/test"
+        writer = get_audit_writer()
+        assert isinstance(writer, QueuedAuditWriter)
+        await writer.close()
 
 
 @pytest.mark.asyncio
