@@ -1,6 +1,6 @@
 # Story 6.1a: Audit Infrastructure + Write Path
 
-Status: review
+Status: complete
 Parent: 6-1-admin-dashboard-logs-hallucinations.md
 Split from: original 6.1 (164 subtasks, exceeded Lesson #23 threshold)
 Adversarial review: 2026-04-18 (Winston, Amelia, Murat, Dr. Quinn — consensus on 12 positions)
@@ -17,7 +17,7 @@ So that we can detect tampering, reconstruct debate history, and support regulat
    **When** any agent generates output or guardian analyzes
    **Then** an `audit_events` row is written asynchronously with a monotonically-increasing `sequence_number` per debate
 
-2. **Given** a failed audit write after 3 retries
+2. **Given** a failed audit write after 5 retries
    **When** the event enters the Dead Letter Queue
    **Then** the event is recoverable via DLQ replay endpoint
 
@@ -187,7 +187,7 @@ So that we can detect tampering, reconstruct debate history, and support regulat
 - [x] 21. Run all quality gates before marking 6.1a complete
   - [x] 21.1 `ruff check .` — fix all errors (Lesson #9: remove unused imports)
   - [x] 21.2 `ruff format .` — ensure formatting
-  - [x] 21.3 `.venv/bin/python -m pytest` — all backend tests pass (28 tests: 4 unit writer + 3 unit DLQ + 4 reconciliation + 8 integration + 5 API + 5 data model + 2 JSONB query + 1 migration — adjust as needed)
+  - [x] 21.3 `.venv/bin/python -m pytest` — all backend tests pass (37 tests in scope: 14 writer + 5 DLQ + 11 reconciliation + 10 admin flags + 4 tamper evidence + 2 JSONB query + 1 migration — adjust as needed)
   - [x] 21.4 Manual verification: run migration against test DB with feature flag off → flip flag on → run a debate → verify `audit_events` table populated
 
 ---
@@ -358,6 +358,10 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 6. Engine integration is backward-compatible: `audit_writer=None` parameter, no behavior change when flag off
 7. CamelCase API output via `alias_generator=camelize` + `ConfigDict` — test assertion for `/me` uses `isSuperuser`
 8. 18 additional tests added via TEA testarch-automate: writer batch/drain/DLQ, reconciliation gap fill/idempotent/DLQ replay, admin filters/sort/force-replay
+9. Party Mode review (8 agents) — 2 blocking fixes applied: tamper-evidence test suite (4 tests) + writer race condition (ON CONFLICT + exponential backoff)
+10. 2 non-blocking improvements: dismissed→pending state transition, autouse fixture
+11. Writer payload serialization fixed: `json.dumps()` for asyncpg JSONB compatibility
+12. `_MAX_RETRIES` increased 3→5 with exponential backoff for concurrent write safety
 
 ### File List
 
@@ -388,6 +392,7 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - `trade-app/fastapi_backend/tests/routes/test_admin_dlq.py` — DLQ endpoint tests
 - `trade-app/fastapi_backend/tests/test_audit_models.py` — Data model + migration tests (PostgreSQL)
 - `trade-app/fastapi_backend/tests/test_jsonb_queries.py` — JSONB containment + ordering tests
+- `trade-app/fastapi_backend/tests/test_tamper_evidence.py` — Tamper-evidence security tests (gap detection, mutation, unique constraint, concurrent writes)
 
 ### Review Findings (2026-04-18)
 
@@ -442,6 +447,35 @@ GLM-5.1 (zai-coding-plan/glm-5.1)
 - [x] [Review][Patch] QueuedAuditWriter.close() race — consumer cancelled mid-batch loses events 26-50 that were in local batch but not yet written [`writer.py:113-126`] — Merged into writer.py shared engine patch
 
 **All patches applied. 64 tests pass. Ruff clean.**
+
+#### Party Mode Review — 8-Agent Consensus (2026-04-19)
+
+BMAD Party Mode review with 8 agents (Winston, Amelia, Murat, Dr. Quinn, Carson, Sophia, Sally, Paige) identified 2 blocking + 2 non-blocking issues:
+
+| # | Issue | Severity | Agent | Fix |
+|---|-------|----------|-------|-----|
+| 1 | Zero tamper-evidence tests — audit system's core security property unverified | BLOCKING (9/10 risk — Murat) | Murat, Winston | Added 4 tests in `tests/test_tamper_evidence.py` |
+| 2 | Race condition in writer subquery — concurrent writes to same debate_id collide | BLOCKING | Winston, Amelia | `ON CONFLICT DO NOTHING` + retry with exponential backoff |
+| 3 | `dismissed→pending` state transition missing from admin valid_transitions | Non-blocking | Paige | Added `dismissed: ["pending"]` to `admin.py` |
+| 4 | `reset_writer_global` fixture not auto-applied — test isolation leak | Non-blocking | Amelia | Changed to `autouse=True` |
+
+**Writer fixes applied (`writer.py`):**
+- Added `json.dumps()` for payload serialization — asyncpg can't serialize dicts for JSONB via `text()` queries
+- Added exponential backoff between sequence conflict retries (`_RETRY_BACKOFF_BASE * 2^attempt`)
+- Increased `_MAX_RETRIES` from 3 to 5 for production safety under concurrency
+- Uses shared `AsyncEngine` fixture for session factory in concurrent tests
+
+**Tamper-evidence tests (`tests/test_tamper_evidence.py`):**
+- `test_tamper_evidence_gap_detection_after_deletion` — verifies gap detection catches deleted rows
+- `test_tamper_evidence_mutation_detected_via_payload_mismatch` — verifies payload tampering is detectable via raw SQL comparison
+- `test_tamper_evidence_unique_constraint_prevents_insertion_attack` — verifies unique constraint blocks duplicate sequences
+- `test_tamper_evidence_concurrent_writer_sequence_uniqueness` — verifies 5 concurrent writers produce unique sequential [1..5]
+
+**Additional fixes:**
+- `test_admin_flags.py`: New test `test_admin_hallucination_flag_dismissed_to_pending` — passes
+- `test_writer.py`: `autouse=True` on `reset_writer_global` fixture
+
+**37/37 in-scope tests pass. Ruff clean.**
 
 #### Test Automation Expansion (2026-04-19)
 

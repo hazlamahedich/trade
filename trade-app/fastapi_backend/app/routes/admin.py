@@ -605,7 +605,7 @@ async def update_hallucination_flag(
     valid_transitions = {
         "pending": ["confirmed", "dismissed"],
         "confirmed": ["dismissed"],
-        "dismissed": [],
+        "dismissed": ["pending"],
     }
     if body.status:
         allowed = valid_transitions.get(flag.status, [])

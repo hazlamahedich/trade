@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from typing import Any, Protocol, runtime_checkable
 
@@ -11,7 +12,7 @@ from app.models import AuditDLQ
 logger = logging.getLogger(__name__)
 
 _BATCH_SIZE = 50
-_MAX_RETRIES = 3
+_MAX_RETRIES = 5
 _RETRY_BACKOFF_BASE = 0.5
 
 
@@ -53,27 +54,38 @@ class DirectAuditWriter:
         if not debate_id or not event_type:
             raise ValueError("audit event requires debate_id and event_type")
 
-        async with self._session_factory() as session:
-            result = await session.execute(
-                text(
-                    "INSERT INTO audit_events (id, debate_id, sequence_number, event_type, actor, payload) "
-                    "VALUES (gen_random_uuid(), :debate_id, "
-                    "(SELECT COALESCE(MAX(sequence_number), 0) + 1 FROM audit_events WHERE debate_id = :debate_id), "
-                    ":event_type, :actor, :payload) "
-                    "RETURNING sequence_number"
-                ),
-                {
-                    "debate_id": str(debate_id),
-                    "event_type": event_type,
-                    "actor": event.get("actor", "system"),
-                    "payload": event.get("payload", {}),
-                },
-            )
-            seq = result.scalar_one()
-            await session.commit()
-            logger.debug(
-                f"Audit event written: debate={debate_id} seq={seq} type={event_type}"
-            )
+        for attempt in range(_MAX_RETRIES):
+            async with self._session_factory() as session:
+                result = await session.execute(
+                    text(
+                        "INSERT INTO audit_events (id, debate_id, sequence_number, event_type, actor, payload) "
+                        "VALUES (gen_random_uuid(), :debate_id, "
+                        "(SELECT COALESCE(MAX(sequence_number), 0) + 1 FROM audit_events WHERE debate_id = :debate_id), "
+                        ":event_type, :actor, :payload) "
+                        "ON CONFLICT (debate_id, sequence_number) DO NOTHING "
+                        "RETURNING sequence_number"
+                    ),
+                    {
+                        "debate_id": str(debate_id),
+                        "event_type": event_type,
+                        "actor": event.get("actor", "system"),
+                        "payload": json.dumps(event.get("payload", {})),
+                    },
+                )
+                row = result.scalar_one_or_none()
+                if row is not None:
+                    await session.commit()
+                    logger.debug(
+                        f"Audit event written: debate={debate_id} seq={row} type={event_type}"
+                    )
+                    return
+                await session.commit()
+                backoff = _RETRY_BACKOFF_BASE * (2**attempt)
+                await asyncio.sleep(backoff)
+                logger.debug(f"Sequence conflict for debate={debate_id}, retrying")
+        raise RuntimeError(
+            f"Failed to write audit event after {_MAX_RETRIES} attempts for debate={debate_id}"
+        )
 
     async def write_batch(self, events: list[dict[str, Any]]) -> None:
         for event in events:

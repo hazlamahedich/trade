@@ -113,7 +113,7 @@ async def test_queued_writer_sends_to_dlq_after_retries():
     mock_session.commit.assert_called_once()
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def reset_writer_global():
     import app.services.audit.writer as writer_mod
 

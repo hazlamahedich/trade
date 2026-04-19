@@ -115,6 +115,23 @@ async def test_admin_hallucination_flag_no_dismissed_to_confirmed(
 
 
 @pytest.mark.asyncio
+async def test_admin_hallucination_flag_dismissed_to_pending(
+    test_client, authenticated_admin_user, db_session, debate_with_dismissed_flag
+):
+    _, flag = debate_with_dismissed_flag
+
+    response = await test_client.patch(
+        f"/api/admin/hallucination-flags/{flag.id}",
+        json={"status": "pending", "notes": "reopened after review"},
+        headers=authenticated_admin_user["headers"],
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["data"]["status"] == "pending"
+    assert body["data"]["notes"] == "reopened after review"
+
+
+@pytest.mark.asyncio
 async def test_admin_hallucination_flags_list_with_filter(
     test_client, authenticated_admin_user, db_session, debate
 ):
